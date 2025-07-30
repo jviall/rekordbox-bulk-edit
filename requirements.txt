@@ -1,0 +1,4 @@
+# Add your project dependencies here
+# Example:
+# requests==2.31.0
+# flask==2.3.3
