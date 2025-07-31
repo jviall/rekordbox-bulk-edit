@@ -1,2 +1,5 @@
 # RekordBox database access
 pyrekordbox
+
+# Audio conversion
+ffmpeg-python>=0.2.0
