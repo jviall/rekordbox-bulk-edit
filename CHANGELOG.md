@@ -1,3 +1,13 @@
+## v0.2.1 (2025-07-31)
+
+### Fix
+
+- Add unit tests for utils and convert. Make is_rekordbox_running() more specific. Fix bad Error handling on ffmpeg
+
+### Refactor
+
+- clean up variables
+
 ## v0.2.0 (2025-07-31)
 
 ### Feat
