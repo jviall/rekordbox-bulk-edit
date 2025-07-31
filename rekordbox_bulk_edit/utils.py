@@ -9,32 +9,27 @@ from pyrekordbox import Rekordbox6Database
 
 def is_rekordbox_running():
     """Check if Rekordbox is currently running"""
-    for proc in psutil.process_iter(['pid', 'name']):
+    # Known absolute Rekordbox process names across platforms
+    # Only include actual process names that Rekordbox uses
+    known_rekordbox_names = {
+        "rekordbox",  # macOS
+        "rekordbox.exe",  # Windows
+    }
+
+    for proc in psutil.process_iter(["pid", "name"]):
         try:
-            if 'rekordbox' in proc.info['name'].lower():
-                return True, proc.info['name']
+            process_name = proc.info["name"]
+            if process_name.lower() in known_rekordbox_names:
+                return True, process_name
         except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
             pass
     return False, None
 
 
 # File type mappings for Rekordbox database
-FILE_TYPE_TO_NAME = {
-    0: "MP3", 
-    1: "MP3", 
-    4: "M4A", 
-    5: "FLAC", 
-    11: "WAV", 
-    12: "AIFF"
-}
+FILE_TYPE_TO_NAME = {0: "MP3", 1: "MP3", 4: "M4A", 5: "FLAC", 11: "WAV", 12: "AIFF"}
 
-FORMAT_TO_FILE_TYPE = {
-    "mp3": 1,
-    "m4a": 4,
-    "flac": 5,
-    "wav": 11,
-    "aiff": 12
-}
+FORMAT_TO_FILE_TYPE = {"mp3": 1, "m4a": 4, "flac": 5, "wav": 11, "aiff": 12}
 
 FORMAT_EXTENSIONS = {
     "mp3": ".mp3",
@@ -43,6 +38,7 @@ FORMAT_EXTENSIONS = {
     "wav": ".wav",
     "alac": ".m4a",
 }
+
 
 def format_file_type(file_type_code):
     """Convert file type code to human readable format"""
@@ -152,13 +148,21 @@ def get_track_info(track_id=None, format_filter=None):
                 # Filter by specific format
                 target_file_type = FORMAT_TO_FILE_TYPE.get(format_filter.lower())
                 if target_file_type:
-                    content_list = [content for content in all_content if content.FileType == target_file_type]
+                    content_list = [
+                        content
+                        for content in all_content
+                        if content.FileType == target_file_type
+                    ]
                 else:
                     content_list = []
             else:
                 # Get all audio files (exclude unknown types)
                 known_file_types = set(FILE_TYPE_TO_NAME.keys())
-                content_list = [content for content in all_content if content.FileType in known_file_types]
+                content_list = [
+                    content
+                    for content in all_content
+                    if content.FileType in known_file_types
+                ]
 
         return content_list
 

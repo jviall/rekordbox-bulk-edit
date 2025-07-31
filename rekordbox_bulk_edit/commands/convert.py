@@ -6,6 +6,7 @@ from pathlib import Path
 
 import click
 import ffmpeg
+from ffmpeg import Error as FfmpegError
 from pyrekordbox import Rekordbox6Database
 
 from rekordbox_bulk_edit.utils import (
@@ -51,10 +52,10 @@ def convert_to_lossless(input_path, output_path, output_format):
             .run(capture_stdout=True, capture_stderr=True)
         )
         return True
-    except ffmpeg.Error as e:
+    except FfmpegError as e:
         click.echo(f"FFmpeg error converting {input_path}: {e}")
         if e.stderr:
-            click.echo(f"FFmpeg stderr output:\n{e.stderr.decode()}")
+            click.echo(f"FFmpeg stderr output:\n{e.stderr.encode()}")
         return False
     except Exception as e:
         click.echo(f"Error converting {input_path}: {e}")
@@ -79,10 +80,10 @@ def convert_to_mp3(input_path, mp3_path):
             .run(capture_stdout=True, capture_stderr=True)
         )
         return True
-    except ffmpeg.Error as e:
+    except FfmpegError as e:
         click.echo(f"FFmpeg error converting {input_path}: {e}")
         if e.stderr:
-            click.echo(f"FFmpeg stderr output:\n{e.stderr.decode()}")
+            click.echo(f"FFmpeg stderr output:\n{e.stderr.encode()}")
         return False
     except Exception as e:
         click.echo(f"Error converting {input_path}: {e}")
@@ -155,7 +156,7 @@ def update_database_record(db, content_id, new_filename, new_folder, output_form
 
     except Exception as e:
         click.echo(f"Error updating database record {content_id}: {e}")
-        raise  # Re-raise to be handled by caller
+        raise e  # Re-raise to be handled by caller
 
 
 class UserQuit(Exception):
@@ -190,7 +191,7 @@ def cleanup_converted_files(converted_files):
         try:
             os.remove(file_info["output_path"])
             click.echo(f"✓ Cleaned up {file_info['output_path']}")
-        except:
+        except Exception:
             pass
 
 
