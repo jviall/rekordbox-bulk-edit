@@ -10,43 +10,12 @@ from pyrekordbox import Rekordbox6Database
 
 from rekordbox_bulk_edit.utils import (
     FILE_TYPE_TO_NAME,
-    FORMAT_TO_FILE_TYPE,
     FORMAT_EXTENSIONS,
+    FORMAT_TO_FILE_TYPE,
     get_audio_info,
     is_rekordbox_running,
     print_track_info,
 )
-
-
-def convert_flac_to_aiff(flac_path, aiff_path):
-    """Convert FLAC file to AIFF using ffmpeg, preserving bit depth"""
-    try:
-        # Get original audio info
-        audio_info = get_audio_info(flac_path)
-        bit_depth = audio_info["bit_depth"]
-
-        # Map bit depth to appropriate PCM codec
-        codec_map = {16: "pcm_s16be", 24: "pcm_s24be", 32: "pcm_s32be"}
-
-        codec = codec_map.get(bit_depth, "pcm_s16be")  # Default to 16-bit if unknown
-
-        click.echo(f"  Converting with {bit_depth}-bit depth using codec: {codec}")
-
-        (
-            ffmpeg.input(flac_path)
-            .output(aiff_path, acodec=codec)
-            .overwrite_output()
-            .run(capture_stdout=True, capture_stderr=True)
-        )
-        return True
-    except ffmpeg.Error as e:
-        click.echo(f"FFmpeg error converting {flac_path}: {e}")
-        if e.stderr:
-            click.echo(f"FFmpeg stderr output:\n{e.stderr.decode()}")
-        return False
-    except Exception as e:
-        click.echo(f"Error converting {flac_path}: {e}")
-        return False
 
 
 def convert_to_lossless(input_path, output_path, output_format):
@@ -72,9 +41,12 @@ def convert_to_lossless(input_path, output_path, output_format):
 
         click.echo(f"  Converting with {bit_depth}-bit depth using codec: {codec}")
 
+        # Build output options
+        output_options = {"acodec": codec, "map_metadata": 0, "write_id3v2": 1}
+
         (
             ffmpeg.input(input_path)
-            .output(output_path, acodec=codec)
+            .output(output_path, **output_options)
             .overwrite_output()
             .run(capture_stdout=True, capture_stderr=True)
         )
@@ -92,11 +64,17 @@ def convert_to_lossless(input_path, output_path, output_format):
 def convert_to_mp3(input_path, mp3_path):
     """Convert lossless file to MP3 using ffmpeg with 320kbps constant bitrate"""
     try:
-        click.echo("  Converting to MP3 320kbps CBR")
+        click.echo("Converting to MP3 320kbps CBR")
 
         (
             ffmpeg.input(input_path)
-            .output(mp3_path, acodec="libmp3lame", audio_bitrate="320k")
+            .output(
+                mp3_path,
+                acodec="libmp3lame",
+                audio_bitrate="320k",
+                map_metadata=0,
+                write_id3v2=1,
+            )
             .overwrite_output()
             .run(capture_stdout=True, capture_stderr=True)
         )
@@ -161,11 +139,16 @@ def update_database_record(db, content_id, new_filename, new_folder, output_form
         content.FileNameL = new_filename
         content.FolderPath = converted_full_path
         content.FileType = file_type
-        content.BitRate = converted_bitrate
 
-        click.echo(
-            f"  ✓ Updated BitRate from {content.BitRate or 0} to {converted_bitrate}"
-        )
+        # Set bitrate to 0 for FLAC files (like Rekordbox does), otherwise use detected bitrate
+        if output_format == "flac":
+            content.BitRate = 0
+            click.echo(f"  ✓ Updated BitRate from {content.BitRate or 0} to 0 (FLAC)")
+        else:
+            content.BitRate = converted_bitrate
+            click.echo(
+                f"  ✓ Updated BitRate from {content.BitRate or 0} to {converted_bitrate}"
+            )
 
         # Note: No commit here - will be done centrally
         return True
@@ -201,6 +184,79 @@ def confirm(question, default_yes=True):
         click.echo("Please enter 'y', 'n', or 'q' to quit")
 
 
+def cleanup_converted_files(converted_files):
+    """Clean up converted files on error or rollback"""
+    for file_info in converted_files:
+        try:
+            os.remove(file_info["output_path"])
+            click.echo(f"✓ Cleaned up {file_info['output_path']}")
+        except:
+            pass
+
+
+def handle_original_file_deletion(converted_files, auto_confirm):
+    """Handle deletion of original files after successful conversion"""
+    try:
+        if auto_confirm or confirm("Delete original files?", default_yes=False):
+            deleted_count = 0
+            for file_info in converted_files:
+                try:
+                    os.remove(file_info["flac_path"])
+                    deleted_count += 1
+                    click.echo(f"✓ Deleted {file_info['flac_path']}")
+                except Exception as e:
+                    click.echo(f"⚠ Failed to delete {file_info['flac_path']}: {e}")
+            click.echo(
+                f"Deleted {deleted_count} of {len(converted_files)} original files"
+            )
+        else:
+            click.echo("Original files preserved")
+    except UserQuit:
+        click.echo("User quit. Original files preserved.")
+        raise
+
+
+def handle_user_quit_with_changes(db, converted_files, auto_confirm):
+    """Handle user quit when there are uncommitted database changes"""
+    click.echo("User quit. You have uncommitted database changes.")
+    try:
+        if confirm("Commit database changes before quitting?", default_yes=True):
+            try:
+                db.session.commit()
+                click.echo("✓ Database changes committed successfully")
+                handle_original_file_deletion(converted_files, auto_confirm)
+            except Exception as e:
+                click.echo(f"FATAL ERROR: Failed to commit database changes: {e}")
+                db.session.rollback()
+                sys.exit(1)
+        else:
+            click.echo("Rolling back database changes and cleaning up...")
+            db.session.rollback()
+            cleanup_converted_files(converted_files)
+    except UserQuit:
+        click.echo("User quit. Rolling back database changes and cleaning up...")
+        db.session.rollback()
+        cleanup_converted_files(converted_files)
+
+
+def check_file_exists_and_confirm(output_full_path, output_format, auto_confirm):
+    """Check if output file exists and get user confirmation for skipping conversion"""
+    if not os.path.exists(output_full_path):
+        return False  # File doesn't exist, proceed with conversion
+
+    click.echo(
+        f"WARNING: {output_format.upper()} file already exists: {output_full_path}"
+    )
+    if auto_confirm or confirm(
+        "File exists. Skip conversion but update database record?", default_yes=True
+    ):
+        click.echo("Skipping conversion, will update database record only...")
+        return True  # Skip conversion but update database
+    else:
+        click.echo("Skipping this file...")
+        return None  # Skip this file entirely
+
+
 @click.command()
 @click.option(
     "--dry-run",
@@ -211,12 +267,31 @@ def confirm(question, default_yes=True):
     "--auto-confirm", is_flag=True, help="Skip confirmation prompts (use with caution)"
 )
 @click.option(
-    "--format",
+    "--output-format",
     type=click.Choice(["aiff", "flac", "wav", "alac", "mp3"], case_sensitive=False),
     default="aiff",
     help="Output format: 'aiff' / 'flac' / 'wav' / 'alac' / 'mp3' (default: aiff)",
 )
-def convert_command(dry_run, auto_confirm, format):
+@click.option(
+    "--format",
+    type=click.Choice(["flac", "aiff", "wav"], case_sensitive=False),
+    help="Filter by input format: 'flac' / 'aiff' / 'wav' (only lossless formats supported)",
+)
+@click.option(
+    "--playlist",
+    help="Filter by playlist name (exact match, case-sensitive)",
+)
+@click.option(
+    "--artist",
+    help="Filter by artist name (exact match, case-sensitive)",
+)
+@click.option(
+    "--album",
+    help="Filter by album name (exact match, case-sensitive)",
+)
+def convert_command(
+    dry_run, auto_confirm, output_format, format, playlist, artist, album
+):
     """Convert lossless audio files between formats and update RekordBox database.
 
     Supports conversion from any lossless format (FLAC, AIFF, WAV) to:
@@ -224,6 +299,12 @@ def convert_command(dry_run, auto_confirm, format):
     - FLAC: Lossless compression, preserves bit depth
     - WAV: Uncompressed, preserves original bit depth
     - MP3: 320kbps constant bitrate using LAME encoder
+
+    Supports filtering by:
+    - Input format: Only convert files of specific format
+    - Playlist: Only convert files in a specific playlist
+    - Artist: Only convert files by a specific artist
+    - Album: Only convert files from a specific album
 
     Skips all lossy formats (MP3/AAC), ALAC, and files already in the target format.
     """
@@ -258,33 +339,81 @@ def convert_command(dry_run, auto_confirm, format):
             click.echo("ABORTING: Cannot continue without database access")
             sys.exit(1)
 
-        # Get all lossless files, excluding MP3s
-        click.echo("Finding lossless audio files...")
-        all_content = db.get_content()
-        lossless_files = [
-            content
-            for content in all_content
-            if content.FileType in [5, 12, 11]  # FLAC, AIFF, WAV
-        ]
+        # Get filtered content based on user criteria
+        click.echo("Finding audio files...")
+
+        filtered_content = []
+
+        if playlist:
+            # Filter by playlist
+            click.echo(f"Filtering by playlist: {playlist}")
+            playlist_results = db.get_playlist().filter_by(Name=playlist)
+            playlist_obj = playlist_results.first()
+            if not playlist_obj:
+                click.echo(f"ERROR: Playlist '{playlist}' not found")
+                sys.exit(1)
+            elif playlist_results.count() > 1:
+                print(
+                    f"Warning: more than one playlist matches '{playlist}'. Using the first result: {playlist_obj.Name} ({playlist_obj.Id})"
+                )
+
+            # Get content from playlist
+            playlist_content = db.get_playlist_contents(playlist_obj).all()
+            content_ids = [pc.ID for pc in playlist_content]
+            filtered_content.extend(
+                [db.get_content().filter_by(ID=cid).first() for cid in content_ids]
+            )
+        else:
+            # Get all content if no playlist filter
+            filtered_content.extend(db.get_content().all())
+
+        # Apply artist filter if specified
+        if artist:
+            click.echo(f"Filtering by artist: {artist}")
+            artist_obj = db.get_artist().filter_by(Name=artist).first()
+            if not artist_obj:
+                click.echo(f"ERROR: Artist '{artist}' not found")
+                sys.exit(1)
+
+            filtered_content = [
+                c for c in filtered_content if c.ArtistID == artist_obj.ID
+            ]
+
+        # Apply album filter if specified
+        if album:
+            click.echo(f"Filtering by album: {album}")
+            album_obj = db.get_album().filter_by(Name=album).first()
+            if not album_obj:
+                click.echo(f"ERROR: Album '{album}' not found")
+                sys.exit(1)
+
+            filtered_content = [
+                c for c in filtered_content if c.AlbumID == album_obj.ID
+            ]
+
+        # Filter by input format if specified
+        if format:
+            if format.lower() == output_format.lower():
+                raise Exception(
+                    "--format filter matches --output-format. There will be nothing to convert"
+                )
+            input_file_type = FORMAT_TO_FILE_TYPE[format.lower()]
+            click.echo(f"Filtering by input format: {format.upper()}")
+            filtered_content = [
+                c for c in filtered_content if c.FileType == input_file_type
+            ]
 
         # Filter out files already in target format
-        target_file_type = FORMAT_TO_FILE_TYPE[format.lower()]
+        target_file_type = FORMAT_TO_FILE_TYPE[output_format.lower()]
         files_to_convert = [
             content
-            for content in lossless_files
+            for content in filtered_content
             if content.FileType != target_file_type
         ]
 
-        click.echo(f"Found {len(lossless_files)} lossless files total")
         click.echo(
-            f"Found {len(files_to_convert)} files to convert to {format.upper()}"
+            f"Found {len(files_to_convert)} files to convert to {output_format.upper()}"
         )
-
-        if len(lossless_files) > len(files_to_convert):
-            skipped_count = len(lossless_files) - len(files_to_convert)
-            click.echo(
-                f"Skipping {skipped_count} files already in {format.upper()} format"
-            )
 
         if not files_to_convert:
             click.echo("No files need conversion. Exiting.")
@@ -302,6 +431,7 @@ def convert_command(dry_run, auto_confirm, format):
             flac_file_name = content.FileNameL or ""
             flac_full_path = content.FolderPath or ""
             flac_folder = os.path.dirname(flac_full_path)
+            source_format = FILE_TYPE_TO_NAME.get(content.FileType, "Unknown")
 
             click.echo(f"\nProcessing {i}/{len(files_to_convert)}")
 
@@ -311,7 +441,6 @@ def convert_command(dry_run, auto_confirm, format):
 
             # Check if source file exists
             if not os.path.exists(flac_full_path):
-                source_format = FILE_TYPE_TO_NAME.get(content.FileType, "Unknown")
                 click.echo(f"ERROR: {source_format} file not found: {flac_full_path}")
                 click.echo("ABORTING: Cannot continue with missing files")
                 db.session.rollback()
@@ -319,7 +448,7 @@ def convert_command(dry_run, auto_confirm, format):
 
             # Generate output filename and path
             input_path_obj = Path(flac_file_name)
-            output_format_lower = format.lower()
+            output_format_lower = output_format.lower()
 
             # Map format to file extension
             extension = FORMAT_EXTENSIONS[output_format_lower]
@@ -327,129 +456,62 @@ def convert_command(dry_run, auto_confirm, format):
             output_full_path = os.path.join(flac_folder, output_filename)
 
             # Choose converter function
-            def converter_func(inp, out):
+            def convert(inp, out):
                 if output_format_lower == "mp3":
                     return convert_to_mp3(inp, out)
                 else:
                     return convert_to_lossless(inp, out, output_format_lower)
 
-            # Check if output file already exists
-            if os.path.exists(output_full_path):
-                click.echo(
-                    f"WARNING: {format.upper()} file already exists: {output_full_path}"
-                )
-                click.echo("ABORTING: Cannot overwrite existing files")
-                db.session.rollback()
-                sys.exit(1)
-
-            # Ask for confirmation
-            source_format = FILE_TYPE_TO_NAME.get(content.FileType, "Unknown")
+            # Check if output file already exists and get user decision
             try:
-                if not auto_confirm and not confirm(
-                    f"Convert {source_format} track {flac_file_name} to {format.upper()}?",
-                    default_yes=True,
-                ):
-                    click.echo("Skipping this file...")
+                file_exists_result = check_file_exists_and_confirm(
+                    output_full_path, output_format, auto_confirm
+                )
+                if file_exists_result is None:  # User chose to skip this file
                     continue
+                skip_conversion = file_exists_result  # True if skipping conversion, False if proceeding
             except UserQuit:
                 if converted_files:
-                    click.echo("User quit. You have uncommitted database changes.")
-                    try:
-                        if confirm(
-                            "Commit database changes before quitting?", default_yes=True
-                        ):
-                            try:
-                                db.session.commit()
-                                click.echo("✓ Database changes committed successfully")
-
-                                # Ask about deleting FLAC files
-                                try:
-                                    if auto_confirm or confirm(
-                                        "Delete original FLAC files?", default_yes=False
-                                    ):
-                                        deleted_count = 0
-                                        for file_info in converted_files:
-                                            try:
-                                                os.remove(file_info["flac_path"])
-                                                deleted_count += 1
-                                                click.echo(
-                                                    f"✓ Deleted {file_info['flac_path']}"
-                                                )
-                                            except Exception as e:
-                                                click.echo(
-                                                    f"⚠ Failed to delete {file_info['flac_path']}: {e}"
-                                                )
-                                        click.echo(
-                                            f"Deleted {deleted_count} of {len(converted_files)} FLAC files"
-                                        )
-                                    else:
-                                        click.echo("Original FLAC files preserved")
-                                except UserQuit:
-                                    click.echo(
-                                        "User quit. Original FLAC files preserved."
-                                    )
-
-                            except Exception as e:
-                                click.echo(
-                                    f"FATAL ERROR: Failed to commit database changes: {e}"
-                                )
-                                db.session.rollback()
-                                sys.exit(1)
-                        else:
-                            click.echo(
-                                "Rolling back database changes and cleaning up..."
-                            )
-                            db.session.rollback()
-                            # Clean up converted files
-                            for file_info in converted_files:
-                                try:
-                                    os.remove(file_info["output_path"])
-                                    click.echo(
-                                        f"✓ Cleaned up {file_info['output_path']}"
-                                    )
-                                except:
-                                    pass
-                    except UserQuit:
-                        click.echo(
-                            "User quit. Rolling back database changes and cleaning up..."
-                        )
-                        db.session.rollback()
-                        # Clean up converted files
-                        for file_info in converted_files:
-                            try:
-                                os.remove(file_info["output_path"])
-                                click.echo(f"✓ Cleaned up {file_info['output_path']}")
-                            except:
-                                pass
+                    handle_user_quit_with_changes(db, converted_files, auto_confirm)
                 else:
                     click.echo("User quit. No changes to commit.")
                 sys.exit(0)
 
-            # Convert file
-            source_format = FILE_TYPE_TO_NAME.get(content.FileType, "Unknown")
-            click.echo(f"Converting {source_format} to {format.upper()}...")
-            if not converter_func(flac_full_path, output_full_path):
-                click.echo("ABORTING: Conversion failed")
-                db.session.rollback()
-                # Clean up any converted files
-                for converted_file in converted_files:
-                    try:
-                        os.remove(converted_file["output_path"])
-                    except:
-                        pass
-                sys.exit(1)
+            # Ask for conversion confirmation (unless skipping conversion)
+            if not skip_conversion:
+                try:
+                    if not auto_confirm and not confirm(
+                        f"Convert {source_format} track {flac_file_name} to {output_format.upper()}?",
+                        default_yes=True,
+                    ):
+                        click.echo("Skipping this file...")
+                        continue
+                except UserQuit:
+                    if converted_files:
+                        handle_user_quit_with_changes(db, converted_files, auto_confirm)
+                    else:
+                        click.echo("User quit. No changes to commit.")
+                    sys.exit(0)
 
-            # Verify conversion was successful
-            if not os.path.exists(output_full_path):
-                click.echo("ABORTING: Converted file not found after conversion")
-                db.session.rollback()
-                sys.exit(1)
+            # Convert file (unless skipping)
+            if not skip_conversion:
+                if not convert(flac_full_path, output_full_path):
+                    click.echo("ABORTING: Conversion failed")
+                    db.session.rollback()
+                    cleanup_converted_files(converted_files)
+                    sys.exit(1)
+
+                # Verify conversion was successful
+                if not os.path.exists(output_full_path):
+                    click.echo("ABORTING: Converted file not found after conversion")
+                    db.session.rollback()
+                    sys.exit(1)
 
             # Update database (but don't commit yet)
             click.echo("Updating database record...")
             try:
                 update_database_record(
-                    db, content.ID, output_filename, flac_folder, format.lower()
+                    db, content.ID, output_filename, flac_folder, output_format.lower()
                 )
                 converted_files.append(
                     {
@@ -458,7 +520,12 @@ def convert_command(dry_run, auto_confirm, format):
                         "content_id": content.ID,
                     }
                 )
-                click.echo("✓ Successfully converted and updated database record")
+                if skip_conversion:
+                    click.echo(
+                        "✓ Successfully updated database record (conversion skipped)"
+                    )
+                else:
+                    click.echo("✓ Successfully converted and updated database record")
             except Exception as e:
                 click.echo(f"ABORTING: Database update failed: {e}")
                 db.session.rollback()
@@ -473,7 +540,7 @@ def convert_command(dry_run, auto_confirm, format):
         # Handle final commit and cleanup
         if converted_files:
             click.echo(
-                f"\n🎉 Successfully converted {len(converted_files)} lossless files to {format.upper()} format"
+                f"\n🎉 Successfully converted {len(converted_files)} lossless files to {output_format.upper()} format"
             )
 
             try:
@@ -482,31 +549,7 @@ def convert_command(dry_run, auto_confirm, format):
                         db.session.commit()
                         click.echo("✓ Database changes committed successfully")
 
-                        # Ask about deleting FLAC files
-                        try:
-                            if auto_confirm or confirm(
-                                "Delete original FLAC files?", default_yes=False
-                            ):
-                                deleted_count = 0
-                                for file_info in converted_files:
-                                    try:
-                                        os.remove(file_info["flac_path"])
-                                        deleted_count += 1
-                                        click.echo(
-                                            f"✓ Deleted {file_info['flac_path']}"
-                                        )
-                                    except Exception as e:
-                                        click.echo(
-                                            f"⚠ Failed to delete {file_info['flac_path']}: {e}"
-                                        )
-                                click.echo(
-                                    f"Deleted {deleted_count} of {len(converted_files)} FLAC files"
-                                )
-                            else:
-                                click.echo("Original FLAC files preserved")
-                        except UserQuit:
-                            click.echo("User quit. Original FLAC files preserved.")
-                            sys.exit(0)
+                        handle_original_file_deletion(converted_files, auto_confirm)
 
                     except Exception as e:
                         click.echo(
@@ -517,27 +560,13 @@ def convert_command(dry_run, auto_confirm, format):
                 else:
                     click.echo("Database changes rolled back")
                     db.session.rollback()
-                    # Clean up converted files
-                    for file_info in converted_files:
-                        try:
-                            os.remove(file_info["output_path"])
-                            click.echo(f"✓ Cleaned up {file_info['output_path']}")
-                        except:
-                            click.echo(
-                                f"⚠ Failed to clean up {file_info['output_path']}"
-                            )
+                    cleanup_converted_files(converted_files)
             except UserQuit:
                 click.echo(
                     "User quit. Rolling back database changes and cleaning up..."
                 )
                 db.session.rollback()
-                # Clean up converted files
-                for file_info in converted_files:
-                    try:
-                        os.remove(file_info["output_path"])
-                        click.echo(f"✓ Cleaned up {file_info['output_path']}")
-                    except:
-                        pass
+                cleanup_converted_files(converted_files)
                 sys.exit(0)
         else:
             click.echo("No files were converted.")
