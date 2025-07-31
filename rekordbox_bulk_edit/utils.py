@@ -18,10 +18,35 @@ def is_rekordbox_running():
     return False, None
 
 
+# File type mappings for Rekordbox database
+FILE_TYPE_TO_NAME = {
+    0: "MP3", 
+    1: "MP3", 
+    4: "M4A", 
+    5: "FLAC", 
+    11: "WAV", 
+    12: "AIFF"
+}
+
+FORMAT_TO_FILE_TYPE = {
+    "mp3": 1,
+    "m4a": 4,
+    "flac": 5,
+    "wav": 11,
+    "aiff": 12
+}
+
+FORMAT_EXTENSIONS = {
+    "mp3": ".mp3",
+    "aiff": ".aiff",
+    "flac": ".flac",
+    "wav": ".wav",
+    "alac": ".m4a",
+}
+
 def format_file_type(file_type_code):
     """Convert file type code to human readable format"""
-    file_type_map = {0: "MP3", 1: "MP3", 4: "M4A", 5: "FLAC", 11: "WAV", 12: "AIFF"}
-    return file_type_map.get(file_type_code, f"Unk({file_type_code})")
+    return FILE_TYPE_TO_NAME.get(file_type_code, f"Unk({file_type_code})")
 
 
 def print_track_info(content_list):
@@ -111,7 +136,7 @@ def print_track_info(content_list):
         print(row)
 
 
-def get_track_info(track_id=None):
+def get_track_info(track_id=None, format_filter=None):
     """Get track information from database. Returns list of matching tracks."""
     try:
         db = Rekordbox6Database()
@@ -123,8 +148,17 @@ def get_track_info(track_id=None):
                 content for content in all_content if content.ID == int(track_id)
             ]
         else:
-            # Get all FLAC files
-            content_list = [content for content in all_content if content.FileType == 5]
+            if format_filter:
+                # Filter by specific format
+                target_file_type = FORMAT_TO_FILE_TYPE.get(format_filter.lower())
+                if target_file_type:
+                    content_list = [content for content in all_content if content.FileType == target_file_type]
+                else:
+                    content_list = []
+            else:
+                # Get all audio files (exclude unknown types)
+                known_file_types = set(FILE_TYPE_TO_NAME.keys())
+                content_list = [content for content in all_content if content.FileType in known_file_types]
 
         return content_list
 
