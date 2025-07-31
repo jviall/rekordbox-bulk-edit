@@ -1,13 +1,8 @@
-#!/usr/bin/env python3
-"""
-RekordBox Database Reader
+"""Shared utility functions for rekordbox-bulk-edit."""
 
-This script reads the djmdContent table from RekordBox database
-and displays file information for specific fields.
-"""
+import os
 
-import sys
-
+import ffmpeg
 from pyrekordbox import Rekordbox6Database
 
 
@@ -37,12 +32,12 @@ def print_track_info(content_list):
     # Print header
     header = (
         f"{'ID':<{widths['id']}}   "
-        f"{'File Name':<{widths['filename']}}   "
+        f"{'FileNameL':<{widths['filename']}}   "
         f"{'Type':<{widths['type']}}   "
-        f"{'Sample Rate':<{widths['sample_rate']}}   "
-        f"{'BtRt':<{widths['bitrate']}}   "
-        f"{'BDp':<{widths['bit_depth']}}   "
-        f"{'Location':<{widths['location']}}"
+        f"{'SampleRate':<{widths['sample_rate']}}   "
+        f"{'BitRate':<{widths['bitrate']}}   "
+        f"{'BitDepth':<{widths['bit_depth']}}   "
+        f"{'FolderPath':<{widths['location']}}"
     )
 
     print(header)
@@ -126,39 +121,66 @@ def get_track_info(track_id=None):
         return []
 
 
-def main():
-    """Main function with optional trackId argument"""
-    track_id = None
+def get_audio_info(file_path):
+    """Get audio information from file using ffmpeg probe"""
+    try:
+        probe = ffmpeg.probe(file_path)
+        audio_stream = next(
+            (stream for stream in probe["streams"] if stream["codec_type"] == "audio"),
+            None,
+        )
+        if audio_stream:
+            # Try multiple ways to get bit depth
+            bit_depth = 16  # default
 
-    # Check for trackId argument
-    if len(sys.argv) > 1:
-        try:
-            track_id = int(sys.argv[1])
-            print(f"Looking for track ID: {track_id}")
-        except ValueError:
-            print(f"Error: '{sys.argv[1]}' is not a valid track ID")
-            sys.exit(1)
-    else:
-        print("Reading all FLAC files from RekordBox database...")
+            # Method 1: bits_per_sample
+            if (
+                "bits_per_sample" in audio_stream
+                and audio_stream["bits_per_sample"] != 0
+            ):
+                bit_depth = int(audio_stream["bits_per_sample"])
+            # Method 2: bits_per_raw_sample
+            elif (
+                "bits_per_raw_sample" in audio_stream
+                and audio_stream["bits_per_raw_sample"] != 0
+            ):
+                bit_depth = int(audio_stream["bits_per_raw_sample"])
+            # Method 3: parse from sample_fmt (e.g., "s16", "s24", "s32")
+            elif "sample_fmt" in audio_stream:
+                sample_fmt = audio_stream["sample_fmt"]
+                if "16" in sample_fmt:
+                    bit_depth = 16
+                elif "24" in sample_fmt:
+                    bit_depth = 24
+                elif "32" in sample_fmt:
+                    bit_depth = 32
 
-    print("Connecting to RekordBox database...")
+            # Get bitrate (try from stream first, then calculate)
+            bitrate = 0
+            if "bit_rate" in audio_stream and audio_stream["bit_rate"]:
+                bitrate = int(audio_stream["bit_rate"]) // 1000  # Convert to kbps
+            else:
+                # Calculate bitrate: sample_rate * bit_depth * channels, then convert to kbps
+                sample_rate = int(audio_stream.get("sample_rate", 44100))
+                channels = int(audio_stream.get("channels", 2))
+                bitrate = (
+                    sample_rate * bit_depth * channels
+                ) // 1000  # Convert to kbps
+                print(f"Calculated bit rate: {bitrate} kbps")
 
-    content_list = get_track_info(track_id)
+            return {
+                "bit_depth": bit_depth,
+                "sample_rate": int(audio_stream.get("sample_rate", 44100)),
+                "channels": int(audio_stream.get("channels", 2)),
+                "bitrate": bitrate,
+            }
+    except Exception as e:
+        print(f"Warning: Could not probe {file_path}: {e}")
 
-    if track_id and not content_list:
-        print(f"Track ID {track_id} not found.")
-        return
-
-    if not track_id:
-        print(f"Found {len(content_list)} FLAC files\n")
-    else:
-        print()
-
-    print_track_info(content_list)
-
-    if not track_id:
-        print(f"\nTotal FLAC files: {len(content_list)}")
-
-
-if __name__ == "__main__":
-    main()
+    # Return defaults if probe fails
+    return {
+        "bit_depth": 16,
+        "sample_rate": 44100,
+        "channels": 2,
+        "bitrate": 1411,
+    }  # 1411 kbps for 16-bit/44.1kHz/stereo

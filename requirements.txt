@@ -1,5 +1,8 @@
 # RekordBox database access
-pyrekordbox
+pyrekordbox>=0.1.0
 
 # Audio conversion
 ffmpeg-python>=0.2.0
+
+# CLI framework
+click>=8.0.0
