@@ -19,7 +19,7 @@ def is_rekordbox_running():
     for proc in psutil.process_iter(["pid", "name"]):
         try:
             process_name = proc.info["name"]
-            if process_name.lower() in known_rekordbox_names:
+            if process_name.upper() in {name.upper() for name in known_rekordbox_names}:
                 return True, process_name
         except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
             pass
@@ -29,14 +29,14 @@ def is_rekordbox_running():
 # File type mappings for Rekordbox database
 FILE_TYPE_TO_NAME = {0: "MP3", 1: "MP3", 4: "M4A", 5: "FLAC", 11: "WAV", 12: "AIFF"}
 
-FORMAT_TO_FILE_TYPE = {"mp3": 1, "m4a": 4, "flac": 5, "wav": 11, "aiff": 12}
+FORMAT_TO_FILE_TYPE = {"MP3": 1, "M4A": 4, "FLAC": 5, "WAV": 11, "AIFF": 12}
 
 FORMAT_EXTENSIONS = {
-    "mp3": ".mp3",
-    "aiff": ".aiff",
-    "flac": ".flac",
-    "wav": ".wav",
-    "alac": ".m4a",
+    "MP3": ".mp3",
+    "AIFF": ".aiff",
+    "FLAC": ".flac",
+    "WAV": ".wav",
+    "ALAC": ".m4a",
 }
 
 
@@ -146,7 +146,7 @@ def get_track_info(track_id=None, format_filter=None):
         else:
             if format_filter:
                 # Filter by specific format
-                target_file_type = FORMAT_TO_FILE_TYPE.get(format_filter.lower())
+                target_file_type = FORMAT_TO_FILE_TYPE.get(format_filter.upper())
                 if target_file_type:
                     content_list = [
                         content

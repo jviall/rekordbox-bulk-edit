@@ -131,9 +131,9 @@ def update_database_record(db, content_id, new_filename, new_folder, output_form
             raise Exception(f"Unsupported output format: {output_format}")
 
         # Handle format-specific verification
-        if output_format in ["aiff", "flac", "wav"]:
+        if output_format.upper() in ["AIFF", "FLAC", "WAV"]:
             _verify_bit_depth(content, converted_audio_info)
-        elif output_format == "mp3":
+        elif output_format.upper() == "MP3":
             click.echo(f"  ✓ MP3 conversion completed with {converted_bitrate} kbps")
 
         # Update relevant fields
@@ -142,7 +142,7 @@ def update_database_record(db, content_id, new_filename, new_folder, output_form
         content.FileType = file_type
 
         # Set bitrate to 0 for FLAC files (like Rekordbox does), otherwise use detected bitrate
-        if output_format == "flac":
+        if output_format == "FLAC":
             content.BitRate = 0
             click.echo(f"  ✓ Updated BitRate from {content.BitRate or 0} to 0 (FLAC)")
         else:
@@ -202,11 +202,11 @@ def handle_original_file_deletion(converted_files, auto_confirm):
             deleted_count = 0
             for file_info in converted_files:
                 try:
-                    os.remove(file_info["flac_path"])
+                    os.remove(file_info["source_path"])
                     deleted_count += 1
-                    click.echo(f"✓ Deleted {file_info['flac_path']}")
+                    click.echo(f"✓ Deleted {file_info['source_path']}")
                 except Exception as e:
-                    click.echo(f"⚠ Failed to delete {file_info['flac_path']}: {e}")
+                    click.echo(f"⚠ Failed to delete {file_info['source_path']}: {e}")
             click.echo(
                 f"Deleted {deleted_count} of {len(converted_files)} original files"
             )
@@ -245,9 +245,7 @@ def check_file_exists_and_confirm(output_full_path, output_format, auto_confirm)
     if not os.path.exists(output_full_path):
         return False  # File doesn't exist, proceed with conversion
 
-    click.echo(
-        f"WARNING: {output_format.upper()} file already exists: {output_full_path}"
-    )
+    click.echo(f"WARNING: {output_format} file already exists: {output_full_path}")
     if auto_confirm or confirm(
         "File exists. Skip conversion but update database record?", default_yes=True
     ):
@@ -394,18 +392,18 @@ def convert_command(
 
         # Filter by input format if specified
         if format:
-            if format.lower() == output_format.lower():
+            if format.upper() == output_format.upper():
                 raise Exception(
                     "--format filter matches --output-format. There will be nothing to convert"
                 )
-            input_file_type = FORMAT_TO_FILE_TYPE[format.lower()]
+            input_file_type = FORMAT_TO_FILE_TYPE[format.upper()]
             click.echo(f"Filtering by input format: {format.upper()}")
             filtered_content = [
                 c for c in filtered_content if c.FileType == input_file_type
             ]
 
         # Filter out files already in target format
-        target_file_type = FORMAT_TO_FILE_TYPE[output_format.lower()]
+        target_file_type = FORMAT_TO_FILE_TYPE[output_format.upper()]
         files_to_convert = [
             content
             for content in filtered_content
@@ -429,10 +427,11 @@ def convert_command(
         converted_files = []  # Track converted files for potential deletion
 
         for i, content in enumerate(files_to_convert, 1):
-            flac_file_name = content.FileNameL or ""
-            flac_full_path = content.FolderPath or ""
-            flac_folder = os.path.dirname(flac_full_path)
+            source_file_name = content.FileNameL or ""
+            source_full_path = content.FolderPath or ""
+            source_folder = os.path.dirname(source_full_path)
             source_format = FILE_TYPE_TO_NAME.get(content.FileType, "Unknown")
+            output_format_upper = output_format.upper()
 
             click.echo(f"\nProcessing {i}/{len(files_to_convert)}")
 
@@ -441,32 +440,31 @@ def convert_command(
             click.echo()
 
             # Check if source file exists
-            if not os.path.exists(flac_full_path):
-                click.echo(f"ERROR: {source_format} file not found: {flac_full_path}")
+            if not os.path.exists(source_full_path):
+                click.echo(f"ERROR: {source_format} file not found: {source_full_path}")
                 click.echo("ABORTING: Cannot continue with missing files")
                 db.session.rollback()
                 sys.exit(1)
 
             # Generate output filename and path
-            input_path_obj = Path(flac_file_name)
-            output_format_lower = output_format.lower()
+            input_path_obj = Path(source_file_name)
 
             # Map format to file extension
-            extension = FORMAT_EXTENSIONS[output_format_lower]
+            extension = FORMAT_EXTENSIONS[output_format_upper]
             output_filename = input_path_obj.stem + extension
-            output_full_path = os.path.join(flac_folder, output_filename)
+            output_full_path = os.path.join(source_folder, output_filename)
 
             # Choose converter function
             def convert(inp, out):
-                if output_format_lower == "mp3":
+                if output_format_upper == "MP3":
                     return convert_to_mp3(inp, out)
                 else:
-                    return convert_to_lossless(inp, out, output_format_lower)
+                    return convert_to_lossless(inp, out, output_format.lower())
 
             # Check if output file already exists and get user decision
             try:
                 file_exists_result = check_file_exists_and_confirm(
-                    output_full_path, output_format, auto_confirm
+                    output_full_path, output_format_upper, auto_confirm
                 )
                 if file_exists_result is None:  # User chose to skip this file
                     continue
@@ -482,7 +480,7 @@ def convert_command(
             if not skip_conversion:
                 try:
                     if not auto_confirm and not confirm(
-                        f"Convert {source_format} track {flac_file_name} to {output_format.upper()}?",
+                        f"Convert {source_format} track {source_file_name} to {output_format_upper}?",
                         default_yes=True,
                     ):
                         click.echo("Skipping this file...")
@@ -496,7 +494,7 @@ def convert_command(
 
             # Convert file (unless skipping)
             if not skip_conversion:
-                if not convert(flac_full_path, output_full_path):
+                if not convert(source_full_path, output_full_path):
                     click.echo("ABORTING: Conversion failed")
                     db.session.rollback()
                     cleanup_converted_files(converted_files)
@@ -512,11 +510,15 @@ def convert_command(
             click.echo("Updating database record...")
             try:
                 update_database_record(
-                    db, content.ID, output_filename, flac_folder, output_format.lower()
+                    db,
+                    content.ID,
+                    output_filename,
+                    source_folder,
+                    output_format_upper,
                 )
                 converted_files.append(
                     {
-                        "flac_path": flac_full_path,
+                        "source_path": source_full_path,
                         "output_path": output_full_path,
                         "content_id": content.ID,
                     }
@@ -541,7 +543,7 @@ def convert_command(
         # Handle final commit and cleanup
         if converted_files:
             click.echo(
-                f"\n🎉 Successfully converted {len(converted_files)} lossless files to {output_format.upper()} format"
+                f"\n🎉 Successfully converted {len(converted_files)} lossless files to {output_format_upper} format"
             )
 
             try:
