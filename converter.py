@@ -49,16 +49,28 @@ def get_audio_info(file_path):
                 elif "32" in sample_fmt:
                     bit_depth = 32
 
+            # Get bitrate (try from stream first, then calculate)
+            bitrate = 0
+            if "bit_rate" in audio_stream and audio_stream["bit_rate"]:
+                bitrate = int(audio_stream["bit_rate"]) // 1000  # Convert to kbps
+            else:
+                # Calculate bitrate: sample_rate * bit_depth * channels, then convert to kbps
+                sample_rate = int(audio_stream.get("sample_rate", 44100))
+                channels = int(audio_stream.get("channels", 2))
+                bitrate = (sample_rate * bit_depth * channels) // 1000  # Convert to kbps
+                print(f"Calculated bit rate: {bitrate} kbps")
+
             return {
                 "bit_depth": bit_depth,
                 "sample_rate": int(audio_stream.get("sample_rate", 44100)),
                 "channels": int(audio_stream.get("channels", 2)),
+                "bitrate": bitrate,
             }
     except Exception as e:
         print(f"Warning: Could not probe {file_path}: {e}")
 
     # Return defaults if probe fails
-    return {"bit_depth": 16, "sample_rate": 44100, "channels": 2}
+    return {"bit_depth": 16, "sample_rate": 44100, "channels": 2, "bitrate": 1411}  # 1411 kbps for 16-bit/44.1kHz/stereo
 
 
 def convert_flac_to_aiff(flac_path, aiff_path):
@@ -100,10 +112,11 @@ def update_database_record(db, content_id, new_filename, new_folder):
         if not content:
             raise Exception(f"Content record with ID {content_id} not found")
 
-        # Get bit depth of converted AIFF file
+        # Get audio info of converted AIFF file
         aiff_full_path = os.path.join(new_folder, new_filename)
         converted_audio_info = get_audio_info(aiff_full_path)
         converted_bit_depth = converted_audio_info["bit_depth"]
+        converted_bitrate = converted_audio_info["bitrate"]
 
         # Compare with bit depth stored in database
         # Try common field names for bit depth
@@ -129,6 +142,11 @@ def update_database_record(db, content_id, new_filename, new_folder):
         content.FileNameL = new_filename
         content.FolderPath = aiff_full_path
         content.FileType = 12  # AIFF file type
+        content.BitRate = (
+            converted_bitrate  # Update bitrate to reflect AIFF's constant bitrate
+        )
+
+        print(f"  ✓ Updated BitRate from {content.BitRate or 0} to {converted_bitrate}")
 
         # Note: No commit here - will be done centrally
         return True
@@ -140,6 +158,7 @@ def update_database_record(db, content_id, new_filename, new_folder):
 
 class UserQuit(Exception):
     """Exception raised when user chooses to quit"""
+
     pass
 
 
@@ -228,15 +247,57 @@ def main():
                     print("Skipping this file...")
                     continue
             except UserQuit:
-                print("User quit. Rolling back database changes and cleaning up...")
-                db.session.rollback()
-                # Clean up any converted files
-                for converted_file in converted_files:
+                if converted_files:
+                    print("User quit. You have uncommitted database changes.")
                     try:
-                        os.remove(converted_file["aiff_path"])
-                        print(f"✓ Cleaned up {converted_file['aiff_path']}")
-                    except:
-                        pass
+                        if confirm("Commit database changes before quitting?", default_yes=True):
+                            try:
+                                db.session.commit()
+                                print("✓ Database changes committed successfully")
+                                
+                                # Ask about deleting FLAC files
+                                try:
+                                    if confirm("Delete original FLAC files?", default_yes=False):
+                                        deleted_count = 0
+                                        for file_info in converted_files:
+                                            try:
+                                                os.remove(file_info["flac_path"])
+                                                deleted_count += 1
+                                                print(f"✓ Deleted {file_info['flac_path']}")
+                                            except Exception as e:
+                                                print(f"⚠ Failed to delete {file_info['flac_path']}: {e}")
+                                        print(f"Deleted {deleted_count} of {len(converted_files)} FLAC files")
+                                    else:
+                                        print("Original FLAC files preserved")
+                                except UserQuit:
+                                    print("User quit. Original FLAC files preserved.")
+                                    
+                            except Exception as e:
+                                print(f"FATAL ERROR: Failed to commit database changes: {e}")
+                                db.session.rollback()
+                                sys.exit(1)
+                        else:
+                            print("Rolling back database changes and cleaning up...")
+                            db.session.rollback()
+                            # Clean up converted AIFF files
+                            for file_info in converted_files:
+                                try:
+                                    os.remove(file_info["aiff_path"])
+                                    print(f"✓ Cleaned up {file_info['aiff_path']}")
+                                except:
+                                    pass
+                    except UserQuit:
+                        print("User quit. Rolling back database changes and cleaning up...")
+                        db.session.rollback()
+                        # Clean up converted AIFF files
+                        for file_info in converted_files:
+                            try:
+                                os.remove(file_info["aiff_path"])
+                                print(f"✓ Cleaned up {file_info['aiff_path']}")
+                            except:
+                                pass
+                else:
+                    print("User quit. No changes to commit.")
                 sys.exit(0)
 
             # Convert file
@@ -295,7 +356,9 @@ def main():
 
                         # Ask about deleting FLAC files
                         try:
-                            if confirm("Delete original FLAC files?", default_yes=False):
+                            if confirm(
+                                "Delete original FLAC files?", default_yes=False
+                            ):
                                 deleted_count = 0
                                 for file_info in converted_files:
                                     try:
