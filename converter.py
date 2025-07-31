@@ -12,6 +12,8 @@ from pathlib import Path
 import ffmpeg
 from pyrekordbox import Rekordbox6Database
 
+from reader import print_track_info
+
 
 def get_audio_info(file_path):
     """Get audio information from file using ffmpeg probe"""
@@ -168,7 +170,11 @@ def main():
             flac_full_path = content.FolderPath or ""
             flac_folder = os.path.dirname(flac_full_path)
 
-            print(f"\n[{i}/{len(flac_files)}] Processing: {flac_file_name}")
+            print(f"\nProcessing {i}/{len(flac_files)}")
+
+            # Show detailed track information
+            print_track_info([content])
+            print()
 
             # Check if FLAC file exists
             if not os.path.exists(flac_full_path):
