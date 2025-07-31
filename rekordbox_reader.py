@@ -33,16 +33,68 @@ def main():
             f"Found {len(content_list)} FLAC files in database (out of {all_content.count()} total tracks)\n"
         )
 
+        # First, let's examine all available fields on a sample record
+        if content_list:
+            print("Examining all fields in content records...\n")
+            sample_content = content_list[0]
+            all_fields = [
+                attr for attr in dir(sample_content) if not attr.startswith("_")
+            ]
+
+            # Identify potentially relevant fields for file conversion
+            file_related_fields = []
+            for field in all_fields:
+                field_lower = field.lower()
+                if any(
+                    keyword in field_lower
+                    for keyword in [
+                        "file",
+                        "path",
+                        "type",
+                        "format",
+                        "extension",
+                        "bit",
+                        "sample",
+                    ]
+                ):
+                    try:
+                        value = getattr(sample_content, field)
+                        if value is not None:
+                            file_related_fields.append(field)
+                    except:
+                        pass
+
+            print("File-related fields found:")
+            for field in file_related_fields:
+                print(f"  - {field}")
+            print()
+
+        # Build dynamic header
+        base_columns = ["ID", "File Name", "Type", "Full Path"]
+        additional_columns = [
+            field
+            for field in file_related_fields
+            if field not in ["ID", "FileNameL", "FileType", "FolderPath"]
+        ]
+
         # Print header
-        print(
-            f"{'ID':<10} {'File Name':<30} {'Track Title':<30} {'Type':<5} {'Full Path':<40}"
+        header_parts = [
+            f"{'ID':<10}",
+            f"{'File Name':<30}",
+            f"{'Type':<5}",
+            f"{'Full Path':<40}",
+        ]
+        header_parts.extend([f"{field[:12]:<12}" for field in additional_columns])
+        print(" ".join(header_parts))
+
+        separator_length = (
+            10 + 30 + 5 + 40 + (12 * len(additional_columns)) + len(header_parts) - 1
         )
-        print("-" * 120)
+        print("-" * separator_length)
 
         # Display information for each track
         for content in content_list:
             file_name = content.FileNameL or "N/A"
-            track_title = content.Title or "N/A"
             file_type = format_file_type(content.FileType)
             full_path = content.FolderPath or "N/A"
 
@@ -52,20 +104,38 @@ def main():
                 if len(file_name) > 30
                 else file_name
             )
-            track_title = (
-                (track_title[:15] + "..." + track_title[-12:])
-                if len(track_title) > 30
-                else track_title
-            )
             full_path = (
                 (full_path[:20] + "..." + full_path[-17:])
                 if len(full_path) > 40
                 else full_path
             )
 
-            print(
-                f"{content.ID:<10} {file_name:<30} {track_title:<30} {file_type:<5} {full_path:<40}"
-            )
+            # Build row data
+            row_parts = [
+                f"{content.ID:<10}",
+                f"{file_name:<30}",
+                f"{file_type:<5}",
+                f"{full_path:<40}",
+            ]
+
+            # Add additional field values
+            for field in additional_columns:
+                try:
+                    value = getattr(content, field)
+                    if value is None or "":
+                        value = "--"
+                    else:
+                        value = str(value)
+
+                    # Truncate to 20 characters
+                    if len(value) > 12:
+                        value = value[:9] + "..."
+
+                    row_parts.append(f"{value:<12}")
+                except:
+                    row_parts.append(f"{'ERROR':<12}")
+
+            print(" ".join(row_parts))
 
         # Summary
         print(f"\nTotal FLAC files found: {len(content_list)}")
