@@ -8,7 +8,11 @@ import click
 import ffmpeg
 from pyrekordbox import Rekordbox6Database
 
-from rekordbox_bulk_edit.utils import get_audio_info, print_track_info
+from rekordbox_bulk_edit.utils import (
+    get_audio_info,
+    is_rekordbox_running,
+    print_track_info,
+)
 
 
 def convert_flac_to_aiff(flac_path, aiff_path):
@@ -42,49 +46,78 @@ def convert_flac_to_aiff(flac_path, aiff_path):
         return False
 
 
-def update_database_record(db, content_id, new_filename, new_folder):
-    """Update database record with new AIFF file information"""
+def convert_flac_to_mp3(flac_path, mp3_path):
+    """Convert FLAC file to MP3 using ffmpeg with 320kbps constant bitrate"""
+    try:
+        click.echo(f"  Converting to MP3 320kbps CBR")
+
+        (
+            ffmpeg.input(flac_path)
+            .output(mp3_path, acodec="libmp3lame", audio_bitrate="320k")
+            .overwrite_output()
+            .run(capture_stdout=True, capture_stderr=True)
+        )
+        return True
+    except ffmpeg.Error as e:
+        click.echo(f"FFmpeg error converting {flac_path}: {e}")
+        if e.stderr:
+            click.echo(f"FFmpeg stderr output:\n{e.stderr.decode()}")
+        return False
+    except Exception as e:
+        click.echo(f"Error converting {flac_path}: {e}")
+        return False
+
+
+def update_database_record(db, content_id, new_filename, new_folder, output_format):
+    """Update database record with new file information"""
     try:
         # Get the content record
         content = db.get_content().filter_by(ID=content_id).first()
         if not content:
             raise Exception(f"Content record with ID {content_id} not found")
 
-        # Get audio info of converted AIFF file
-        aiff_full_path = os.path.join(new_folder, new_filename)
-        converted_audio_info = get_audio_info(aiff_full_path)
-        converted_bit_depth = converted_audio_info["bit_depth"]
+        # Get audio info of converted file
+        converted_full_path = os.path.join(new_folder, new_filename)
+        converted_audio_info = get_audio_info(converted_full_path)
         converted_bitrate = converted_audio_info["bitrate"]
 
-        # Compare with bit depth stored in database
-        # Try common field names for bit depth
-        database_bit_depth = None
-        if hasattr(content, "BitDepth"):
-            database_bit_depth = getattr(content, "BitDepth")
+        # Set file type based on output format
+        if output_format == "aiff":
+            file_type = 12  # AIFF file type
+            # For AIFF, verify bit depth as before
+            converted_bit_depth = converted_audio_info["bit_depth"]
+            database_bit_depth = None
+            if hasattr(content, "BitDepth"):
+                database_bit_depth = getattr(content, "BitDepth")
 
-        if database_bit_depth and converted_bit_depth != database_bit_depth:
-            raise Exception(
-                f"Bit depth mismatch: database shows {database_bit_depth}-bit, converted file is {converted_bit_depth}-bit"
-            )
+            if database_bit_depth and converted_bit_depth != database_bit_depth:
+                raise Exception(
+                    f"Bit depth mismatch: database shows {database_bit_depth}-bit, converted file is {converted_bit_depth}-bit"
+                )
 
-        if database_bit_depth:
-            click.echo(
-                f"  ✓ Bit depth verification passed: {converted_bit_depth}-bit matches database"
-            )
+            if database_bit_depth:
+                click.echo(
+                    f"  ✓ Bit depth verification passed: {converted_bit_depth}-bit matches database"
+                )
+            else:
+                click.echo(
+                    f"  ⚠ Warning: Could not verify bit depth - no bit depth field found in database"
+                )
+        elif output_format == "mp3":
+            file_type = 1  # MP3 file type
+            click.echo(f"  ✓ MP3 conversion completed with {converted_bitrate} kbps")
         else:
-            click.echo(
-                f"  ⚠ Warning: Could not verify bit depth - no bit depth field found in database"
-            )
+            raise Exception(f"Unsupported output format: {output_format}")
 
         # Update relevant fields
         content.FileNameL = new_filename
-        content.FolderPath = aiff_full_path
-        content.FileType = 12  # AIFF file type
-        content.BitRate = (
-            converted_bitrate  # Update bitrate to reflect AIFF's constant bitrate
-        )
+        content.FolderPath = converted_full_path
+        content.FileType = file_type
+        content.BitRate = converted_bitrate
 
-        click.echo(f"  ✓ Updated BitRate from {content.BitRate or 0} to {converted_bitrate}")
+        click.echo(
+            f"  ✓ Updated BitRate from {content.BitRate or 0} to {converted_bitrate}"
+        )
 
         # Note: No commit here - will be done centrally
         return True
@@ -96,6 +129,7 @@ def update_database_record(db, content_id, new_filename, new_folder):
 
 class UserQuit(Exception):
     """Exception raised when user chooses to quit"""
+
     pass
 
 
@@ -103,7 +137,11 @@ def confirm(question, default_yes=True):
     """Ask a yes/no question with default, or Q to quit"""
     default_prompt = "[Y/n/q]" if default_yes else "[y/N/q]"
     while True:
-        response = click.prompt(f"{question} {default_prompt}", default="", show_default=False).strip().lower()
+        response = (
+            click.prompt(f"{question} {default_prompt}", default="", show_default=False)
+            .strip()
+            .lower()
+        )
         if not response:
             return default_yes
         if response in ["y", "yes"]:
@@ -117,16 +155,41 @@ def confirm(question, default_yes=True):
 
 @click.command()
 @click.option(
-    "--dry-run", is_flag=True, help="Show what would be converted without actually doing it"
+    "--dry-run",
+    is_flag=True,
+    help="Show what would be converted without actually doing it",
 )
 @click.option(
     "--auto-confirm", is_flag=True, help="Skip confirmation prompts (use with caution)"
 )
-def convert_command(dry_run, auto_confirm):
-    """Convert FLAC files to AIFF format and update RekordBox database."""
+@click.option(
+    "--format",
+    type=click.Choice(["aiff", "mp3"], case_sensitive=False),
+    default="aiff",
+    help="Output format: 'aiff' / 'mp3' (default: aiff)",
+)
+def convert_command(dry_run, auto_confirm, format):
+    """Convert FLAC files to AIFF or MP3 format and update RekordBox database.
+
+    Supports conversion to:
+    - AIFF: Preserves original bit depth (16/24/32-bit)
+    - MP3: 320kbps constant bitrate using LAME encoder
+    """
     try:
-        click.echo("FLAC to AIFF Converter")
-        click.echo("=" * 21)
+        click.echo("FLAC Audio Format Converter")
+        click.echo("=" * 27)
+        click.echo()
+
+        # Check if Rekordbox is running
+        click.echo("Checking if Rekordbox is running...")
+        is_running, process_name = is_rekordbox_running()
+        if is_running:
+            click.echo(f"ERROR: Rekordbox is currently running ({process_name})")
+            click.echo(
+                "Please close Rekordbox before running the convert command to avoid database conflicts."
+            )
+            sys.exit(1)
+        click.echo("✓ Rekordbox is not running")
         click.echo()
 
         if dry_run:
@@ -180,14 +243,22 @@ def convert_command(dry_run, auto_confirm):
                 db.session.rollback()
                 sys.exit(1)
 
-            # Generate AIFF filename and path
+            # Generate output filename and path
             flac_path_obj = Path(flac_file_name)
-            aiff_filename = flac_path_obj.stem + ".aiff"
-            aiff_full_path = os.path.join(flac_folder, aiff_filename)
+            if format.lower() == "mp3":
+                output_filename = flac_path_obj.stem + ".mp3"
+                output_full_path = os.path.join(flac_folder, output_filename)
+                converter_func = convert_flac_to_mp3
+            else:  # aiff
+                output_filename = flac_path_obj.stem + ".aiff"
+                output_full_path = os.path.join(flac_folder, output_filename)
+                converter_func = convert_flac_to_aiff
 
-            # Check if AIFF already exists
-            if os.path.exists(aiff_full_path):
-                click.echo(f"WARNING: AIFF file already exists: {aiff_full_path}")
+            # Check if output file already exists
+            if os.path.exists(output_full_path):
+                click.echo(
+                    f"WARNING: {format.upper()} file already exists: {output_full_path}"
+                )
                 click.echo("ABORTING: Cannot overwrite existing files")
                 db.session.rollback()
                 sys.exit(1)
@@ -195,7 +266,8 @@ def convert_command(dry_run, auto_confirm):
             # Ask for confirmation
             try:
                 if not auto_confirm and not confirm(
-                    f"Convert track {flac_file_name} to AIFF?", default_yes=True
+                    f"Convert track {flac_file_name} to {format.upper()}?",
+                    default_yes=True,
                 ):
                     click.echo("Skipping this file...")
                     continue
@@ -203,50 +275,70 @@ def convert_command(dry_run, auto_confirm):
                 if converted_files:
                     click.echo("User quit. You have uncommitted database changes.")
                     try:
-                        if confirm("Commit database changes before quitting?", default_yes=True):
+                        if confirm(
+                            "Commit database changes before quitting?", default_yes=True
+                        ):
                             try:
                                 db.session.commit()
                                 click.echo("✓ Database changes committed successfully")
-                                
+
                                 # Ask about deleting FLAC files
                                 try:
-                                    if confirm("Delete original FLAC files?", default_yes=False):
+                                    if auto_confirm or confirm(
+                                        "Delete original FLAC files?", default_yes=False
+                                    ):
                                         deleted_count = 0
                                         for file_info in converted_files:
                                             try:
                                                 os.remove(file_info["flac_path"])
                                                 deleted_count += 1
-                                                click.echo(f"✓ Deleted {file_info['flac_path']}")
+                                                click.echo(
+                                                    f"✓ Deleted {file_info['flac_path']}"
+                                                )
                                             except Exception as e:
-                                                click.echo(f"⚠ Failed to delete {file_info['flac_path']}: {e}")
-                                        click.echo(f"Deleted {deleted_count} of {len(converted_files)} FLAC files")
+                                                click.echo(
+                                                    f"⚠ Failed to delete {file_info['flac_path']}: {e}"
+                                                )
+                                        click.echo(
+                                            f"Deleted {deleted_count} of {len(converted_files)} FLAC files"
+                                        )
                                     else:
                                         click.echo("Original FLAC files preserved")
                                 except UserQuit:
-                                    click.echo("User quit. Original FLAC files preserved.")
-                                    
+                                    click.echo(
+                                        "User quit. Original FLAC files preserved."
+                                    )
+
                             except Exception as e:
-                                click.echo(f"FATAL ERROR: Failed to commit database changes: {e}")
+                                click.echo(
+                                    f"FATAL ERROR: Failed to commit database changes: {e}"
+                                )
                                 db.session.rollback()
                                 sys.exit(1)
                         else:
-                            click.echo("Rolling back database changes and cleaning up...")
+                            click.echo(
+                                "Rolling back database changes and cleaning up..."
+                            )
                             db.session.rollback()
-                            # Clean up converted AIFF files
+                            # Clean up converted files
                             for file_info in converted_files:
                                 try:
-                                    os.remove(file_info["aiff_path"])
-                                    click.echo(f"✓ Cleaned up {file_info['aiff_path']}")
+                                    os.remove(file_info["output_path"])
+                                    click.echo(
+                                        f"✓ Cleaned up {file_info['output_path']}"
+                                    )
                                 except:
                                     pass
                     except UserQuit:
-                        click.echo("User quit. Rolling back database changes and cleaning up...")
+                        click.echo(
+                            "User quit. Rolling back database changes and cleaning up..."
+                        )
                         db.session.rollback()
-                        # Clean up converted AIFF files
+                        # Clean up converted files
                         for file_info in converted_files:
                             try:
-                                os.remove(file_info["aiff_path"])
-                                click.echo(f"✓ Cleaned up {file_info['aiff_path']}")
+                                os.remove(file_info["output_path"])
+                                click.echo(f"✓ Cleaned up {file_info['output_path']}")
                             except:
                                 pass
                 else:
@@ -254,20 +346,20 @@ def convert_command(dry_run, auto_confirm):
                 sys.exit(0)
 
             # Convert file
-            click.echo(f"Converting...")
-            if not convert_flac_to_aiff(flac_full_path, aiff_full_path):
+            click.echo(f"Converting to {format.upper()}...")
+            if not converter_func(flac_full_path, output_full_path):
                 click.echo("ABORTING: Conversion failed")
                 db.session.rollback()
                 # Clean up any converted files
                 for converted_file in converted_files:
                     try:
-                        os.remove(converted_file["aiff_path"])
+                        os.remove(converted_file["output_path"])
                     except:
                         pass
                 sys.exit(1)
 
             # Verify conversion was successful
-            if not os.path.exists(aiff_full_path):
+            if not os.path.exists(output_full_path):
                 click.echo("ABORTING: Converted file not found after conversion")
                 db.session.rollback()
                 sys.exit(1)
@@ -275,11 +367,13 @@ def convert_command(dry_run, auto_confirm):
             # Update database (but don't commit yet)
             click.echo("Updating database record...")
             try:
-                update_database_record(db, content.ID, aiff_filename, flac_folder)
+                update_database_record(
+                    db, content.ID, output_filename, flac_folder, format.lower()
+                )
                 converted_files.append(
                     {
                         "flac_path": flac_full_path,
-                        "aiff_path": aiff_full_path,
+                        "output_path": output_full_path,
                         "content_id": content.ID,
                     }
                 )
@@ -289,7 +383,7 @@ def convert_command(dry_run, auto_confirm):
                 db.session.rollback()
                 # Clean up converted files
                 try:
-                    os.remove(aiff_full_path)
+                    os.remove(output_full_path)
                     click.echo("Cleaned up converted file")
                 except:
                     click.echo("Failed to clean up converted file")
@@ -298,11 +392,11 @@ def convert_command(dry_run, auto_confirm):
         # Handle final commit and cleanup
         if converted_files:
             click.echo(
-                f"\n🎉 Successfully converted {len(converted_files)} FLAC files to AIFF format"
+                f"\n🎉 Successfully converted {len(converted_files)} FLAC files to {format.upper()} format"
             )
 
             try:
-                if auto_confirm or confirm("Commit database changes?", default_yes=True):
+                if confirm("Commit database changes?", default_yes=True):
                     try:
                         db.session.commit()
                         click.echo("✓ Database changes committed successfully")
@@ -317,7 +411,9 @@ def convert_command(dry_run, auto_confirm):
                                     try:
                                         os.remove(file_info["flac_path"])
                                         deleted_count += 1
-                                        click.echo(f"✓ Deleted {file_info['flac_path']}")
+                                        click.echo(
+                                            f"✓ Deleted {file_info['flac_path']}"
+                                        )
                                     except Exception as e:
                                         click.echo(
                                             f"⚠ Failed to delete {file_info['flac_path']}: {e}"
@@ -332,27 +428,33 @@ def convert_command(dry_run, auto_confirm):
                             sys.exit(0)
 
                     except Exception as e:
-                        click.echo(f"FATAL ERROR: Failed to commit database changes: {e}")
+                        click.echo(
+                            f"FATAL ERROR: Failed to commit database changes: {e}"
+                        )
                         db.session.rollback()
                         sys.exit(1)
                 else:
                     click.echo("Database changes rolled back")
                     db.session.rollback()
-                    # Clean up converted AIFF files
+                    # Clean up converted files
                     for file_info in converted_files:
                         try:
-                            os.remove(file_info["aiff_path"])
-                            click.echo(f"✓ Cleaned up {file_info['aiff_path']}")
+                            os.remove(file_info["output_path"])
+                            click.echo(f"✓ Cleaned up {file_info['output_path']}")
                         except:
-                            click.echo(f"⚠ Failed to clean up {file_info['aiff_path']}")
+                            click.echo(
+                                f"⚠ Failed to clean up {file_info['output_path']}"
+                            )
             except UserQuit:
-                click.echo("User quit. Rolling back database changes and cleaning up...")
+                click.echo(
+                    "User quit. Rolling back database changes and cleaning up..."
+                )
                 db.session.rollback()
-                # Clean up converted AIFF files
+                # Clean up converted files
                 for file_info in converted_files:
                     try:
-                        os.remove(file_info["aiff_path"])
-                        click.echo(f"✓ Cleaned up {file_info['aiff_path']}")
+                        os.remove(file_info["output_path"])
+                        click.echo(f"✓ Cleaned up {file_info['output_path']}")
                     except:
                         pass
                 sys.exit(0)

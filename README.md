@@ -4,7 +4,7 @@ A command-line tool for bulk editing and managing Rekordbox music files and data
 
 ## Features
 
-- **Convert**: Convert FLAC files to AIFF format and update Rekordbox database records accordingly
+- **Convert**: Convert FLAC files to AIFF or MP3 format and update Rekordbox database records accordingly
 - **Read**: Read and display track information from Rekordbox database
 - **Audio Analysis**: Get detailed audio file information including format, bitrate, and metadata
 
@@ -34,14 +34,15 @@ A command-line tool for bulk editing and managing Rekordbox music files and data
 
 The tool provides a command-line interface with the following commands:
 
-### Convert FLAC to AIFF
-Convert FLAC files to AIFF format and update the Rekordbox database:
+### Convert FLAC to AIFF/MP3
+Convert FLAC files to AIFF or MP3 format and update the Rekordbox database:
 
 ```bash
 rekordbox-bulk-edit convert [OPTIONS]
 ```
 
 Options:
+- `--format [aiff|mp3]`: Choose output format (default: aiff)
 - `--dry-run`: Preview changes without actually performing them
 - `--auto-confirm`: Skip confirmation prompts (use with caution)
 
@@ -65,6 +66,9 @@ Options:
 ```bash
 # Preview FLAC to AIFF conversion without making changes
 rekordbox-bulk-edit convert --dry-run
+
+# Convert FLAC files to MP3 format
+rekordbox-bulk-edit convert --format mp3
 
 # Convert files with automatic confirmation
 rekordbox-bulk-edit convert --auto-confirm

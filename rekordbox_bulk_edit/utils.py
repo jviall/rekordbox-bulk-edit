@@ -3,7 +3,19 @@
 import os
 
 import ffmpeg
+import psutil
 from pyrekordbox import Rekordbox6Database
+
+
+def is_rekordbox_running():
+    """Check if Rekordbox is currently running"""
+    for proc in psutil.process_iter(['pid', 'name']):
+        try:
+            if 'rekordbox' in proc.info['name'].lower():
+                return True, proc.info['name']
+        except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+            pass
+    return False, None
 
 
 def format_file_type(file_type_code):
