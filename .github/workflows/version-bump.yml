@@ -1,0 +1,54 @@
+name: Version Bump and Release
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  version-bump:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        token: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.8'
+    
+    - name: Install commitizen
+      run: |
+        python -m pip install --upgrade pip
+        pip install commitizen>=3.0.0
+    
+    - name: Configure git
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+    
+    - name: Check if version bump is needed
+      id: check-version
+      run: |
+        if cz bump --dry-run --check-consistency; then
+          echo "bump_needed=true" >> $GITHUB_OUTPUT
+        else
+          echo "bump_needed=false" >> $GITHUB_OUTPUT
+        fi
+      continue-on-error: true
+    
+    - name: Bump version and update changelog
+      if: steps.check-version.outputs.bump_needed == 'true'
+      run: |
+        cz bump --changelog --yes
+    
+    - name: Push changes and tags
+      if: steps.check-version.outputs.bump_needed == 'true'
+      run: |
+        git push
+        git push --tags

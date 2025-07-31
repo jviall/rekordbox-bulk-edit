@@ -9,3 +9,6 @@ click>=8.0.0
 
 # Process management
 psutil>=5.0.0
+
+# Version management
+commitizen>=3.0.0
