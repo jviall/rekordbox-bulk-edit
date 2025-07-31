@@ -130,14 +130,33 @@ def update_database_record(db, content_id, new_filename, new_folder):
         content.FolderPath = aiff_full_path
         content.FileType = 12  # AIFF file type
 
-        # Commit the changes
-        db.session.commit()
+        # Note: No commit here - will be done centrally
         return True
 
     except Exception as e:
         print(f"Error updating database record {content_id}: {e}")
-        db.session.rollback()
-        return False
+        raise  # Re-raise to be handled by caller
+
+
+class UserQuit(Exception):
+    """Exception raised when user chooses to quit"""
+    pass
+
+
+def confirm(question, default_yes=True):
+    """Ask a yes/no question with default, or Q to quit"""
+    default_prompt = "[Y/n/q]" if default_yes else "[y/N/q]"
+    while True:
+        response = input(f"{question} {default_prompt}: ").strip().lower()
+        if not response:
+            return default_yes
+        if response in ["y", "yes"]:
+            return True
+        if response in ["n", "no"]:
+            return False
+        if response in ["q", "quit"]:
+            raise UserQuit("User chose to quit")
+        print("Please enter 'y', 'n', or 'q' to quit")
 
 
 def main():
@@ -151,6 +170,12 @@ def main():
         print("Connecting to RekordBox database...")
         db = Rekordbox6Database()
 
+        # Check if we have a valid session early on
+        if not db.session:
+            print("ERROR: No database session available")
+            print("ABORTING: Cannot continue without database access")
+            sys.exit(1)
+
         # Get all FLAC files
         print("Finding FLAC files...")
         all_content = db.get_content()
@@ -163,7 +188,7 @@ def main():
             return
 
         # Process each file
-        converted_count = 0
+        converted_files = []  # Track converted files for potential deletion
 
         for i, content in enumerate(flac_files, 1):
             flac_file_name = content.FileNameL or ""
@@ -180,6 +205,7 @@ def main():
             if not os.path.exists(flac_full_path):
                 print(f"ERROR: FLAC file not found: {flac_full_path}")
                 print("ABORTING: Cannot continue with missing files")
+                db.session.rollback()
                 sys.exit(1)
 
             # Generate AIFF filename and path
@@ -191,31 +217,63 @@ def main():
             if os.path.exists(aiff_full_path):
                 print(f"WARNING: AIFF file already exists: {aiff_full_path}")
                 print("ABORTING: Cannot overwrite existing files")
+                db.session.rollback()
                 sys.exit(1)
+
+            # Ask for confirmation
+            try:
+                if not confirm(
+                    f"Convert track {flac_file_name} to AIFF?", default_yes=True
+                ):
+                    print("Skipping this file...")
+                    continue
+            except UserQuit:
+                print("User quit. Rolling back database changes and cleaning up...")
+                db.session.rollback()
+                # Clean up any converted files
+                for converted_file in converted_files:
+                    try:
+                        os.remove(converted_file["aiff_path"])
+                        print(f"✓ Cleaned up {converted_file['aiff_path']}")
+                    except:
+                        pass
+                sys.exit(0)
 
             # Convert file
-            print(f"Converting to: {aiff_filename}")
-            print(f"Press any key to continue with conversion (or Ctrl-C to abort)...")
-            try:
-                input()
-            except KeyboardInterrupt:
-                print("\nABORTING: User cancelled conversion")
-                sys.exit(1)
-
+            print(f"Converting...")
             if not convert_flac_to_aiff(flac_full_path, aiff_full_path):
                 print("ABORTING: Conversion failed")
+                db.session.rollback()
+                # Clean up any converted files
+                for converted_file in converted_files:
+                    try:
+                        os.remove(converted_file["aiff_path"])
+                    except:
+                        pass
                 sys.exit(1)
 
             # Verify conversion was successful
             if not os.path.exists(aiff_full_path):
                 print("ABORTING: Converted file not found after conversion")
+                db.session.rollback()
                 sys.exit(1)
 
-            # Update database
-            print("Updating database...")
-            if not update_database_record(db, content.ID, aiff_filename, flac_folder):
-                print("ABORTING: Database update failed")
-                # Clean up the converted file
+            # Update database (but don't commit yet)
+            print("Updating database record...")
+            try:
+                update_database_record(db, content.ID, aiff_filename, flac_folder)
+                converted_files.append(
+                    {
+                        "flac_path": flac_full_path,
+                        "aiff_path": aiff_full_path,
+                        "content_id": content.ID,
+                    }
+                )
+                print(f"✓ Successfully converted and updated database record")
+            except Exception as e:
+                print(f"ABORTING: Database update failed: {e}")
+                db.session.rollback()
+                # Clean up converted files
                 try:
                     os.remove(aiff_full_path)
                     print("Cleaned up converted file")
@@ -223,14 +281,75 @@ def main():
                     print("Failed to clean up converted file")
                 sys.exit(1)
 
-            converted_count += 1
-            print(f"✓ Successfully converted and updated database")
+        # Handle final commit and cleanup
+        if converted_files:
+            print(
+                f"\n🎉 Successfully converted {len(converted_files)} FLAC files to AIFF format"
+            )
 
-        print(f"\n🎉 SUCCESS: Converted {converted_count} FLAC files to AIFF format")
-        print("All database records have been updated.")
+            try:
+                if confirm("Commit database changes?", default_yes=True):
+                    try:
+                        db.session.commit()
+                        print("✓ Database changes committed successfully")
+
+                        # Ask about deleting FLAC files
+                        try:
+                            if confirm("Delete original FLAC files?", default_yes=False):
+                                deleted_count = 0
+                                for file_info in converted_files:
+                                    try:
+                                        os.remove(file_info["flac_path"])
+                                        deleted_count += 1
+                                        print(f"✓ Deleted {file_info['flac_path']}")
+                                    except Exception as e:
+                                        print(
+                                            f"⚠ Failed to delete {file_info['flac_path']}: {e}"
+                                        )
+                                print(
+                                    f"Deleted {deleted_count} of {len(converted_files)} FLAC files"
+                                )
+                            else:
+                                print("Original FLAC files preserved")
+                        except UserQuit:
+                            print("User quit. Original FLAC files preserved.")
+                            sys.exit(0)
+
+                    except Exception as e:
+                        print(f"FATAL ERROR: Failed to commit database changes: {e}")
+                        db.session.rollback()
+                        sys.exit(1)
+                else:
+                    print("Database changes rolled back")
+                    db.session.rollback()
+                    # Clean up converted AIFF files
+                    for file_info in converted_files:
+                        try:
+                            os.remove(file_info["aiff_path"])
+                            print(f"✓ Cleaned up {file_info['aiff_path']}")
+                        except:
+                            print(f"⚠ Failed to clean up {file_info['aiff_path']}")
+            except UserQuit:
+                print("User quit. Rolling back database changes and cleaning up...")
+                db.session.rollback()
+                # Clean up converted AIFF files
+                for file_info in converted_files:
+                    try:
+                        os.remove(file_info["aiff_path"])
+                        print(f"✓ Cleaned up {file_info['aiff_path']}")
+                    except:
+                        pass
+                sys.exit(0)
+        else:
+            print("No files were converted.")
 
     except Exception as e:
         print(f"FATAL ERROR: {e}")
+        try:
+            if db.session:
+                db.session.rollback()
+        except:
+            pass
         sys.exit(1)
 
 
