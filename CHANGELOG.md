@@ -1,3 +1,9 @@
+## v0.2.2 (2025-08-01)
+
+### Fix
+
+- Attempt to fix broken paths on windows
+
 ## v0.2.1 (2025-07-31)
 
 ### Fix
