@@ -1,6 +1,23 @@
 # Rekordbox Bulk Edit
 
-A command-line tool for bulk editing and managing Rekordbox music files and database records.
+A command-line tool for bulk editing and managing Rekordbox music files and database records
+
+## ⚠️ DISCLAIMER
+
+**ALWAYS BACK UP YOUR DATA BEFORE USING THIS TOOL!**
+
+This tool directly modifies your Rekordbox database and can potentially move, rename, or delete your music files. While there are , unexpected issues could result in data loss. Before using this tool:
+
+- Create a backup of your entire music library
+- Back up your Rekordbox database files (typically located in `~/Library/Pioneer/rekordbox6/` on macOS)
+- Test the tool on a small subset of files first using a filter option
+- Use the `--dry-run` option to preview changes before applying them
+
+**Use this tool at your own risk.**
+
+## Credits
+
+I made this project to help me correct poor decisions and bad habits in my library management, but it's only possible thanks to [pyrekordbox](https://github.com/dylanljones/pyrekordbox), which provides a comprehensive Python API into Rekordbox databases and XML files.
 
 ## Features
 
@@ -42,7 +59,7 @@ The tool provides a command-line interface with the following commands:
 
 ### Convert Audio Formats
 
-Convert between lossless audio formats (FLAC, AIFF, WAV) and MP3, updating the Rekordbox database:
+Convert between lossless audio formats (FLAC, AIFF, WAV) and MP3, and update the Rekordbox database--keeping your analysis, cues, and track metadata:
 
 ```bash
 rekordbox-bulk-edit convert [OPTIONS]
