@@ -1,6 +1,8 @@
 """Shared utility functions for rekordbox-bulk-edit."""
 
 import os
+import shutil
+import subprocess
 
 import ffmpeg
 import psutil
@@ -171,9 +173,44 @@ def get_track_info(track_id=None, format_filter=None):
         return []
 
 
+def check_ffmpeg_available():
+    """Check if ffmpeg is available in PATH"""
+    return shutil.which("ffmpeg") is not None
+
+
+def get_ffmpeg_error_help():
+    """Get helpful error message for missing ffmpeg"""
+    if os.name == 'nt':  # Windows
+        return """
+FFmpeg not found. Please install FFmpeg:
+
+1. Download FFmpeg from: https://ffmpeg.org/download.html#build-windows
+2. Extract the zip file
+3. Add the 'bin' folder to your Windows PATH:
+   - Open System Properties → Advanced → Environment Variables
+   - Select 'Path' in System Variables → Edit → New
+   - Add the path to the ffmpeg 'bin' folder (e.g., C:\\ffmpeg\\bin)
+   - Restart your command prompt/terminal
+
+Alternative: Place ffmpeg.exe in your Python environment's Scripts folder.
+"""
+    else:  # macOS/Linux
+        return """
+FFmpeg not found. Please install FFmpeg:
+
+macOS: brew install ffmpeg
+Ubuntu/Debian: sudo apt install ffmpeg
+Other Linux: Use your package manager to install ffmpeg
+"""
+
+
 def get_audio_info(file_path):
     """Get audio information from file using ffmpeg probe"""
     try:
+        # Check if ffmpeg is available first
+        if not check_ffmpeg_available():
+            raise Exception(f"FFmpeg not found in PATH.{get_ffmpeg_error_help()}")
+        
         probe = ffmpeg.probe(file_path)
         audio_stream = next(
             (stream for stream in probe["streams"] if stream["codec_type"] == "audio"),
