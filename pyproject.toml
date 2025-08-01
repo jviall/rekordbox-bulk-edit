@@ -22,7 +22,7 @@ classifiers = [
   "Programming Language :: Python :: 3.11",
   "Topic :: Multimedia :: Sound/Audio",
 ]
-dependencies = ["pyrekordbox>=0.1.0", "ffmpeg-python>=0.2.0", "click>=8.0.0", "psutil>=5.0.0"]
+dependencies = ["pyrekordbox>=0.1.0", "ffmpeg-python>=0.2.0", "click>=8.0.0"]
 
 [project.optional-dependencies]
 dev = ["pytest>=6.0", "black", "flake8", "mypy", "commitizen>=3.0.0"]

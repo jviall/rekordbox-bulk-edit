@@ -7,8 +7,5 @@ ffmpeg-python>=0.2.0
 # CLI framework
 click>=8.0.0
 
-# Process management
-psutil>=5.0.0
-
 # Version management
 commitizen>=3.0.0

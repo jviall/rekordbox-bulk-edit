@@ -1,6 +1,5 @@
 """Unit tests for convert command functionality."""
 
-import os
 from unittest.mock import MagicMock, Mock, mock_open, patch
 
 import ffmpeg
@@ -476,7 +475,7 @@ class TestHandleOriginalFileDeletion:
 class TestFilterOutLossyTargets:
     """Test convert_command function."""
 
-    @patch("rekordbox_bulk_edit.commands.convert.is_rekordbox_running")
+    @patch("rekordbox_bulk_edit.commands.convert.get_rekordbox_pid")
     @patch("rekordbox_bulk_edit.commands.convert.Rekordbox6Database")
     @patch("rekordbox_bulk_edit.utils.check_ffmpeg_available")
     @patch("rekordbox_bulk_edit.commands.convert.print_track_info")
@@ -485,12 +484,12 @@ class TestFilterOutLossyTargets:
         mock_print_track_info,
         mock_check_ffmpeg,
         mock_db_class,
-        mock_is_running,
+        mock_get_rb_pid,
     ):
         """Test that we never target mp3s for conversion."""
         # Setup - mock dependencies
         mock_print_track_info.return_value = None
-        mock_is_running.return_value = [False, None]
+        mock_get_rb_pid.return_value = 0
         mock_check_ffmpeg.return_value = True
 
         mock_content_mp3 = Mock()
@@ -526,7 +525,7 @@ class TestFilterOutLossyTargets:
         assert result.exit_code == 0
         assert "No files need conversion" in result.output
 
-    @patch("rekordbox_bulk_edit.utils.is_rekordbox_running")
+    @patch("rekordbox_bulk_edit.commands.convert.get_rekordbox_pid")
     @patch("rekordbox_bulk_edit.commands.convert.Rekordbox6Database")
     @patch("rekordbox_bulk_edit.utils.check_ffmpeg_available")
     @patch("rekordbox_bulk_edit.commands.convert.print_track_info")
@@ -535,12 +534,12 @@ class TestFilterOutLossyTargets:
         mock_print_track_info,
         mock_check_ffmpeg,
         mock_db_class,
-        mock_is_running,
+        mock_get_rb_pid,
     ):
         """Test that we never target m4as for conversion."""
         # Setup - mock dependencies
         mock_print_track_info.return_value = None
-        mock_is_running.return_value = [False, None]
+        mock_get_rb_pid.return_value = 0
         mock_check_ffmpeg.return_value = True
 
         mock_content_m4a = Mock()

@@ -2,7 +2,7 @@
 
 import click
 
-from rekordbox_bulk_edit.utils import get_track_info, print_track_info, FORMAT_TO_FILE_TYPE
+from rekordbox_bulk_edit.utils import get_track_info, print_track_info
 
 
 @click.command()
@@ -16,9 +16,7 @@ from rekordbox_bulk_edit.utils import get_track_info, print_track_info, FORMAT_T
     type=click.Choice(["mp3", "flac", "aiff", "wav", "m4a"], case_sensitive=False),
     help="Filter by audio format (shows all formats if not specified)",
 )
-@click.option(
-    "--verbose", "-v", is_flag=True, help="Enable verbose output"
-)
+@click.option("--verbose", "-v", is_flag=True, help="Enable verbose output")
 def read_command(track_id, format, verbose):
     """Read track information from RekordBox database."""
     if track_id:

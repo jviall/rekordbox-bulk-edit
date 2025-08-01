@@ -4,28 +4,7 @@ import os
 import shutil
 
 import ffmpeg
-import psutil
 from pyrekordbox import Rekordbox6Database
-
-
-def is_rekordbox_running():
-    """Check if Rekordbox is currently running"""
-    # Known absolute Rekordbox process names across platforms
-    # Only include actual process names that Rekordbox uses
-    known_rekordbox_names = {
-        "rekordbox",  # macOS
-        "rekordbox.exe",  # Windows
-    }
-
-    for proc in psutil.process_iter(["pid", "name"]):
-        try:
-            process_name = proc.info["name"]
-            if process_name.upper() in {name.upper() for name in known_rekordbox_names}:
-                return True, process_name
-        except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
-            pass
-    return False, None
-
 
 # File type mappings for Rekordbox database
 FILE_TYPE_TO_NAME = {0: "MP3", 1: "MP3", 4: "M4A", 5: "FLAC", 11: "WAV", 12: "AIFF"}

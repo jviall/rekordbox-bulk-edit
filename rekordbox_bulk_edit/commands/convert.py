@@ -8,13 +8,13 @@ import click
 import ffmpeg
 from ffmpeg import Error as FfmpegError
 from pyrekordbox import Rekordbox6Database
+from pyrekordbox.utils import get_rekordbox_agent_pid, get_rekordbox_pid
 
 from rekordbox_bulk_edit.utils import (
     FILE_TYPE_TO_NAME,
     FORMAT_EXTENSIONS,
     FORMAT_TO_FILE_TYPE,
     get_audio_info,
-    is_rekordbox_running,
     print_track_info,
 )
 
@@ -332,9 +332,9 @@ def convert_command(
 
         # Check if Rekordbox is running
         click.echo("Checking if Rekordbox is running...")
-        is_running, process_name = is_rekordbox_running()
-        if is_running:
-            click.echo(f"ERROR: Rekordbox is currently running ({process_name})")
+        rekordbox_pid = get_rekordbox_pid()
+        if rekordbox_pid:
+            click.echo(f"ERROR: Rekordbox is currently running ({rekordbox_pid})")
             click.echo(
                 "Please close Rekordbox before running the convert command to avoid database conflicts."
             )
