@@ -6,23 +6,50 @@ import shutil
 import ffmpeg
 from pyrekordbox import Rekordbox6Database
 
+
 # File type mappings for Rekordbox database
-FILE_TYPE_TO_NAME = {0: "MP3", 1: "MP3", 4: "M4A", 5: "FLAC", 11: "WAV", 12: "AIFF"}
+def get_file_type_name(file_type_code: int):
+    """Get human-readable name for file type code."""
+    _get_file_type_name = {
+        0: "MP3",
+        1: "MP3",
+        4: "M4A",
+        5: "FLAC",
+        11: "WAV",
+        12: "AIFF",
+    }
+    name = _get_file_type_name.get(file_type_code)
+    if name is None:
+        raise ValueError(f"Unknown file_type: {file_type_code}")
+    return name
 
-FORMAT_TO_FILE_TYPE = {"MP3": 1, "M4A": 4, "FLAC": 5, "WAV": 11, "AIFF": 12}
 
-FORMAT_EXTENSIONS = {
-    "MP3": ".mp3",
-    "AIFF": ".aiff",
-    "FLAC": ".flac",
-    "WAV": ".wav",
-    "ALAC": ".m4a",
-}
+def get_file_type_for_format(format_name: str):
+    """Get file type code for format name (case-insensitive)."""
+    if not format_name:
+        raise ValueError("Format name cannot be empty or None")
+    _get_file_type_for_format = {"MP3": 1, "M4A": 4, "FLAC": 5, "WAV": 11, "AIFF": 12}
+    file_type = _get_file_type_for_format.get(format_name.upper())
+    if file_type is None:
+        raise ValueError(f"Unknown format: {format_name}")
+    return file_type
 
 
-def format_file_type(file_type_code):
-    """Convert file type code to human readable format"""
-    return FILE_TYPE_TO_NAME.get(file_type_code, f"Unk({file_type_code})")
+def get_extension_for_format(format_name: str):
+    """Get file extension for format name (case-insensitive)."""
+    if not format_name:
+        raise ValueError("Format name cannot be empty or None")
+    _get_extension_for_format = {
+        "MP3": ".mp3",
+        "AIFF": ".aiff",
+        "FLAC": ".flac",
+        "WAV": ".wav",
+        "ALAC": ".m4a",
+    }
+    extension = _get_extension_for_format.get(format_name.upper())
+    if extension is None:
+        raise ValueError(f"Unknown format: {format_name}")
+    return extension
 
 
 def print_track_info(content_list):
@@ -61,7 +88,7 @@ def print_track_info(content_list):
         # Get values with fallbacks
         track_id = str(content.ID or "")
         filename = content.FileNameL or "N/A"
-        file_type = format_file_type(content.FileType)
+        file_format = get_file_type_name(content.FileType)
 
         # Get sample rate
         value = content.SampleRate
@@ -102,7 +129,7 @@ def print_track_info(content_list):
         row = (
             f"{track_id:<{widths['id']}}   "
             f"{filename:<{widths['filename']}}   "
-            f"{file_type:<{widths['type']}}   "
+            f"{file_format:<{widths['type']}}   "
             f"{sample_rate:<{widths['sample_rate']}}   "
             f"{bitrate:<{widths['bitrate']}}   "
             f"{bit_depth:<{widths['bit_depth']}}   "
@@ -126,18 +153,18 @@ def get_track_info(track_id=None, format_filter=None):
         else:
             if format_filter:
                 # Filter by specific format
-                target_file_type = FORMAT_TO_FILE_TYPE.get(format_filter.upper())
-                if target_file_type:
+                try:
+                    target_file_type = get_file_type_for_format(format_filter)
                     content_list = [
                         content
                         for content in all_content
                         if content.FileType == target_file_type
                     ]
-                else:
+                except ValueError:
                     content_list = []
             else:
                 # Get all audio files (exclude unknown types)
-                known_file_types = set(FILE_TYPE_TO_NAME.keys())
+                known_file_types = {0, 1, 4, 5, 11, 12}  # Known file type codes
                 content_list = [
                     content
                     for content in all_content

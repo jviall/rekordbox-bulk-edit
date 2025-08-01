@@ -8,13 +8,13 @@ import click
 import ffmpeg
 from ffmpeg import Error as FfmpegError
 from pyrekordbox import Rekordbox6Database
-from pyrekordbox.utils import get_rekordbox_agent_pid, get_rekordbox_pid
+from pyrekordbox.utils import get_rekordbox_pid
 
 from rekordbox_bulk_edit.utils import (
-    FILE_TYPE_TO_NAME,
-    FORMAT_EXTENSIONS,
-    FORMAT_TO_FILE_TYPE,
     get_audio_info,
+    get_extension_for_format,
+    get_file_type_for_format,
+    get_file_type_name,
     print_track_info,
 )
 
@@ -144,7 +144,7 @@ def update_database_record(db, content_id, new_filename, new_folder, output_form
         converted_bitrate = converted_audio_info["bitrate"]
 
         # Set file type based on output format
-        file_type = FORMAT_TO_FILE_TYPE.get(output_format)
+        file_type = get_file_type_for_format(output_format)
         if not file_type:
             raise Exception(f"Unsupported output format: {output_format}")
 
@@ -425,19 +425,19 @@ def convert_command(
                 raise Exception(
                     "--format filter matches --output-format. There will be nothing to convert"
                 )
-            input_file_type = FORMAT_TO_FILE_TYPE[format.upper()]
+            input_file_type = get_file_type_for_format(format)
             click.echo(f"Filtering by input format: {format.upper()}")
             filtered_content = [
                 c for c in filtered_content if c.FileType == input_file_type
             ]
 
-        target_file_type = FORMAT_TO_FILE_TYPE[output_format.upper()]
+        target_file_type = get_file_type_for_format(output_format)
         files_to_convert = [
             content
             for content in filtered_content
             if content.FileType != target_file_type
-            and content.FileType != FORMAT_TO_FILE_TYPE["MP3"]
-            and content.FileType != FORMAT_TO_FILE_TYPE["M4A"]
+            and content.FileType != get_file_type_for_format("MP3")
+            and content.FileType != get_file_type_for_format("M4A")
         ]
 
         click.echo(
@@ -460,7 +460,7 @@ def convert_command(
             source_file_name = content.FileNameL or ""
             source_full_path = content.FolderPath or ""
             source_folder = os.path.dirname(source_full_path)
-            source_format = FILE_TYPE_TO_NAME.get(content.FileType, "Unknown")
+            source_format = get_file_type_name.get(content.FileType, "Unknown")
             output_format_upper = output_format.upper()
 
             click.echo(f"\nProcessing {i}/{len(files_to_convert)}")
@@ -480,7 +480,7 @@ def convert_command(
             input_path_obj = Path(source_file_name)
 
             # Map format to file extension
-            extension = FORMAT_EXTENSIONS[output_format_upper]
+            extension = get_extension_for_format(output_format_upper)
             output_filename = input_path_obj.stem + extension
             output_full_path = os.path.join(source_folder, output_filename)
 

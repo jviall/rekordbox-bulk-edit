@@ -2,69 +2,94 @@
 
 from unittest.mock import Mock, patch
 
+import pytest
+
 from rekordbox_bulk_edit.utils import (
-    FILE_TYPE_TO_NAME,
-    FORMAT_EXTENSIONS,
-    FORMAT_TO_FILE_TYPE,
-    format_file_type,
     get_audio_info,
+    get_extension_for_format,
+    get_file_type_for_format,
+    get_file_type_name,
     get_track_info,
     print_track_info,
 )
 
 
-class TestConstants:
-    """Test constant mappings."""
+class TestGetFileTypeName:
+    """Test getter functions."""
 
-    def test_file_type_to_name_mapping(self):
-        """Test FILE_TYPE_TO_NAME contains expected mappings."""
-        expected_mappings = {
-            0: "MP3",
-            1: "MP3",
-            4: "M4A",
-            5: "FLAC",
-            11: "WAV",
-            12: "AIFF",
-        }
-        assert FILE_TYPE_TO_NAME == expected_mappings
+    def test_get_file_type_name_known_types(self):
+        """Test get_file_type_name with known file type codes."""
+        assert get_file_type_name(0) == "MP3"
+        assert get_file_type_name(1) == "MP3"
+        assert get_file_type_name(4) == "M4A"
+        assert get_file_type_name(5) == "FLAC"
+        assert get_file_type_name(11) == "WAV"
+        assert get_file_type_name(12) == "AIFF"
 
-    def test_format_to_file_type_mapping(self):
-        """Test FORMAT_TO_FILE_TYPE contains expected mappings."""
-        expected_mappings = {"mp3": 1, "m4a": 4, "flac": 5, "wav": 11, "aiff": 12}
-        assert FORMAT_TO_FILE_TYPE == expected_mappings
+    def test_get_file_type_name_unknown_types(self):
+        """Test get_file_type_name with unknown file type codes."""
 
-    def test_format_extensions_mapping(self):
-        """Test FORMAT_EXTENSIONS contains expected mappings."""
-        expected_mappings = {
-            "mp3": ".mp3",
-            "aiff": ".aiff",
-            "flac": ".flac",
-            "wav": ".wav",
-            "alac": ".m4a",
-        }
-        assert FORMAT_EXTENSIONS == expected_mappings
+        with pytest.raises(ValueError, match="Unknown file_type: None"):
+            get_file_type_name(None)  # pyright: ignore
+        with pytest.raises(ValueError, match="Unknown file_type: -1"):
+            get_file_type_name(-1)
+        with pytest.raises(ValueError, match="Unknown file_type: 99"):
+            get_file_type_name(99)
 
 
-class TestFormatFileType:
-    """Test format_file_type function."""
+class TestGetFileTypeForFormat:
+    def test_get_file_type_for_format_case_insensitive(self):
+        """Test get_file_type_for_format is case-insensitive."""
+        assert get_file_type_for_format("MP3") == 1
+        assert get_file_type_for_format("mp3") == 1
+        assert get_file_type_for_format("Mp3") == 1
+        assert get_file_type_for_format("FLAC") == 5
+        assert get_file_type_for_format("flac") == 5
+        assert get_file_type_for_format("wav") == 11
+        assert get_file_type_for_format("AIFF") == 12
+        assert get_file_type_for_format("M4A") == 4
 
-    def test_known_file_types(self):
-        """Test formatting of known file type codes."""
-        assert format_file_type(0) == "MP3"
-        assert format_file_type(1) == "MP3"
-        assert format_file_type(4) == "M4A"
-        assert format_file_type(5) == "FLAC"
-        assert format_file_type(11) == "WAV"
-        assert format_file_type(12) == "AIFF"
+    def test_get_file_type_for_format_invalid(self):
+        """Test get_file_type_for_format with invalid formats."""
+        import pytest
 
-    def test_unknown_file_type(self):
-        """Test formatting of unknown file type code."""
-        assert format_file_type(99) == "Unk(99)"
-        assert format_file_type(-1) == "Unk(-1)"
+        with pytest.raises(ValueError, match="Unknown format: invalid"):
+            get_file_type_for_format("invalid")
 
-    def test_none_file_type(self):
-        """Test formatting of None file type."""
-        assert format_file_type(None) == "Unk(None)"
+        with pytest.raises(ValueError, match="Format name cannot be empty or None"):
+            get_file_type_for_format("")
+
+        with pytest.raises(ValueError, match="Format name cannot be empty or None"):
+            get_file_type_for_format(None)  # pyright: ignore
+
+
+class TestGetGetExtensionForFormat:
+    def test_get_extension_for_format_case_insensitive(self):
+        """Test get_extension_for_format is case-insensitive."""
+        assert get_extension_for_format("MP3") == ".mp3"
+        assert get_extension_for_format("mp3") == ".mp3"
+        assert get_extension_for_format("Mp3") == ".mp3"
+        assert get_extension_for_format("FLAC") == ".flac"
+        assert get_extension_for_format("flac") == ".flac"
+        assert get_extension_for_format("WAV") == ".wav"
+        assert get_extension_for_format("wav") == ".wav"
+        assert get_extension_for_format("AIFF") == ".aiff"
+        assert get_extension_for_format("aiff") == ".aiff"
+        assert get_extension_for_format("ALAC") == ".m4a"
+        assert get_extension_for_format("alac") == ".m4a"
+
+    def test_get_extension_for_format_invalid(self):
+        """Test get_extension_for_format with invalid formats."""
+        import pytest
+
+        with pytest.raises(ValueError, match="Unknown format: invalid"):
+            get_extension_for_format("invalid")
+
+        with pytest.raises(ValueError, match="Format name cannot be empty or None"):
+            get_extension_for_format("")
+
+        with pytest.raises(ValueError, match="Format name cannot be empty or None"):
+            get_extension_for_format(None)  # pyright: ignore
 
 
 class TestPrintTrackInfo:
@@ -106,8 +131,8 @@ class TestPrintTrackInfo:
         mock_content = Mock()
         mock_content.ID = None
         mock_content.FileNameL = None
-        mock_content.FileType = 99  # Unknown type
-        mock_content.SampleRate = None
+        mock_content.SampleRate = 0
+        mock_content.FileType = 5
         mock_content.BitRate = None
         mock_content.BitDepth = None
         mock_content.FolderPath = None
@@ -116,7 +141,6 @@ class TestPrintTrackInfo:
 
         captured = capsys.readouterr()
         assert "N/A" in captured.out
-        assert "Unk(99)" in captured.out
         assert "--" in captured.out
 
     def test_track_with_zero_values(self, capsys):
@@ -261,10 +285,10 @@ class TestGetTrackInfo:
         mock_db_class.return_value = mock_db
         mock_db.get_content.return_value = [Mock(FileType=5)]
 
-        # Execute - invalid format
+        # Execute - invalid format should return empty list due to exception handling
         result = get_track_info(format_filter="invalid")
 
-        # Assert - should return empty list
+        # Assert - should return empty list when format is invalid
         assert len(result) == 0
 
     @patch("rekordbox_bulk_edit.utils.Rekordbox6Database")
