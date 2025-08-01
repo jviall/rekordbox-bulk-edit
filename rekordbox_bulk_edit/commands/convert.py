@@ -121,7 +121,7 @@ def update_database_record(db, content_id, new_filename, new_folder, output_form
             raise Exception(f"Content record with ID {content_id} not found")
 
         # Get audio info of converted file
-        converted_full_path = os.path.join(new_folder, new_filename)
+        converted_full_path = os.path.normpath(os.path.join(new_folder, new_filename))
         converted_audio_info = get_audio_info(converted_full_path)
         converted_bitrate = converted_audio_info["bitrate"]
 
@@ -428,7 +428,7 @@ def convert_command(
 
         for i, content in enumerate(files_to_convert, 1):
             source_file_name = content.FileNameL or ""
-            source_full_path = content.FolderPath or ""
+            source_full_path = os.path.normpath(content.FolderPath or "")
             source_folder = os.path.dirname(source_full_path)
             source_format = FILE_TYPE_TO_NAME.get(content.FileType, "Unknown")
             output_format_upper = output_format.upper()
@@ -440,11 +440,26 @@ def convert_command(
             click.echo()
 
             # Check if source file exists
-            if not os.path.exists(source_full_path):
+            if not source_full_path or not os.path.exists(source_full_path):
                 click.echo(f"ERROR: {source_format} file not found: {source_full_path}")
-                click.echo("ABORTING: Cannot continue with missing files")
-                db.session.rollback()
-                sys.exit(1)
+                click.echo("Path from database:", repr(content.FolderPath))
+                click.echo("Normalized path:", repr(source_full_path))
+                
+                # Try alternative path handling for Windows
+                if os.name == 'nt' and content.FolderPath:
+                    alt_path = content.FolderPath.replace('/', '\\')
+                    click.echo("Windows alternative path:", repr(alt_path))
+                    if os.path.exists(alt_path):
+                        click.echo("✓ Found file using backslash separators")
+                        source_full_path = alt_path
+                        source_folder = os.path.dirname(source_full_path)
+                    else:
+                        click.echo("File still not found with backslash separators")
+                
+                if not os.path.exists(source_full_path):
+                    click.echo("ABORTING: Cannot continue with missing files")
+                    db.session.rollback()
+                    sys.exit(1)
 
             # Generate output filename and path
             input_path_obj = Path(source_file_name)
@@ -452,7 +467,7 @@ def convert_command(
             # Map format to file extension
             extension = FORMAT_EXTENSIONS[output_format_upper]
             output_filename = input_path_obj.stem + extension
-            output_full_path = os.path.join(source_folder, output_filename)
+            output_full_path = os.path.normpath(os.path.join(source_folder, output_filename))
 
             # Choose converter function
             def convert(inp, out):
