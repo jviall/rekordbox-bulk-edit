@@ -1,3 +1,9 @@
+## v0.2.3 (2025-08-01)
+
+### Fix
+
+- Check if ffmpeg exists and if not point to installation.
+
 ## v0.2.2 (2025-08-01)
 
 ### Fix
