@@ -2,43 +2,45 @@ name: Version Bump and Release
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   workflow_dispatch:
 
 jobs:
   version-bump:
     if: "!startsWith(github.event.head_commit.message, 'bump:')"
     runs-on: ubuntu-latest
+    environment: release
     permissions:
       contents: write
-    
+
     steps:
-    - name: Check out
-      uses: actions/checkout@v4
-      with:
-        token: "${{ secrets.GITHUB_TOKEN }}"
-        fetch-depth: 0
-    
-    - name: Import GPG key
-      uses: crazy-max/ghaction-import-gpg@v6
-      with:
-        gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
-        passphrase: ${{ secrets.GPG_PASSPHRASE }}
-        git_user_signingkey: true
-        git_commit_gpgsign: true
-        git_tag_gpgsign: true
-        git_config_global: true
-    
-    - name: Create bump and changelog
-      uses: commitizen-tools/commitizen-action@master
-      with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-        changelog_increment_filename: body.md
-    
-    - name: Release
-      uses: softprops/action-gh-release@v1
-      with:
-        body_path: "body.md"
-        tag_name: ${{ env.REVISION }}
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Check out
+        uses: actions/checkout@v4
+        with:
+          token: "${{ secrets.WORKFLOW_TOKEN }}"
+          fetch-depth: 0
+
+      - name: Import GPG key
+        uses: crazy-max/ghaction-import-gpg@v6
+        with:
+          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
+          passphrase: ${{ secrets.GPG_PASSPHRASE }}
+          git_user_signingkey: true
+          git_commit_gpgsign: true
+          git_tag_gpgsign: true
+          git_config_global: true
+
+      - name: Create bump and changelog
+        uses: commitizen-tools/commitizen-action@master
+        with:
+          github_token: ${{ secrets.WORKFLOW_TOKEN }}
+          changelog_increment_filename: body.md
+          gpg_sign: true
+
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        with:
+          body_path: "body.md"
+          tag_name: ${{ env.REVISION }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.WORKFLOW_TOKEN }}
