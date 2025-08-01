@@ -1,3 +1,9 @@
+## v0.2.4 (2025-08-01)
+
+### Fix
+
+- Filter out all m4a and mp3 targets
+
 ## v0.2.3 (2025-08-01)
 
 ### Fix
