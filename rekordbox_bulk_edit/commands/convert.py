@@ -22,12 +22,15 @@ from rekordbox_bulk_edit.utils import (
 def convert_to_lossless(input_path, output_path, output_format):
     """Convert lossless file to another lossless format using ffmpeg, preserving bit depth"""
     try:
-        from rekordbox_bulk_edit.utils import check_ffmpeg_available, get_ffmpeg_error_help
-        
+        from rekordbox_bulk_edit.utils import (
+            check_ffmpeg_available,
+            get_ffmpeg_error_help,
+        )
+
         # Check if ffmpeg is available first
         if not check_ffmpeg_available():
             raise Exception(f"FFmpeg not found in PATH.{get_ffmpeg_error_help()}")
-        
+
         # Get original audio info
         audio_info = get_audio_info(input_path)
         bit_depth = audio_info["bit_depth"]
@@ -71,12 +74,15 @@ def convert_to_lossless(input_path, output_path, output_format):
 def convert_to_mp3(input_path, mp3_path):
     """Convert lossless file to MP3 using ffmpeg with 320kbps constant bitrate"""
     try:
-        from rekordbox_bulk_edit.utils import check_ffmpeg_available, get_ffmpeg_error_help
-        
+        from rekordbox_bulk_edit.utils import (
+            check_ffmpeg_available,
+            get_ffmpeg_error_help,
+        )
+
         # Check if ffmpeg is available first
         if not check_ffmpeg_available():
             raise Exception(f"FFmpeg not found in PATH.{get_ffmpeg_error_help()}")
-        
+
         click.echo("Converting to MP3 320kbps CBR")
 
         (
@@ -341,7 +347,11 @@ def convert_command(
             click.echo()
 
         # Check FFmpeg availability early
-        from rekordbox_bulk_edit.utils import check_ffmpeg_available, get_ffmpeg_error_help
+        from rekordbox_bulk_edit.utils import (
+            check_ffmpeg_available,
+            get_ffmpeg_error_help,
+        )
+
         if not check_ffmpeg_available():
             click.echo("ERROR: FFmpeg is required but not found in PATH")
             click.echo(get_ffmpeg_error_help())
@@ -421,12 +431,13 @@ def convert_command(
                 c for c in filtered_content if c.FileType == input_file_type
             ]
 
-        # Filter out files already in target format
         target_file_type = FORMAT_TO_FILE_TYPE[output_format.upper()]
         files_to_convert = [
             content
             for content in filtered_content
             if content.FileType != target_file_type
+            and content.FileType != FORMAT_TO_FILE_TYPE["MP3"]
+            and content.FileType != FORMAT_TO_FILE_TYPE["M4A"]
         ]
 
         click.echo(
@@ -555,8 +566,8 @@ def convert_command(
                 try:
                     os.remove(output_full_path)
                     click.echo("Cleaned up converted file")
-                except:
-                    click.echo("Failed to clean up converted file")
+                except Exception as e:
+                    click.echo(f"Failed to clean up converted file {e}")
                 sys.exit(1)
 
         # Handle final commit and cleanup
@@ -598,6 +609,6 @@ def convert_command(
         try:
             if db.session:
                 db.session.rollback()
-        except:
+        except Exception:
             pass
         sys.exit(1)

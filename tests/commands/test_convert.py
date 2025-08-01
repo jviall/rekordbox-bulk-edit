@@ -12,6 +12,7 @@ from rekordbox_bulk_edit.commands.convert import (
     check_file_exists_and_confirm,
     cleanup_converted_files,
     confirm,
+    convert_command,
     convert_to_lossless,
     convert_to_mp3,
     handle_original_file_deletion,
@@ -470,3 +471,107 @@ class TestHandleOriginalFileDeletion:
 
         with pytest.raises(UserQuit):
             handle_original_file_deletion(converted_files, False)
+
+
+class TestFilterOutLossyTargets:
+    """Test convert_command function."""
+
+    @patch("rekordbox_bulk_edit.commands.convert.is_rekordbox_running")
+    @patch("rekordbox_bulk_edit.commands.convert.Rekordbox6Database")
+    @patch("rekordbox_bulk_edit.utils.check_ffmpeg_available")
+    @patch("rekordbox_bulk_edit.commands.convert.print_track_info")
+    def test_filter_out_mp3_targets(
+        self,
+        mock_print_track_info,
+        mock_check_ffmpeg,
+        mock_db_class,
+        mock_is_running,
+    ):
+        """Test that we never target mp3s for conversion."""
+        # Setup - mock dependencies
+        mock_print_track_info.return_value = None
+        mock_is_running.return_value = [False, None]
+        mock_check_ffmpeg.return_value = True
+
+        mock_content_mp3 = Mock()
+        mock_content_mp3.FileType = 1  # MP3 file type
+        mock_content_mp3.FileNameL = "test.mp3"
+
+        mock_db = Mock()
+        mock_db.session = Mock()
+        mock_db_class.return_value = mock_db
+        mock_query = MagicMock()
+        mock_query.__len__ = Mock(return_value=1)
+        mock_db.get_content.return_value = mock_query
+        mock_query.filter.return_value = mock_query
+        mock_query.all.return_value = [mock_content_mp3]
+
+        # Mock click.Context and runner
+        from click.testing import CliRunner
+
+        runner = CliRunner()
+
+        # Execute convert command - should filter out MP3s
+        result = runner.invoke(
+            convert_command, ["--output-format", "aiff", "--dry-run"]
+        )
+
+        # Print output for debugging
+        print(f"Exit code: {result.exit_code}")
+        print(f"Output: {result.output}")
+        if result.exception:
+            print(f"Exception: {result.exception}")
+
+        # Assert - should not process any files since MP3s are filtered out
+        assert result.exit_code == 0
+        assert "No files need conversion" in result.output
+
+    @patch("rekordbox_bulk_edit.utils.is_rekordbox_running")
+    @patch("rekordbox_bulk_edit.commands.convert.Rekordbox6Database")
+    @patch("rekordbox_bulk_edit.utils.check_ffmpeg_available")
+    @patch("rekordbox_bulk_edit.commands.convert.print_track_info")
+    def test_filter_out_m4a_targets(
+        self,
+        mock_print_track_info,
+        mock_check_ffmpeg,
+        mock_db_class,
+        mock_is_running,
+    ):
+        """Test that we never target m4as for conversion."""
+        # Setup - mock dependencies
+        mock_print_track_info.return_value = None
+        mock_is_running.return_value = [False, None]
+        mock_check_ffmpeg.return_value = True
+
+        mock_content_m4a = Mock()
+        mock_content_m4a.FileType = 4  # M4A file type
+        mock_content_m4a.FileNameL = "test.m4a"
+
+        mock_db = Mock()
+        mock_db.session = Mock()
+        mock_db_class.return_value = mock_db
+        mock_query = MagicMock()
+        mock_query.__len__ = Mock(return_value=1)
+        mock_db.get_content.return_value = mock_query
+        mock_query.filter.return_value = mock_query
+        mock_query.all.return_value = [mock_content_m4a]
+
+        # Mock click.Context and runner
+        from click.testing import CliRunner
+
+        runner = CliRunner()
+
+        # Execute convert command - should filter out M4As
+        result = runner.invoke(
+            convert_command, ["--output-format", "flac", "--dry-run"]
+        )
+
+        # Print output for debugging
+        print(f"Exit code: {result.exit_code}")
+        print(f"Output: {result.output}")
+        if result.exception:
+            print(f"Exception: {result.exception}")
+
+        # Assert - currently M4As are NOT filtered out, so conversion should be attempted
+        assert result.exit_code == 0
+        assert "No files need conversion" in result.output

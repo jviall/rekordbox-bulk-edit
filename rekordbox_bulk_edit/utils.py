@@ -2,7 +2,6 @@
 
 import os
 import shutil
-import subprocess
 
 import ffmpeg
 import psutil
@@ -180,7 +179,7 @@ def check_ffmpeg_available():
 
 def get_ffmpeg_error_help():
     """Get helpful error message for missing ffmpeg"""
-    if os.name == 'nt':  # Windows
+    if os.name == "nt":  # Windows
         return """
 FFmpeg not found. Please install FFmpeg:
 
@@ -210,7 +209,7 @@ def get_audio_info(file_path):
         # Check if ffmpeg is available first
         if not check_ffmpeg_available():
             raise Exception(f"FFmpeg not found in PATH.{get_ffmpeg_error_help()}")
-        
+
         probe = ffmpeg.probe(file_path)
         audio_stream = next(
             (stream for stream in probe["streams"] if stream["codec_type"] == "audio"),
