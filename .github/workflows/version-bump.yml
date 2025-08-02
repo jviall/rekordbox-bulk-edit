@@ -20,29 +20,36 @@ jobs:
           token: "${{ secrets.WORKFLOW_TOKEN }}"
           fetch-depth: 0
 
-      - name: Import GPG key
-        uses: crazy-max/ghaction-import-gpg@v6
-        with:
-          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
-          passphrase: ${{ secrets.GPG_PASSPHRASE }}
-          git_user_signingkey: true
-          git_commit_gpgsign: true
-          git_tag_gpgsign: true
-          git_config_global: true
-          git_user_name: "James Viall"
-          git_user_email: "jamesviall@pm.me"
+          # - name: Import GPG key
+          #   uses: crazy-max/ghaction-import-gpg@v6
+          #   with:
+          # gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
+          # passphrase: ${{ secrets.GPG_PASSPHRASE }}
+          # git_user_signingkey: true
+          # git_commit_gpgsign: true
+          # git_tag_gpgsign: true
+          # git_config_global: true
+          # git_user_name: "James Viall"
+          # git_user_email: "jamesviall@pm.me"
 
-      - name: Configure git for commitizen
+      - name: Debug git config
         run: |
           git config --global user.name "James Viall"
           git config --global user.email "jamesviall@pm.me"
+          echo "Git config after setting:"
+          git config --global user.name
+          git config --global user.email
+          echo "Available GPG keys:"
+          gpg --list-secret-keys
 
       - name: Create bump and changelog
         uses: commitizen-tools/commitizen-action@master
         with:
           github_token: ${{ secrets.WORKFLOW_TOKEN }}
           changelog_increment_filename: body.md
-          gpg_sign: true
+          # gpg_sign: true
+          committer_name: "James Viall"
+          committer_email: "jamesviall@pm.me"
 
       - name: Release
         uses: softprops/action-gh-release@v1
