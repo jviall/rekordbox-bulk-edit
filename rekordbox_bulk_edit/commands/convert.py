@@ -460,7 +460,7 @@ def convert_command(
             source_file_name = content.FileNameL or ""
             source_full_path = content.FolderPath or ""
             source_folder = os.path.dirname(source_full_path)
-            source_format = get_file_type_name.get(content.FileType, "Unknown")
+            source_format = get_file_type_name(content.FileType)
             output_format_upper = output_format.upper()
 
             click.echo(f"\nProcessing {i}/{len(files_to_convert)}")
