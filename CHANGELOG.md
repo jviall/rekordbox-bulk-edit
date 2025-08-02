@@ -1,3 +1,14 @@
+## v0.2.5 (2025-08-02)
+
+### Fix
+
+- bug where convert command was trying to call .get on a function. Add happy path test cases for convert command
+- use getter functions for the file type and extension maps
+
+### Refactor
+
+- drop psutils in favor of pyrekordbox.utils
+
 ## v0.2.4 (2025-08-01)
 
 ### Fix

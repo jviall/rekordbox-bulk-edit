@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "rekordbox-bulk-edit"
-version = "0.2.4"
+version = "0.2.5"
 description = "Tools for bulk editing RekordBox database records and associated track files"
 authors = [{ name = "James Viall", email = "jamesviall@pm.me" }]
 license = { text = "MIT" }
