@@ -1,6 +1,6 @@
 """Unit tests for convert command functionality."""
 
-from unittest.mock import MagicMock, Mock, mock_open, patch
+from unittest.mock import Mock, patch
 
 import ffmpeg
 import pytest
@@ -510,7 +510,9 @@ class TestConvertCommand:
         mock_convert.return_value = True  # Conversion succeeds
         mock_update_db.return_value = True  # Database update succeeds
         mock_confirm.return_value = True
-        mock_check_file_exists.return_value = False  # File doesn't exist, proceed with conversion
+        mock_check_file_exists.return_value = (
+            False  # File doesn't exist, proceed with conversion
+        )
         mock_cleanup_files.return_value = None  # File cleanup succeeds
         mock_handle_deletion.return_value = None  # File deletion handling succeeds
 
@@ -543,8 +545,6 @@ class TestConvertCommand:
 
         # Execute command
         from click.testing import CliRunner
-
-        from rekordbox_bulk_edit.commands.convert import convert_command
 
         runner = CliRunner()
         result = runner.invoke(convert_command, ["--auto-confirm"])
@@ -582,8 +582,6 @@ class TestConvertCommand:
         # Execute command
         from click.testing import CliRunner
 
-        from rekordbox_bulk_edit.commands.convert import convert_command
-
         runner = CliRunner()
         result = runner.invoke(convert_command, ["--dry-run"])
 
@@ -610,8 +608,6 @@ class TestConvertCommand:
 
         # Execute command
         from click.testing import CliRunner
-
-        from rekordbox_bulk_edit.commands.convert import convert_command
 
         runner = CliRunner()
         result = runner.invoke(convert_command, ["--dry-run"])
@@ -667,8 +663,6 @@ class TestConvertCommand:
         # Execute command
         from click.testing import CliRunner
 
-        from rekordbox_bulk_edit.commands.convert import convert_command
-
         runner = CliRunner()
         result = runner.invoke(convert_command, ["--dry-run"])
 
@@ -702,8 +696,6 @@ class TestConvertCommand:
 
         # Execute command
         from click.testing import CliRunner
-
-        from rekordbox_bulk_edit.commands.convert import convert_command
 
         runner = CliRunner()
         result = runner.invoke(convert_command, ["--dry-run"])

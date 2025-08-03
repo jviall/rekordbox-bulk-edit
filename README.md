@@ -1,15 +1,20 @@
 # Rekordbox Bulk Edit
 
+[![Tests](https://img.shields.io/github/actions/workflow/status/jviall/rekordbox-bulk-edit/ci.yml?branch=main&logo=github&style=flat)](https://github.com/jviall/rekordbox-bulk-edit/blob/main/.github/workflows/ci.yml)
+[![Coverage](https://codecov.io/gh/jviall/rekordbox-bulk-edit/branch/main/graph/badge.svg)](https://app.codecov.io/gh/jviall/rekordbox-bulk-edit/tree/main)
+[![Version](https://img.shields.io/pypi/v/rekordbox-bulk-edit?style=flat)](https://pypi.org/project/rekordbox-bulk-edit/)
+[![Platforms](https://img.shields.io/badge/platform-win%20%7C%20osx-blue?style=flat)](https://pypi.org/project/rekordbox-bulk-edit/)
+[![License](https://img.shields.io/pypi/l/rekordbox-bulk-edit?color=lightgrey)](https://github.com/jviall/rekordbox-bulk-edit/blob/main/LICENSE)
+
 A command-line tool for bulk editing and managing Rekordbox music files and database records
 
-## ⚠️ DISCLAIMER
-
+[!CAUTION]
 **ALWAYS BACK UP YOUR DATA BEFORE USING THIS TOOL!**
 
-This tool directly modifies your Rekordbox database and can potentially move, rename, or delete your music files. While there are , unexpected issues could result in data loss. Before using this tool:
+This tool directly modifies your Rekordbox database and can potentially move, rename, or delete your music files. While there are safety checks, unexpected issues could result in data loss. Before using this tool, consider some or all of the following:
 
-- Create a backup of your entire music library
-- Back up your Rekordbox database files (typically located in `~/Library/Pioneer/rekordbox6/` on macOS)
+- Always backup your Rekordbox database. While some versions of RB make backups for you, you'll likely be opening and closing RB often, which will make a new backup everytime, causing you to quickly lose your backup history and render them only as useful as the last time you opened RB. Before beginning development, I recommend you make copies of all the backups so that RB doesn't overwrite them.
+- Creating a backup of your entire music library
 - Test the tool on a small subset of files first using a filter option
 - Use the `--dry-run` option to preview changes before applying them
 
@@ -23,43 +28,48 @@ I made this project to help me correct poor decisions and bad habits in my libra
 
 - **Convert**: Convert between lossless audio formats (FLAC, AIFF, WAV) and MP3, updating Rekordbox database records accordingly
 - **Read**: Read and display track information from Rekordbox database with format filtering support
-- **Audio Analysis**: Get detailed audio file information including format, bitrate, and metadata
-- **Safety Checks**: Automatically detects running Rekordbox instances to prevent database corruption
-- **Smart Filtering**: Skips files already in target format and excludes lossy formats from conversion input
-- **Bit Depth Preservation**: Maintains original bit depth (16/24/32-bit) for lossless conversions
 
 ## Installation
 
-1. Create a virtual environment:
+```bash
+pip install rekordbox-bulk-edit
+```
 
-   ```bash
-   python3 -m venv venv
-   ```
+**Requirements:**
 
-2. Activate the virtual environment:
+- Python 3.11+
+- FFmpeg (for audio conversion)
 
-   ```bash
-   source venv/bin/activate  # On macOS/Linux
-   ```
+### Installing FFmpeg
 
-3. Install dependencies:
+Download from [ffmpeg.org](https://ffmpeg.org/download.html) or use a package manager
 
-   ```bash
-   pip install -r requirements.txt
-   ```
+**macOS (using Homebrew):**
 
-4. Install the package:
-   ```bash
-   pip install -e .
-   ```
+```bash
+brew install ffmpeg
+```
+
+**Ubuntu/Debian:**
+
+```bash
+sudo apt update
+sudo apt install ffmpeg
+```
+
+**Windows:**
+
+```bash
+winget install --id=Gyan.FFmpeg  -e
+```
 
 ## Usage
 
 The tool provides a command-line interface with the following commands:
 
-### Convert Audio Formats
+### Convert
 
-Convert between lossless audio formats (FLAC, AIFF, WAV) and MP3, and update the Rekordbox database--keeping your analysis, cues, and track metadata:
+Convert between lossless audio formats (FLAC, AIFF, WAV) or from lossless to 320 CBR MP3, and then update the Rekordbox database accordingly--keeping your analysis, cues, and track metadata intact
 
 ```bash
 rekordbox-bulk-edit convert [OPTIONS]
@@ -67,10 +77,10 @@ rekordbox-bulk-edit convert [OPTIONS]
 
 **Supported Conversions:**
 
-- **Input formats**: FLAC, AIFF, WAV (lossless formats only)
+- **Input formats**: FLAC, AIFF, WAV
 - **Output formats**: AIFF, FLAC, WAV, MP3
-- **Automatic detection**: Skips MP3/M4A files and files already in target format
-- **Safety check**: Exits if Rekordbox is running to prevent database conflicts
+
+(It only makes sense to convert lossless files, else it's lossy-to-lossy compression)
 
 **Options:**
 
@@ -97,43 +107,16 @@ rekordbox-bulk-edit read [OPTIONS]
 - `--version`: Show the version number
 - `--help`: Show help information
 
-## Examples
+## Contributing
 
-```bash
-# Preview lossless to AIFF conversion without making changes
-rekordbox-bulk-edit convert --dry-run
-
-# Convert lossless files to MP3 format
-rekordbox-bulk-edit convert --format mp3
-
-# Convert lossless files to FLAC format
-rekordbox-bulk-edit convert --format flac
-
-# Convert files with automatic confirmation
-rekordbox-bulk-edit convert --auto-confirm
-
-# Read information for a specific track
-rekordbox-bulk-edit read --track-id 12345 --verbose
-
-# Show only FLAC files in database
-rekordbox-bulk-edit read --format flac
-
-# Show only MP3 files in database
-rekordbox-bulk-edit read --format mp3
-
-# Show all available commands
-rekordbox-bulk-edit --help
-```
-
-## Development
-
-- Add new dependencies to `requirements.txt`
-- Activate your virtual environment before working: `source venv/bin/activate`
-- Deactivate when done: `deactivate`
-- Install in development mode: `pip install -e .`
+Interested in contributing? Check out [CONTRIBUTING.md](CONTRIBUTING.md) for development setup instructions, coding guidelines, and how to submit changes.
 
 ## Requirements
 
-- Python 3.6+
+- Python 3.11+
+- FFmpeg for audio conversion
 - Rekordbox database access
-- Audio processing capabilities for FLAC/AIFF conversion
+
+```
+
+```

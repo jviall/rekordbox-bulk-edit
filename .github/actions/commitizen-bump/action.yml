@@ -1,0 +1,138 @@
+# COPIED FROM https://github.com/commitizen-tools/commitizen-action/blob/master/action.yml
+name: "Bump and changelog using commitizen"
+description: "Create a commit bumping the version of your project and creating a changelog file"
+branding:
+  icon: "git-commit"
+  color: "purple"
+outputs:
+  version:
+    value: "" # gets populated by commitizen-bump.sh
+    description: "New version"
+inputs:
+  working_directory:
+    description: "Change to this directory before running"
+    required: false
+  dry_run:
+    description: "Run without creating commit, output to stdout"
+    required: false
+  commit:
+    description: "If true a commit is created containing the bump changes"
+    required: false
+    default: "true"
+  push:
+    description: "If true the bump commit is pushed to the remote repository"
+    required: false
+    default: "true"
+  merge:
+    description: >
+      If true, the bump commit is pushed to the remote repository even when the
+      action is run on the pull_request event, immediately merging the pull request
+    required: false
+    default: "false"
+  prerelease:
+    description: "Set as prerelease version"
+    required: false
+  devrelease:
+    description: "Non-negative integer for dev. release"
+    required: false
+  local_version:
+    description: "Bump only the local version portion"
+    required: false
+    default: "false"
+  changelog:
+    description: "Create changelog when bumping the version"
+    default: "true"
+    required: false
+  github_token:
+    description: 'Token for the repo. Can be passed in using $\{{ secrets.GITHUB_TOKEN }}'
+    required: false
+  repository:
+    description: "Repository name to push. Default or empty value represents current github repository (${GITHUB_REPOSITORY})"
+    default: ""
+    required: false
+  branch:
+    description: "Destination branch to push changes"
+    required: false
+    default: ""
+  extra_requirements:
+    description: "Extra commitizen dependencies like your custom plugins or rules"
+    required: false
+    default: ""
+  changelog_increment_filename:
+    description: "Filename to store the incremented generated changelog. This is different to changelog as it only contains the changes for the just generated version"
+    required: false
+  git_redirect_stderr:
+    description: "Redirect git output to stderr. Useful if you do not want git output in your changelog"
+    required: false
+    default: "false"
+  git_name:
+    description: "Name used to configure git (for git operations)"
+    required: false
+    default: "github-actions[bot]"
+  git_email:
+    description: "Email address used to configure git (for git operations)"
+    required: false
+    default: "github-actions[bot]@users.noreply.github.com"
+  commitizen_version:
+    description: "Specify the version to be used by commitizen"
+    required: false
+    default: latest
+  no_raise:
+    description: "Don't raise the given comma-delimited exit codes"
+    required: false
+    default: "21"
+  increment:
+    description: "Manually specify the desired increment"
+    required: false
+  check_consistency:
+    default: "false"
+    description: "check consistency among versions defined in commitizen configuration and version_files"
+    required: false
+  gpg_sign:
+    description: >
+      If true, use GPG to sign commits and tags (for git operations). Requires separate
+      setup of GPG key and passphrase in GitHub Actions (e.g. with the action
+      crazy-max/ghaction-import-gpg)
+    required: false
+    default: "false"
+  debug:
+    description: "If true, prints debug output to GitHub Actions stdout."
+    required: false
+    default: "false"
+  actor:
+    description: "The account that will be used to perform git operations, defaults to the GITHUB_ACTOR"
+    required: false
+  manual_version:
+    description: "Manually specify the version to bump to"
+    required: false
+runs:
+  using: "composite"
+  steps:
+    - shell: bash
+      run: ${{ github.action_path }}/commitizen-bump.sh
+      env:
+        INPUT_WORKING_DIRECTORY: ${{ inputs.working_directory }}
+        INPUT_DRY_RUN: ${{ inputs.dry_run }}
+        INPUT_COMMIT: ${{ inputs.commit }}
+        INPUT_PUSH: ${{ inputs.push }}
+        INPUT_MERGE: ${{ inputs.merge }}
+        INPUT_PRERELEASE: ${{ inputs.prerelease }}
+        INPUT_DEVRELEASE: ${{ inputs.devrelease }}
+        INPUT_LOCAL_VERSION: ${{ inputs.local_version }}
+        INPUT_CHANGELOG: ${{ inputs.changelog }}
+        INPUT_GITHUB_TOKEN: ${{ inputs.github_token }}
+        INPUT_REPOSITORY: ${{ inputs.repository }}
+        INPUT_BRANCH: ${{ inputs.branch }}
+        INPUT_EXTRA_REQUIREMENTS: ${{ inputs.extra_requirements }}
+        INPUT_CHANGELOG_INCREMENT_FILENAME: ${{ inputs.changelog_increment_filename }}
+        INPUT_GIT_REDIRECT_STDERR: ${{ inputs.git_redirect_stderr }}
+        INPUT_GIT_NAME: ${{ inputs.git_name }}
+        INPUT_GIT_EMAIL: ${{ inputs.git_email }}
+        INPUT_COMMITIZEN_VERSION: ${{ inputs.commitizen_version }}
+        INPUT_NO_RAISE: ${{ inputs.no_raise }}
+        INPUT_INCREMENT: ${{ inputs.increment }}
+        INPUT_CHECK_CONSISTENCY: ${{ inputs.check_consistency }}
+        INPUT_GPG_SIGN: ${{ inputs.gpg_sign }}
+        INPUT_DEBUG: ${{ inputs.debug }}
+        INPUT_ACTOR: ${{ inputs.actor }}
+        INPUT_MANUAL_VERSION: ${{ inputs.manual_version }}
