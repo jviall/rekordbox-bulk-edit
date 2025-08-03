@@ -1,39 +1,75 @@
 name: Publish to PyPI
 
 on:
-  push:
-    tags:
-      - "*"
   release:
     types: [published]
   workflow_dispatch:
 
 jobs:
-  publish:
+  build:
+    name: 🛠️ Build
     runs-on: ubuntu-latest
-    environment: release
-    permissions:
-      id-token: write
-      contents: read
-
     steps:
-      - uses: actions/checkout@v4
-
+      - name: get latest release with tag
+        id: latestrelease
+        run: |
+          echo "releasetag=$(curl -s https://api.github.com/repos/jviall/rekordbox-bulk-edit/releases/latest --header 'authorization: Bearer ${{ secrets.GITHUB_TOKEN }}' | jq '.tag_name' | sed 's/\"//g')" >> $GITHUB_ENV
+      - name: confirm release tag
+        run: |
+          echo "${{ env.releasetag }}"
+      - name: checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.releasetag }}
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: "3.8"
+          python-version: "3.13"
+      - name: Install Poetry
+        uses: snok/install-poetry@v1.4.1
 
-      - name: Install build dependencies
+      - name: Install dependencies
+        shell: bash
         run: |
-          python -m pip install --upgrade pip
-          pip install build twine
+          poetry install
+      - name: Build distribution
+        run: |
+          poetry build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
 
-      - name: Build package
-        run: python -m build
+  publish-test-pypi:
+    name: 📦 Publish to Test-PyPI
+    runs-on: ubuntu-latest
+    needs: build
+    environment: test-pypi
+    permissions:
+      id-token: write # IMPORTANT: this permission is mandatory for trusted publishing
+    steps:
+      - uses: actions/download-artifact@v4
+        with: # unpacks all artifacts into dist/
+          pattern: dist-*
+          path: dist
+          merge-multiple: true
+      - name: Publish package distributions 📦 to TestPyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: https://test.pypi.org/legacy/
 
-      - name: Check package
-        run: twine check dist/*
-
+  publish-pypi:
+    name: 📦 Publish to PyPI
+    runs-on: ubuntu-latest
+    needs: publish-test-pypi
+    environment: pypi
+    permissions:
+      id-token: write # IMPORTANT: this permission is mandatory for trusted publishing
+    steps:
+      - uses: actions/download-artifact@v4
+        with: # unpacks all artifacts into dist/
+          pattern: dist-*
+          path: dist
+          merge-multiple: true
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1

@@ -1,31 +1,22 @@
 [build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
 
 [project]
 name = "rekordbox-bulk-edit"
 version = "0.2.5"
-description = "Tools for bulk editing RekordBox database records and associated track files"
-authors = [{ name = "James Viall", email = "jamesviall@pm.me" }]
-license = { text = "MIT" }
+description = "Tools for managing and modifying a RekordBox library en-masse"
+authors = [{ name = "James Viall", email= "jamesviall@pm.me"}]
+license = "MIT"
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.9,<4.0"
 keywords = ["rekordbox", "dj", "music", "database", "bulk", "edit", "convert"]
-classifiers = [
-  "Development Status :: 3 - Alpha",
-  "Intended Audience :: End Users/Desktop",
-  "License :: OSI Approved :: MIT License",
-  "Programming Language :: Python :: 3",
-  "Programming Language :: Python :: 3.8",
-  "Programming Language :: Python :: 3.9",
-  "Programming Language :: Python :: 3.10",
-  "Programming Language :: Python :: 3.11",
-  "Topic :: Multimedia :: Sound/Audio",
+packages = [{include = "rekordbox_bulk_edit"}]
+dependencies = [
+    "pyrekordbox(>=0.4.3)",
+    "ffmpeg-python(>=0.2.0)",
+    "click(>=8.0.0,<=9.0.0)"
 ]
-dependencies = ["pyrekordbox>=0.1.0", "ffmpeg-python>=0.2.0", "click>=8.0.0"]
-
-[project.optional-dependencies]
-dev = ["pytest>=6.0", "black", "flake8", "mypy", "commitizen>=3.0.0"]
 
 [project.urls]
 Homepage = "https://github.com/jviall/rekordbox-bulk-edit"
@@ -34,6 +25,35 @@ Issues = "https://github.com/jviall/rekordbox-bulk-edit/issues"
 
 [project.scripts]
 rekordbox-bulk-edit = "rekordbox_bulk_edit.cli:main"
+
+[tool.coverage.run]
+branch = true
+data_file = ".coverage/coverage.db"
+[tool.coverage.html]
+directory = ".coverage/html/"
+[tool.coverage.xml]
+output = ".coverage/coverage.xml"
+[tool.coverage.json]
+output = ".coverage/coverage.json"
+[tool.coverage.lcov]
+output = ".coverage/coverage.lcov"
+
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^6.2.1"
+commitizen = "^4.8.3"
+pre-commit = "^4.2.0"
+ruff = "^0.12.8"
+pytest-cov = "^6.2.1"
+poethepoet = "^0.36.0"
+
+[tool.poe.tasks]
+test = "pytest tests"
+coverage = "pytest tests --cov=rekordbox_bulk_edit --junitxml=.coverage/junit.xml --cov-report=term-missing --cov-report=html --cov-report=xml"
+lint = "ruff check --fix"
+format = "ruff format"
+install-hooks = "pre-commit install"
+run-hooks = "pre-commit run --all-files"
 
 [tool.commitizen]
 name = "cz_conventional_commits"

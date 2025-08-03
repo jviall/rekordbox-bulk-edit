@@ -1,0 +1,67 @@
+name: CI Checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+  workflow_call:
+
+jobs:
+  code-change:
+    name: Skip Checks?
+    runs-on: ubuntu-latest
+    steps:
+      - id: skip_check
+        uses: fkirc/skip-duplicate-actions@master
+        with:
+          paths_ignore: '[
+            "docs/**",
+            ".github/**",
+            ".resources/**",
+            "logos/**",
+            "README.md",
+            "CHANGELOG.md",
+            "CONTRIBUTING.md",
+            ".pre-commit-config.yaml",
+            ".readthedocs.yaml",
+            "pyproject.toml"
+            ]'
+    outputs:
+      should_skip: ${{ steps.skip_check.outputs.should_skip }}
+
+  lint-checks:
+    name: 🧺 Lint Checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run lint tests
+        uses: ./.github/actions/lint
+
+  unit-tests:
+    name: 🧪 Tests
+    needs: code-change
+    if: ${{ needs.code-change.outputs.should_skip != 'true'}}
+    strategy:
+      matrix:
+        os: ["windows-latest", "macos-latest"]
+        python-version: ["3.9", "3.13"] # oldest and latest
+    runs-on: ${{ matrix.os }}
+    continue-on-error: true
+    env:
+      OS: ${{ matrix.os }}
+      PYTHON: ${{ matrix.python-version }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run unit tests
+        uses: ./.github/actions/test
+        with:
+          python-version: ${{ matrix.python-version }}
+          os: ${{ matrix.os }}
+          codecov-token: ${{ secrets.CODECOV_TOKEN }}
