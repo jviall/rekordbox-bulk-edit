@@ -1,3 +1,9 @@
+## v0.2.6 (2025-08-10)
+
+### Fix
+
+- no default return on get_audio_info
+
 ## v0.2.5 (2025-08-02)
 
 ### Fix
