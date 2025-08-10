@@ -44,7 +44,7 @@ jobs:
     name: 📦 Publish to Test-PyPI
     runs-on: ubuntu-latest
     needs: build
-    environment: test-pypi
+    environment: test-publish
     permissions:
       id-token: write # IMPORTANT: this permission is mandatory for trusted publishing
     steps:
@@ -62,7 +62,7 @@ jobs:
     name: 📦 Publish to PyPI
     runs-on: ubuntu-latest
     needs: publish-test-pypi
-    environment: pypi
+    environment: publish
     permissions:
       id-token: write # IMPORTANT: this permission is mandatory for trusted publishing
     steps:
