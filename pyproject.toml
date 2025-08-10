@@ -40,12 +40,13 @@ output = ".coverage/coverage.lcov"
 
 
 [tool.poetry.group.dev.dependencies]
-pytest = "^6.2.1"
+pytest = "^8.4.1"
 commitizen = "^4.8.3"
 pre-commit = "^4.2.0"
 ruff = "^0.12.8"
 pytest-cov = "^6.2.1"
 poethepoet = "^0.36.0"
+pytest-mock = "^3.14.1"
 
 [tool.poe.tasks]
 test = "pytest tests"
