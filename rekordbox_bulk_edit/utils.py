@@ -183,7 +183,7 @@ def check_ffmpeg_available():
     return shutil.which("ffmpeg") is not None
 
 
-def get_ffmpeg_error_help():
+def get_no_ffmpeg_error():
     """Get helpful error message for missing ffmpeg"""
     if os.name == "nt":  # Windows
         return """
@@ -209,70 +209,65 @@ Other Linux: Use your package manager to install ffmpeg
 """
 
 
-def get_audio_info(file_path):
+def get_audio_info(file_path) -> dict[str, int]:
     """Get audio information from file using ffmpeg probe"""
     try:
         # Check if ffmpeg is available first
         if not check_ffmpeg_available():
-            raise Exception(f"FFmpeg not found in PATH.{get_ffmpeg_error_help()}")
+            raise Exception(get_no_ffmpeg_error())
 
         probe = ffmpeg.probe(file_path)
         audio_stream = next(
             (stream for stream in probe["streams"] if stream["codec_type"] == "audio"),
             None,
         )
-        if audio_stream:
-            # Try multiple ways to get bit depth
-            bit_depth = 16  # default
+        if not audio_stream:
+            raise Exception("No audio stream")
 
-            # Method 1: bits_per_sample
-            if (
-                "bits_per_sample" in audio_stream
-                and audio_stream["bits_per_sample"] != 0
-            ):
-                bit_depth = int(audio_stream["bits_per_sample"])
-            # Method 2: bits_per_raw_sample
-            elif (
-                "bits_per_raw_sample" in audio_stream
-                and audio_stream["bits_per_raw_sample"] != 0
-            ):
-                bit_depth = int(audio_stream["bits_per_raw_sample"])
-            # Method 3: parse from sample_fmt (e.g., "s16", "s24", "s32")
-            elif "sample_fmt" in audio_stream:
-                sample_fmt = audio_stream["sample_fmt"]
-                if "16" in sample_fmt:
-                    bit_depth = 16
-                elif "24" in sample_fmt:
-                    bit_depth = 24
-                elif "32" in sample_fmt:
-                    bit_depth = 32
+        # Try multiple ways to get bit depth
+        bit_depth = -1  # default
 
-            # Get bitrate (try from stream first, then calculate)
-            bitrate = 0
-            if "bit_rate" in audio_stream and audio_stream["bit_rate"]:
-                bitrate = int(audio_stream["bit_rate"]) // 1000  # Convert to kbps
-            else:
-                # Calculate bitrate: sample_rate * bit_depth * channels, then convert to kbps
-                sample_rate = int(audio_stream.get("sample_rate", 44100))
-                channels = int(audio_stream.get("channels", 2))
-                bitrate = (
-                    sample_rate * bit_depth * channels
-                ) // 1000  # Convert to kbps
-                print(f"Calculated bit rate: {bitrate} kbps")
+        # Method 1: bits_per_sample
+        if "bits_per_sample" in audio_stream and audio_stream["bits_per_sample"] != 0:
+            bit_depth = int(audio_stream["bits_per_sample"])
+        # Method 2: bits_per_raw_sample
+        elif (
+            "bits_per_raw_sample" in audio_stream
+            and audio_stream["bits_per_raw_sample"] != 0
+        ):
+            bit_depth = int(audio_stream["bits_per_raw_sample"])
+        # Method 3: parse from sample_fmt (e.g., "s16", "s24", "s32")
+        elif "sample_fmt" in audio_stream:
+            sample_fmt = audio_stream["sample_fmt"]
+            if "16" in sample_fmt:
+                bit_depth = 16
+            elif "24" in sample_fmt:
+                bit_depth = 24
+            elif "32" in sample_fmt:
+                bit_depth = 32
 
-            return {
-                "bit_depth": bit_depth,
-                "sample_rate": int(audio_stream.get("sample_rate", 44100)),
-                "channels": int(audio_stream.get("channels", 2)),
-                "bitrate": bitrate,
-            }
+        # Get bitrate (try from stream first, then calculate)
+        bitrate = -1
+        if "bit_rate" in audio_stream and audio_stream["bit_rate"]:
+            bitrate = int(audio_stream["bit_rate"]) // 1000  # Convert to kbps
+        else:
+            print("Calculating bit rate...")
+            # Calculate bitrate: sample_rate * bit_depth * channels, then convert to kbps
+            sample_rate = int(audio_stream.get("sample_rate", -1))
+            channels = int(audio_stream.get("channels", 1))
+            bitrate = (sample_rate * bit_depth * channels) // 1000  # Convert to kbps
+
+        if bit_depth < 0:
+            raise Exception("No valid bit depth")
+        if bitrate < 0:
+            raise Exception("No valid bitrate")
+
+        return {
+            "bit_depth": bit_depth,
+            "sample_rate": int(audio_stream.get("sample_rate", 44100)),
+            "channels": int(audio_stream.get("channels", 2)),
+            "bitrate": bitrate,
+        }
     except Exception as e:
-        print(f"Warning: Could not probe {file_path}: {e}")
-
-    # Return defaults if probe fails
-    return {
-        "bit_depth": 16,
-        "sample_rate": 44100,
-        "channels": 2,
-        "bitrate": 1411,
-    }  # 1411 kbps for 16-bit/44.1kHz/stereo
+        print(f"Error: Could not probe {file_path}: {e}")
+        raise e

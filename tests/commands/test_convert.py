@@ -23,11 +23,15 @@ class TestConvertToLossless:
     """Test convert_to_lossless function."""
 
     @patch("rekordbox_bulk_edit.commands.convert.get_audio_info")
+    @patch("rekordbox_bulk_edit.utils.check_ffmpeg_available")
     @patch("rekordbox_bulk_edit.commands.convert.ffmpeg")
     @patch("rekordbox_bulk_edit.commands.convert.click")
-    def test_convert_to_aiff_16bit(self, mock_click, mock_ffmpeg, mock_get_audio_info):
+    def test_convert_to_aiff_16bit(
+        self, mock_click, mock_ffmpeg, mock_check_ffmpeg, mock_get_audio_info
+    ):
         """Test converting to AIFF with 16-bit depth."""
         # Setup
+        mock_check_ffmpeg.return_value = True
         mock_get_audio_info.return_value = {"bit_depth": 16}
         mock_input = Mock()
         mock_output = Mock()
@@ -49,11 +53,15 @@ class TestConvertToLossless:
         mock_click.echo.assert_called()
 
     @patch("rekordbox_bulk_edit.commands.convert.get_audio_info")
+    @patch("rekordbox_bulk_edit.utils.check_ffmpeg_available")
     @patch("rekordbox_bulk_edit.commands.convert.ffmpeg")
     @patch("rekordbox_bulk_edit.commands.convert.click")
-    def test_convert_to_wav_24bit(self, mock_click, mock_ffmpeg, mock_get_audio_info):
+    def test_convert_to_wav_24bit(
+        self, mock_click, mock_ffmpeg, mock_check_ffmpeg, mock_get_audio_info
+    ):
         """Test converting to WAV with 24-bit depth."""
         # Setup
+        mock_check_ffmpeg.return_value = True
         mock_get_audio_info.return_value = {"bit_depth": 24}
         mock_input = Mock()
         mock_output = Mock()
@@ -72,11 +80,15 @@ class TestConvertToLossless:
         )
 
     @patch("rekordbox_bulk_edit.commands.convert.get_audio_info")
+    @patch("rekordbox_bulk_edit.utils.check_ffmpeg_available")
     @patch("rekordbox_bulk_edit.commands.convert.ffmpeg")
     @patch("rekordbox_bulk_edit.commands.convert.click")
-    def test_convert_to_flac(self, mock_click, mock_ffmpeg, mock_get_audio_info):
+    def test_convert_to_flac(
+        self, mock_click, mock_ffmpeg, mock_check_ffmpeg, mock_get_audio_info
+    ):
         """Test converting to FLAC."""
         # Setup
+        mock_check_ffmpeg.return_value = True
         mock_get_audio_info.return_value = {"bit_depth": 24}
         mock_input = Mock()
         mock_output = Mock()
@@ -95,13 +107,15 @@ class TestConvertToLossless:
         )
 
     @patch("rekordbox_bulk_edit.commands.convert.get_audio_info")
+    @patch("rekordbox_bulk_edit.utils.check_ffmpeg_available")
     @patch("rekordbox_bulk_edit.commands.convert.ffmpeg")
     @patch("rekordbox_bulk_edit.commands.convert.click")
     def test_convert_unsupported_format(
-        self, mock_click, mock_ffmpeg, mock_get_audio_info
+        self, mock_click, mock_ffmpeg, mock_check_ffmpeg, mock_get_audio_info
     ):
         """Test conversion with unsupported format raises exception."""
         # Setup
+        mock_check_ffmpeg.return_value = True
         mock_get_audio_info.return_value = {"bit_depth": 16}
 
         # Execute & Assert
@@ -110,11 +124,15 @@ class TestConvertToLossless:
         mock_click.echo.assert_called()
 
     @patch("rekordbox_bulk_edit.commands.convert.get_audio_info")
+    @patch("rekordbox_bulk_edit.utils.check_ffmpeg_available")
     @patch("rekordbox_bulk_edit.commands.convert.ffmpeg")
     @patch("rekordbox_bulk_edit.commands.convert.click")
-    def test_convert_ffmpeg_error(self, mock_click, mock_ffmpeg, mock_get_audio_info):
+    def test_convert_ffmpeg_error(
+        self, mock_click, mock_ffmpeg, mock_check_ffmpeg, mock_get_audio_info
+    ):
         """Test handling of ffmpeg errors."""
         # Setup
+        mock_check_ffmpeg.return_value = True
         mock_get_audio_info.return_value = {"bit_depth": 16}
         mock_input = Mock()
         mock_output = Mock()
@@ -137,11 +155,16 @@ class TestConvertToLossless:
 class TestConvertToMp3:
     """Test convert_to_mp3 function."""
 
+    @patch("rekordbox_bulk_edit.commands.convert.get_audio_info")
+    @patch("rekordbox_bulk_edit.utils.check_ffmpeg_available")
     @patch("rekordbox_bulk_edit.commands.convert.ffmpeg")
     @patch("rekordbox_bulk_edit.commands.convert.click")
-    def test_convert_to_mp3_success(self, mock_click, mock_ffmpeg):
+    def test_convert_to_mp3_success(
+        self, mock_click, mock_ffmpeg, mock_check_ffmpeg, mock_get_audio_info
+    ):
         """Test successful MP3 conversion."""
         # Setup
+        mock_check_ffmpeg.return_value = True
         mock_input = Mock()
         mock_output = Mock()
         mock_ffmpeg.input.return_value = mock_input
@@ -164,11 +187,16 @@ class TestConvertToMp3:
         )
         mock_click.echo.assert_called_with("Converting to MP3 320kbps CBR")
 
+    @patch("rekordbox_bulk_edit.commands.convert.get_audio_info")
+    @patch("rekordbox_bulk_edit.utils.check_ffmpeg_available")
     @patch("rekordbox_bulk_edit.commands.convert.ffmpeg")
     @patch("rekordbox_bulk_edit.commands.convert.click")
-    def test_convert_to_mp3_ffmpeg_error(self, mock_click, mock_ffmpeg):
+    def test_convert_to_mp3_ffmpeg_error(
+        self, mock_click, mock_ffmpeg, mock_check_ffmpeg, mock_get_audio_info
+    ):
         """Test MP3 conversion with ffmpeg error."""
         # Setup
+        mock_check_ffmpeg.return_value = True
         mock_input = Mock()
         mock_output = Mock()
         mock_ffmpeg.input.return_value = mock_input
@@ -591,12 +619,10 @@ class TestConvertCommand:
 
     @patch("rekordbox_bulk_edit.commands.convert.get_rekordbox_pid")
     @patch("rekordbox_bulk_edit.utils.check_ffmpeg_available")
-    @patch("rekordbox_bulk_edit.utils.get_ffmpeg_error_help")
     @patch("rekordbox_bulk_edit.commands.convert.click.echo")
     def test_convert_command_ffmpeg_not_available_error(
         self,
         mock_click_echo,
-        mock_get_ffmpeg_error_help,
         mock_check_ffmpeg,
         mock_get_rb_pid,
     ):
@@ -604,7 +630,6 @@ class TestConvertCommand:
         # Setup mocks
         mock_get_rb_pid.return_value = None  # Rekordbox not running
         mock_check_ffmpeg.return_value = False  # FFmpeg not available
-        mock_get_ffmpeg_error_help.return_value = "Install ffmpeg help text"
 
         # Execute command
         from click.testing import CliRunner
