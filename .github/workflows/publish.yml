@@ -50,9 +50,8 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with: # unpacks all artifacts into dist/
-          pattern: dist-*
-          path: dist
-          merge-multiple: true
+          name: dist
+          path: dist/
       - name: Publish package distributions 📦 to TestPyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
