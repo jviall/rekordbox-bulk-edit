@@ -7,7 +7,7 @@ on:
 
 jobs:
   ci-checks:
-    uses: ./.gitub/workflows/ci.yml
+    uses: ./.github/workflows/ci.yml
 
   version-bump:
     needs: ci-checks
