@@ -1,4 +1,4 @@
-name: "Lint Checks"
+name: "Lint"
 description: "Run all lint (pre-commit) checks"
 
 runs:
@@ -20,7 +20,7 @@ runs:
       run: |
         poetry install --all-groups
 
-    - name: Run lint checks
+    - name: Run lint
       shell: bash
       run: |
         poetry run poe lint

@@ -29,8 +29,8 @@ jobs:
     outputs:
       should_skip: ${{ steps.skip_check.outputs.should_skip }}
 
-  lint-checks:
-    name: 🧺 Lint Checks
+  lint:
+    name: 🧺 Lint
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -63,3 +63,17 @@ jobs:
           python-version: ${{ matrix.python-version }}
           os: ${{ matrix.os }}
           codecov-token: ${{ secrets.CODECOV_TOKEN }}
+  all-green:
+    name: ✅ All Green
+    if: always()
+    needs:
+      - lint
+      - unit-tests
+
+    runs-on: Ubuntu-latest
+
+    steps:
+      - uses: re-actors/alls-green@release/v1
+        with:
+          allowed-skips: unit-tests
+          jobs: ${{ toJSON(needs) }}
