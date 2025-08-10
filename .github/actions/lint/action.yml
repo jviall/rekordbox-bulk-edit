@@ -22,8 +22,9 @@ runs:
       run: |
         poetry install --all-groups
 
-    - name: Validat Conventional Commits
+    - name: Validate Conventional Commits
       shell: bash
+      if: ${{ github.ref != 'refs/heads/main' }}
       run: |
         poetry run cz check --rev-range origin/main..HEAD
 
