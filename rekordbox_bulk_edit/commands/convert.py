@@ -24,12 +24,12 @@ def convert_to_lossless(input_path, output_path, output_format):
     try:
         from rekordbox_bulk_edit.utils import (
             check_ffmpeg_available,
-            get_ffmpeg_error_help,
+            get_no_ffmpeg_error,
         )
 
         # Check if ffmpeg is available first
         if not check_ffmpeg_available():
-            raise Exception(f"FFmpeg not found in PATH.{get_ffmpeg_error_help()}")
+            raise Exception(f"FFmpeg not found in PATH.{get_no_ffmpeg_error()}")
 
         # Get original audio info
         audio_info = get_audio_info(input_path)
@@ -76,12 +76,12 @@ def convert_to_mp3(input_path, mp3_path):
     try:
         from rekordbox_bulk_edit.utils import (
             check_ffmpeg_available,
-            get_ffmpeg_error_help,
+            get_no_ffmpeg_error,
         )
 
         # Check if ffmpeg is available first
         if not check_ffmpeg_available():
-            raise Exception(f"FFmpeg not found in PATH.{get_ffmpeg_error_help()}")
+            raise Exception(f"FFmpeg not found in PATH.{get_no_ffmpeg_error()}")
 
         click.echo("Converting to MP3 320kbps CBR")
 
@@ -349,12 +349,12 @@ def convert_command(
         # Check FFmpeg availability early
         from rekordbox_bulk_edit.utils import (
             check_ffmpeg_available,
-            get_ffmpeg_error_help,
+            get_no_ffmpeg_error,
         )
 
         if not check_ffmpeg_available():
             click.echo("ERROR: FFmpeg is required but not found in PATH")
-            click.echo(get_ffmpeg_error_help())
+            click.echo(get_no_ffmpeg_error())
             sys.exit(1)
 
         # Connect to RekordBox database
