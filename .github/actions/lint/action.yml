@@ -6,6 +6,8 @@ runs:
   steps:
     - name: Checkout
       uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
 
     - name: Set up Python
       uses: actions/setup-python@v4
@@ -19,6 +21,11 @@ runs:
       shell: bash
       run: |
         poetry install --all-groups
+
+    - name: Validat Conventional Commits
+      shell: bash
+      run: |
+        poetry run cz check --rev-range origin/main..HEAD
 
     - name: Run lint
       shell: bash

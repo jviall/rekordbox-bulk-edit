@@ -53,13 +53,48 @@ test = "pytest tests"
 coverage = "pytest tests --cov=rekordbox_bulk_edit --junitxml=.coverage/junit.xml --cov-report=term-missing --cov-report=html --cov-report=xml"
 lint = "ruff check --fix"
 format = "ruff format"
-install-hooks = "pre-commit install"
+install-hooks = "pre-commit install --hook-type pre-commit --hook-type commit-msg"
 run-hooks = "pre-commit run --all-files"
 
 [tool.commitizen]
-name = "cz_conventional_commits"
+name = "cz_customize"
 tag_format = "v$version"
 version_scheme = "pep440"
 version_provider = "pep621"
 update_changelog_on_bump = true
 major_version_zero = true
+
+[tool.commitizen.customize]
+message_template = "{{change_type}}{{scope}}: {{message}}"
+example = "feat(convert): add new conversion feature"
+schema = "<type>(<scope>): <body>"
+schema_pattern = "^(BREAKING|feat|fix|perf|hotfix|refactor|ci|tests|docs|config)(\\(convert|read\\))?!?: .+"
+bump_pattern = "^(BREAKING|feat|fix|perf|hotfix|refactor)"
+bump_map = { "BREAKING" = "MAJOR", "feat" = "MINOR", "fix" = "PATCH", "perf" = "PATCH", "hotfix" = "PATCH", "refactor" = "PATCH" }
+
+[[tool.commitizen.customize.questions]]
+type = "list"
+name = "change_type"
+choices = [
+    {value = "BREAKING", name = "BREAKING: introduces breaking changes"},
+    {value = "feat", name = "feat: introduces new features"},
+    {value = "fix", name = "fix: patches a bug"},
+    {value = "perf", name = "perf: improves performance"},
+    {value = "hotfix", name = "hotfix: urgent fix"},
+    {value = "refactor", name = "refactor: code refactor"},
+    {value = "ci", name = "ci: CI/CD changes"},
+    {value = "tests", name = "test: adds or modifies tests"},
+    {value = "docs", name = "docs: documentation changes"},
+    {value = "config", name = "config: configuration changes"}
+]
+message = "Select the type of change you are committing"
+
+[[tool.commitizen.customize.questions]]
+type = "input"
+name = "scope"
+message = "What is the scope of this change? (convert/read) (press [enter] to skip)"
+
+[[tool.commitizen.customize.questions]]
+type = "input"
+name = "message"
+message = "Write a short and imperative summary of the code changes"
