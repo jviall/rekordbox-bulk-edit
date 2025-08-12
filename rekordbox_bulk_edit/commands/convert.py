@@ -10,6 +10,7 @@ from ffmpeg import Error as FfmpegError
 from pyrekordbox import Rekordbox6Database
 from pyrekordbox.utils import get_rekordbox_pid
 
+from rekordbox_bulk_edit.logger import Logger
 from rekordbox_bulk_edit.utils import (
     get_audio_info,
     get_extension_for_format,
@@ -18,18 +19,20 @@ from rekordbox_bulk_edit.utils import (
     print_track_info,
 )
 
+logger = Logger()
+
 
 def convert_to_lossless(input_path, output_path, output_format):
     """Convert lossless file to another lossless format using ffmpeg, preserving bit depth"""
     try:
         from rekordbox_bulk_edit.utils import (
             check_ffmpeg_available,
-            get_no_ffmpeg_error,
+            get_ffmpeg_directions,
         )
 
         # Check if ffmpeg is available first
         if not check_ffmpeg_available():
-            raise Exception(f"FFmpeg not found in PATH.{get_no_ffmpeg_error()}")
+            raise Exception(f"FFmpeg not found in PATH.{get_ffmpeg_directions()}")
 
         # Get original audio info
         audio_info = get_audio_info(input_path)
@@ -49,7 +52,7 @@ def convert_to_lossless(input_path, output_path, output_format):
         else:
             raise Exception(f"Unsupported lossless format: {output_format}")
 
-        click.echo(f"  Converting with {bit_depth}-bit depth using codec: {codec}")
+        logger.info(f"  Converting with {bit_depth}-bit depth using codec: {codec}")
 
         # Build output options
         output_options = {"acodec": codec, "map_metadata": 0, "write_id3v2": 1}
@@ -62,12 +65,12 @@ def convert_to_lossless(input_path, output_path, output_format):
         )
         return True
     except FfmpegError as e:
-        click.echo(f"FFmpeg error converting {input_path}: {e}")
+        logger.info(f"FFmpeg error converting {input_path}: {e}")
         if e.stderr:
-            click.echo(f"FFmpeg stderr output:\n{e.stderr.encode()}")
+            logger.info(f"FFmpeg stderr output:\n{e.stderr.encode()}")
         return False
     except Exception as e:
-        click.echo(f"Error converting {input_path}: {e}")
+        logger.info(f"Error converting {input_path}: {e}")
         return False
 
 
@@ -76,14 +79,14 @@ def convert_to_mp3(input_path, mp3_path):
     try:
         from rekordbox_bulk_edit.utils import (
             check_ffmpeg_available,
-            get_no_ffmpeg_error,
+            get_ffmpeg_directions,
         )
 
         # Check if ffmpeg is available first
         if not check_ffmpeg_available():
-            raise Exception(f"FFmpeg not found in PATH.{get_no_ffmpeg_error()}")
+            raise Exception(f"FFmpeg not found in PATH.{get_ffmpeg_directions()}")
 
-        click.echo("Converting to MP3 320kbps CBR")
+        logger.info("Converting to MP3 320kbps CBR")
 
         (
             ffmpeg.input(input_path)
@@ -99,12 +102,12 @@ def convert_to_mp3(input_path, mp3_path):
         )
         return True
     except FfmpegError as e:
-        click.echo(f"FFmpeg error converting {input_path}: {e}")
+        logger.info(f"FFmpeg error converting {input_path}: {e}")
         if e.stderr:
-            click.echo(f"FFmpeg stderr output:\n{e.stderr.encode()}")
+            logger.info(f"FFmpeg stderr output:\n{e.stderr.encode()}")
         return False
     except Exception as e:
-        click.echo(f"Error converting {input_path}: {e}")
+        logger.info(f"Error converting {input_path}: {e}")
         return False
 
 
@@ -121,11 +124,11 @@ def _verify_bit_depth(content, converted_audio_info):
         )
 
     if database_bit_depth:
-        click.echo(
+        logger.info(
             f"  ✓ Bit depth verification passed: {converted_bit_depth}-bit matches database"
         )
     else:
-        click.echo(
+        logger.info(
             "  ⚠ Warning: Could not verify bit depth - no bit depth field found in database"
         )
 
@@ -152,7 +155,7 @@ def update_database_record(db, content_id, new_filename, new_folder, output_form
         if output_format.upper() in ["AIFF", "FLAC", "WAV"]:
             _verify_bit_depth(content, converted_audio_info)
         elif output_format.upper() == "MP3":
-            click.echo(f"  ✓ MP3 conversion completed with {converted_bitrate} kbps")
+            logger.info(f"  ✓ MP3 conversion completed with {converted_bitrate} kbps")
 
         # Update relevant fields
         content.FileNameL = new_filename
@@ -162,10 +165,10 @@ def update_database_record(db, content_id, new_filename, new_folder, output_form
         # Set bitrate to 0 for FLAC files (like Rekordbox does), otherwise use detected bitrate
         if output_format == "FLAC":
             content.BitRate = 0
-            click.echo(f"  ✓ Updated BitRate from {content.BitRate or 0} to 0 (FLAC)")
+            logger.info(f"  ✓ Updated BitRate from {content.BitRate or 0} to 0 (FLAC)")
         else:
             content.BitRate = converted_bitrate
-            click.echo(
+            logger.info(
                 f"  ✓ Updated BitRate from {content.BitRate or 0} to {converted_bitrate}"
             )
 
@@ -173,7 +176,7 @@ def update_database_record(db, content_id, new_filename, new_folder, output_form
         return True
 
     except Exception as e:
-        click.echo(f"Error updating database record {content_id}: {e}")
+        logger.info(f"Error updating database record {content_id}: {e}")
         raise e  # Re-raise to be handled by caller
 
 
@@ -200,7 +203,7 @@ def confirm(question, default_yes=True):
             return False
         if response in ["q", "quit"]:
             raise UserQuit("User chose to quit")
-        click.echo("Please enter 'y', 'n', or 'q' to quit")
+        logger.info("Please enter 'y', 'n', or 'q' to quit")
 
 
 def cleanup_converted_files(converted_files):
@@ -208,7 +211,7 @@ def cleanup_converted_files(converted_files):
     for file_info in converted_files:
         try:
             os.remove(file_info["output_path"])
-            click.echo(f"✓ Cleaned up {file_info['output_path']}")
+            logger.info(f"✓ Cleaned up {file_info['output_path']}")
         except Exception:
             pass
 
@@ -222,38 +225,38 @@ def handle_original_file_deletion(converted_files, auto_confirm):
                 try:
                     os.remove(file_info["source_path"])
                     deleted_count += 1
-                    click.echo(f"✓ Deleted {file_info['source_path']}")
+                    logger.info(f"✓ Deleted {file_info['source_path']}")
                 except Exception as e:
-                    click.echo(f"⚠ Failed to delete {file_info['source_path']}: {e}")
-            click.echo(
+                    logger.info(f"⚠ Failed to delete {file_info['source_path']}: {e}")
+            logger.info(
                 f"Deleted {deleted_count} of {len(converted_files)} original files"
             )
         else:
-            click.echo("Original files preserved")
+            logger.info("Original files preserved")
     except UserQuit:
-        click.echo("User quit. Original files preserved.")
+        logger.info("User quit. Original files preserved.")
         raise
 
 
 def handle_user_quit_with_changes(db, converted_files, auto_confirm):
     """Handle user quit when there are uncommitted database changes"""
-    click.echo("User quit. You have uncommitted database changes.")
+    logger.info("User quit. You have uncommitted database changes.")
     try:
         if confirm("Commit database changes before quitting?", default_yes=True):
             try:
                 db.session.commit()
-                click.echo("✓ Database changes committed successfully")
+                logger.info("✓ Database changes committed successfully")
                 handle_original_file_deletion(converted_files, auto_confirm)
             except Exception as e:
-                click.echo(f"FATAL ERROR: Failed to commit database changes: {e}")
+                logger.critical("Failed to commit database changes!", exc_info=e)
                 db.session.rollback()
                 sys.exit(1)
         else:
-            click.echo("Rolling back database changes and cleaning up...")
+            logger.info("Rolling back database changes and cleaning up...")
             db.session.rollback()
             cleanup_converted_files(converted_files)
     except UserQuit:
-        click.echo("User quit. Rolling back database changes and cleaning up...")
+        logger.info("User quit. Rolling back database changes and cleaning up...")
         db.session.rollback()
         cleanup_converted_files(converted_files)
 
@@ -263,14 +266,14 @@ def check_file_exists_and_confirm(output_full_path, output_format, auto_confirm)
     if not os.path.exists(output_full_path):
         return False  # File doesn't exist, proceed with conversion
 
-    click.echo(f"WARNING: {output_format} file already exists: {output_full_path}")
+    logger.info(f"WARNING: {output_format} file already exists: {output_full_path}")
     if auto_confirm or confirm(
         "File exists. Skip conversion but update database record?", default_yes=True
     ):
-        click.echo("Skipping conversion, will update database record only...")
+        logger.info("Skipping conversion, will update database record only...")
         return True  # Skip conversion but update database
     else:
-        click.echo("Skipping this file...")
+        logger.info("Skipping this file...")
         return None  # Skip this file entirely
 
 
@@ -326,59 +329,57 @@ def convert_command(
     Skips all lossy formats (MP3/AAC), ALAC, and files already in the target format.
     """
     try:
-        click.echo("Lossless Audio Format Converter")
-        click.echo("=" * 32)
-        click.echo()
+        logger.info("Lossless Audio Format Converter")
+        logger.info("=" * 32)
+        logger.info()
 
         # Check if Rekordbox is running
-        click.echo("Checking if Rekordbox is running...")
+        logger.verbose("Checking if Rekordbox is running...")
         rekordbox_pid = get_rekordbox_pid()
         if rekordbox_pid:
-            click.echo(f"ERROR: Rekordbox is currently running ({rekordbox_pid})")
-            click.echo(
+            logger.error(f"Rekordbox is currently running ({rekordbox_pid})")
+            logger.info(
                 "Please close Rekordbox before running the convert command to avoid database conflicts."
             )
             sys.exit(1)
-        click.echo("✓ Rekordbox is not running")
-        click.echo()
+        logger.verbose("✓ Rekordbox is not running")
+        logger.info()
 
         if dry_run:
-            click.echo("DRY RUN MODE - No files will be converted or modified")
-            click.echo()
+            logger.info("DRY RUN MODE - No files will be converted or modified")
+            logger.info()
 
         # Check FFmpeg availability early
         from rekordbox_bulk_edit.utils import (
             check_ffmpeg_available,
-            get_no_ffmpeg_error,
+            get_ffmpeg_directions,
         )
 
         if not check_ffmpeg_available():
-            click.echo("ERROR: FFmpeg is required but not found in PATH")
-            click.echo(get_no_ffmpeg_error())
+            logger.error("FFmpeg is required but not found in PATH")
+            logger.error(get_ffmpeg_directions())
             sys.exit(1)
 
         # Connect to RekordBox database
-        click.echo("Connecting to RekordBox database...")
+        logger.verbose("Connecting to RekordBox database...")
         db = Rekordbox6Database()
 
         # Check if we have a valid session early on
         if not db.session:
-            click.echo("ERROR: No database session available")
-            click.echo("ABORTING: Cannot continue without database access")
-            sys.exit(1)
+            raise Exception("No database session available")
 
         # Get filtered content based on user criteria
-        click.echo("Finding audio files...")
+        logger.info("Finding audio files...")
 
         filtered_content = []
 
         if playlist:
             # Filter by playlist
-            click.echo(f"Filtering by playlist: {playlist}")
+            logger.info(f"Filtering by playlist: {playlist}")
             playlist_results = db.get_playlist().filter_by(Name=playlist)
             playlist_obj = playlist_results.first()
             if not playlist_obj:
-                click.echo(f"ERROR: Playlist '{playlist}' not found")
+                logger.info(f"ERROR: Playlist '{playlist}' not found")
                 sys.exit(1)
             elif playlist_results.count() > 1:
                 print(
@@ -397,10 +398,10 @@ def convert_command(
 
         # Apply artist filter if specified
         if artist:
-            click.echo(f"Filtering by artist: {artist}")
+            logger.info(f"Filtering by artist: {artist}")
             artist_obj = db.get_artist().filter_by(Name=artist).first()
             if not artist_obj:
-                click.echo(f"ERROR: Artist '{artist}' not found")
+                logger.info(f"ERROR: Artist '{artist}' not found")
                 sys.exit(1)
 
             filtered_content = [
@@ -409,10 +410,10 @@ def convert_command(
 
         # Apply album filter if specified
         if album:
-            click.echo(f"Filtering by album: {album}")
+            logger.info(f"Filtering by album: {album}")
             album_obj = db.get_album().filter_by(Name=album).first()
             if not album_obj:
-                click.echo(f"ERROR: Album '{album}' not found")
+                logger.info(f"ERROR: Album '{album}' not found")
                 sys.exit(1)
 
             filtered_content = [
@@ -426,7 +427,7 @@ def convert_command(
                     "--format filter matches --output-format. There will be nothing to convert"
                 )
             input_file_type = get_file_type_for_format(format)
-            click.echo(f"Filtering by input format: {format.upper()}")
+            logger.info(f"Filtering by input format: {format.upper()}")
             filtered_content = [
                 c for c in filtered_content if c.FileType == input_file_type
             ]
@@ -440,22 +441,21 @@ def convert_command(
             and content.FileType != get_file_type_for_format("M4A")
         ]
 
-        click.echo(
+        logger.info(
             f"Found {len(files_to_convert)} files to convert to {output_format.upper()}"
         )
 
         if not files_to_convert:
-            click.echo("No files need conversion. Exiting.")
+            logger.info("No files need conversion. Exiting.")
             return
 
         if dry_run:
-            click.echo("\nFiles that would be converted:")
+            logger.info("\nFiles that would be converted:")
             print_track_info(files_to_convert)
             return
 
         # Process each file
         converted_files = []  # Track converted files for potential deletion
-
         for i, content in enumerate(files_to_convert, 1):
             source_file_name = content.FileNameL or ""
             source_full_path = content.FolderPath or ""
@@ -463,16 +463,18 @@ def convert_command(
             source_format = get_file_type_name(content.FileType)
             output_format_upper = output_format.upper()
 
-            click.echo(f"\nProcessing {i}/{len(files_to_convert)}")
+            logger.info(f"\nProcessing {i}/{len(files_to_convert)}")
 
             # Show detailed track information
             print_track_info([content])
-            click.echo()
+            logger.info()
 
             # Check if source file exists
             if not os.path.exists(source_full_path):
-                click.echo(f"ERROR: {source_format} file not found: {source_full_path}")
-                click.echo("ABORTING: Cannot continue with missing files")
+                logger.info(
+                    f"ERROR: {source_format} file not found: {source_full_path}"
+                )
+                logger.info("ABORTING: Cannot continue with missing files")
                 db.session.rollback()
                 sys.exit(1)
 
@@ -503,7 +505,7 @@ def convert_command(
                 if converted_files:
                     handle_user_quit_with_changes(db, converted_files, auto_confirm)
                 else:
-                    click.echo("User quit. No changes to commit.")
+                    logger.info("User quit. No changes to commit.")
                 sys.exit(0)
 
             # Ask for conversion confirmation (unless skipping conversion)
@@ -513,31 +515,31 @@ def convert_command(
                         f"Convert {source_format} track {source_file_name} to {output_format_upper}?",
                         default_yes=True,
                     ):
-                        click.echo("Skipping this file...")
+                        logger.info("Skipping this file...")
                         continue
                 except UserQuit:
                     if converted_files:
                         handle_user_quit_with_changes(db, converted_files, auto_confirm)
                     else:
-                        click.echo("User quit. No changes to commit.")
+                        logger.info("User quit. No changes to commit.")
                     sys.exit(0)
 
             # Convert file (unless skipping)
             if not skip_conversion:
                 if not convert(source_full_path, output_full_path):
-                    click.echo("ABORTING: Conversion failed")
+                    logger.info("ABORTING: Conversion failed")
                     db.session.rollback()
                     cleanup_converted_files(converted_files)
                     sys.exit(1)
 
                 # Verify conversion was successful
                 if not os.path.exists(output_full_path):
-                    click.echo("ABORTING: Converted file not found after conversion")
+                    logger.info("ABORTING: Converted file not found after conversion")
                     db.session.rollback()
                     sys.exit(1)
 
             # Update database (but don't commit yet)
-            click.echo("Updating database record...")
+            logger.info("Updating database record...")
             try:
                 update_database_record(
                     db,
@@ -554,25 +556,25 @@ def convert_command(
                     }
                 )
                 if skip_conversion:
-                    click.echo(
+                    logger.info(
                         "✓ Successfully updated database record (conversion skipped)"
                     )
                 else:
-                    click.echo("✓ Successfully converted and updated database record")
+                    logger.info("✓ Successfully converted and updated database record")
             except Exception as e:
-                click.echo(f"ABORTING: Database update failed: {e}")
+                logger.info(f"ABORTING: Database update failed: {e}")
                 db.session.rollback()
                 # Clean up converted files
                 try:
                     os.remove(output_full_path)
-                    click.echo("Cleaned up converted file")
+                    logger.info("Cleaned up converted file")
                 except Exception as e:
-                    click.echo(f"Failed to clean up converted file {e}")
+                    logger.info(f"Failed to clean up converted file {e}")
                 sys.exit(1)
 
         # Handle final commit and cleanup
         if converted_files:
-            click.echo(
+            logger.info(
                 f"\n🎉 Successfully converted {len(converted_files)} lossless files to {output_format_upper} format"
             )
 
@@ -580,35 +582,35 @@ def convert_command(
                 if confirm("Commit database changes?", default_yes=True):
                     try:
                         db.session.commit()
-                        click.echo("✓ Database changes committed successfully")
+                        logger.info("✓ Database changes committed successfully")
 
                         handle_original_file_deletion(converted_files, auto_confirm)
 
                     except Exception as e:
-                        click.echo(
+                        logger.info(
                             f"FATAL ERROR: Failed to commit database changes: {e}"
                         )
                         db.session.rollback()
                         sys.exit(1)
                 else:
-                    click.echo("Database changes rolled back")
+                    logger.info("Database changes rolled back")
                     db.session.rollback()
                     cleanup_converted_files(converted_files)
             except UserQuit:
-                click.echo(
+                logger.info(
                     "User quit. Rolling back database changes and cleaning up..."
                 )
                 db.session.rollback()
                 cleanup_converted_files(converted_files)
                 sys.exit(0)
         else:
-            click.echo("No files were converted.")
+            logger.info("No files were converted.")
 
     except Exception as e:
-        click.echo(f"FATAL ERROR: {e}")
         try:
             if db.session:
                 db.session.rollback()
-        except Exception:
-            pass
-        sys.exit(1)
+        except Exception as _e:
+            logger.critical("DATABASE ROLLBACK FAILED AFTER EXCEPTION")
+            raise Exception(_e, e)
+        raise e

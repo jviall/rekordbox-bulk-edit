@@ -2,10 +2,14 @@
 """Command line interface for rekordbox-bulk-edit."""
 
 import sys
+
 import click
 
-from rekordbox_bulk_edit.commands.read import read_command
 from rekordbox_bulk_edit.commands.convert import convert_command
+from rekordbox_bulk_edit.commands.read import read_command
+from rekordbox_bulk_edit.logger import Logger
+
+logger = Logger()
 
 
 @click.group()
@@ -15,8 +19,10 @@ def cli():
     pass
 
 
-cli.add_command(read_command, name="read")
-cli.add_command(convert_command, name="convert")
+cli.add_command(read_command)
+cli.add_command(
+    convert_command,
+)
 
 
 def main():
@@ -24,10 +30,12 @@ def main():
     try:
         cli()
     except KeyboardInterrupt:
-        click.echo("\nOperation cancelled by user.", err=True)
-        sys.exit(1)
+        logger.debug("User killed the process.")
     except Exception as e:
-        click.echo(f"Error: {e}", err=True)
+        logger.critical("Unhandled exception occured:", exc_info=e)
+        logger.info(
+            f"Please report this issue to https://github.com/jviall/rekordbox-bulk-edit/issues with the debug file for this run: {logger.get_debug_file_path().absolute().as_uri()}",
+        )
         sys.exit(1)
 
 
