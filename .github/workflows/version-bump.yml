@@ -6,11 +6,12 @@ on:
   workflow_dispatch:
 
 jobs:
-  ci-checks:
+  ci:
     uses: ./.github/workflows/ci.yml
+    secrets: inherit
 
   version-bump:
-    needs: ci-checks
+    needs: checks
     if: "!startsWith(github.event.head_commit.message, 'bump:')"
     runs-on: ubuntu-latest
     permissions:
