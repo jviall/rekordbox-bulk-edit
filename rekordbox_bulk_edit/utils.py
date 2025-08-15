@@ -1,10 +1,14 @@
 """Shared utility functions for rekordbox-bulk-edit."""
 
-import os
+import platform
 import shutil
 
 import ffmpeg
 from pyrekordbox import Rekordbox6Database
+
+from rekordbox_bulk_edit.logger import Logger
+
+logger = Logger()
 
 
 # File type mappings for Rekordbox database
@@ -55,7 +59,6 @@ def get_extension_for_format(format_name: str):
 def print_track_info(content_list):
     """Print formatted track information"""
     if not content_list:
-        print("No tracks found.")
         return
 
     # Column widths (total ≈ 240 chars with spacing)
@@ -80,8 +83,8 @@ def print_track_info(content_list):
         f"{'FolderPath':<{widths['location']}}"
     )
 
-    print(header)
-    print("-" * len(header))
+    logger.info(header)
+    logger.info("-" * len(header))
 
     # Print each track
     for content in content_list:
@@ -136,7 +139,7 @@ def print_track_info(content_list):
             f"{location:<{widths['location']}}"
         )
 
-        print(row)
+        logger.info(row)
 
 
 def get_track_info(track_id=None, format_filter=None):
@@ -174,7 +177,8 @@ def get_track_info(track_id=None, format_filter=None):
         return content_list
 
     except Exception as e:
-        print(f"Error accessing RekordBox database: {e}")
+        logger.error(f"{get_track_info.__name__}: Failed to access RekordBox database.")
+        logger.error(e, exc_info=True)
         return []
 
 
@@ -183,29 +187,20 @@ def check_ffmpeg_available():
     return shutil.which("ffmpeg") is not None
 
 
-def get_no_ffmpeg_error():
+def get_ffmpeg_directions():
     """Get helpful error message for missing ffmpeg"""
-    if os.name == "nt":  # Windows
+    if platform.system() == "Windows":  # Windows
         return """
-FFmpeg not found. Please install FFmpeg:
-
-1. Download FFmpeg from: https://ffmpeg.org/download.html#build-windows
-2. Extract the zip file
-3. Add the 'bin' folder to your Windows PATH:
-   - Open System Properties → Advanced → Environment Variables
-   - Select 'Path' in System Variables → Edit → New
-   - Add the path to the ffmpeg 'bin' folder (e.g., C:\\ffmpeg\\bin)
-   - Restart your command prompt/terminal
-
-Alternative: Place ffmpeg.exe in your Python environment's Scripts folder.
+FFmpeg is required for rekordbox-bulk-edit.
+Please install FFmpeg:
+https://ffmpeg.org/download.html
 """
-    else:  # macOS/Linux
+    else:  # macOS
         return """
-FFmpeg not found. Please install FFmpeg:
-
-macOS: brew install ffmpeg
-Ubuntu/Debian: sudo apt install ffmpeg
-Other Linux: Use your package manager to install ffmpeg
+FFmpeg is required for rekordbox-bulk-edit.
+Please install FFmpeg:
+brew install ffmpeg
+or https://ffmpeg.org/download.html
 """
 
 
@@ -214,7 +209,7 @@ def get_audio_info(file_path) -> dict[str, int]:
     try:
         # Check if ffmpeg is available first
         if not check_ffmpeg_available():
-            raise Exception(get_no_ffmpeg_error())
+            raise Exception(get_ffmpeg_directions())
 
         probe = ffmpeg.probe(file_path)
         audio_stream = next(
@@ -251,7 +246,7 @@ def get_audio_info(file_path) -> dict[str, int]:
         if "bit_rate" in audio_stream and audio_stream["bit_rate"]:
             bitrate = int(audio_stream["bit_rate"]) // 1000  # Convert to kbps
         else:
-            print("Calculating bit rate...")
+            logger.verbose("Calculating bit rate...")
             # Calculate bitrate: sample_rate * bit_depth * channels, then convert to kbps
             sample_rate = int(audio_stream.get("sample_rate", -1))
             channels = int(audio_stream.get("channels", 1))
@@ -269,5 +264,6 @@ def get_audio_info(file_path) -> dict[str, int]:
             "bitrate": bitrate,
         }
     except Exception as e:
-        print(f"Error: Could not probe {file_path}: {e}")
+        logger.error(f"Failed to get info for {file_path}")
+        logger.error(e, exc_info=True)
         raise e

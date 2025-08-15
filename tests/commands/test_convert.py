@@ -4,6 +4,7 @@ from unittest.mock import Mock, patch
 
 import ffmpeg
 import pytest
+from callee import Regex, String
 
 from rekordbox_bulk_edit.commands.convert import (
     UserQuit,
@@ -19,15 +20,21 @@ from rekordbox_bulk_edit.commands.convert import (
 )
 
 
+@pytest.fixture(autouse=True)
+def mock_logger():
+    """Mock the logger for all tests in this module."""
+    with patch("rekordbox_bulk_edit.commands.convert.logger") as mock_log:
+        yield mock_log
+
+
 class TestConvertToLossless:
     """Test convert_to_lossless function."""
 
     @patch("rekordbox_bulk_edit.commands.convert.get_audio_info")
     @patch("rekordbox_bulk_edit.utils.check_ffmpeg_available")
     @patch("rekordbox_bulk_edit.commands.convert.ffmpeg")
-    @patch("rekordbox_bulk_edit.commands.convert.click")
     def test_convert_to_aiff_16bit(
-        self, mock_click, mock_ffmpeg, mock_check_ffmpeg, mock_get_audio_info
+        self, mock_ffmpeg, mock_check_ffmpeg, mock_get_audio_info
     ):
         """Test converting to AIFF with 16-bit depth."""
         # Setup
@@ -50,14 +57,12 @@ class TestConvertToLossless:
         mock_input.output.assert_called_once_with(
             "output.aiff", acodec="pcm_s16be", map_metadata=0, write_id3v2=1
         )
-        mock_click.echo.assert_called()
 
     @patch("rekordbox_bulk_edit.commands.convert.get_audio_info")
     @patch("rekordbox_bulk_edit.utils.check_ffmpeg_available")
     @patch("rekordbox_bulk_edit.commands.convert.ffmpeg")
-    @patch("rekordbox_bulk_edit.commands.convert.click")
     def test_convert_to_wav_24bit(
-        self, mock_click, mock_ffmpeg, mock_check_ffmpeg, mock_get_audio_info
+        self, mock_ffmpeg, mock_check_ffmpeg, mock_get_audio_info
     ):
         """Test converting to WAV with 24-bit depth."""
         # Setup
@@ -82,10 +87,7 @@ class TestConvertToLossless:
     @patch("rekordbox_bulk_edit.commands.convert.get_audio_info")
     @patch("rekordbox_bulk_edit.utils.check_ffmpeg_available")
     @patch("rekordbox_bulk_edit.commands.convert.ffmpeg")
-    @patch("rekordbox_bulk_edit.commands.convert.click")
-    def test_convert_to_flac(
-        self, mock_click, mock_ffmpeg, mock_check_ffmpeg, mock_get_audio_info
-    ):
+    def test_convert_to_flac(self, mock_ffmpeg, mock_check_ffmpeg, mock_get_audio_info):
         """Test converting to FLAC."""
         # Setup
         mock_check_ffmpeg.return_value = True
@@ -109,9 +111,8 @@ class TestConvertToLossless:
     @patch("rekordbox_bulk_edit.commands.convert.get_audio_info")
     @patch("rekordbox_bulk_edit.utils.check_ffmpeg_available")
     @patch("rekordbox_bulk_edit.commands.convert.ffmpeg")
-    @patch("rekordbox_bulk_edit.commands.convert.click")
     def test_convert_unsupported_format(
-        self, mock_click, mock_ffmpeg, mock_check_ffmpeg, mock_get_audio_info
+        self, mock_ffmpeg, mock_check_ffmpeg, mock_get_audio_info
     ):
         """Test conversion with unsupported format raises exception."""
         # Setup
@@ -121,14 +122,12 @@ class TestConvertToLossless:
         # Execute & Assert
         result = convert_to_lossless("input.flac", "output.xyz", "xyz")
         assert result is False
-        mock_click.echo.assert_called()
 
     @patch("rekordbox_bulk_edit.commands.convert.get_audio_info")
     @patch("rekordbox_bulk_edit.utils.check_ffmpeg_available")
     @patch("rekordbox_bulk_edit.commands.convert.ffmpeg")
-    @patch("rekordbox_bulk_edit.commands.convert.click")
     def test_convert_ffmpeg_error(
-        self, mock_click, mock_ffmpeg, mock_check_ffmpeg, mock_get_audio_info
+        self, mock_ffmpeg, mock_check_ffmpeg, mock_get_audio_info
     ):
         """Test handling of ffmpeg errors."""
         # Setup
@@ -149,7 +148,6 @@ class TestConvertToLossless:
 
         # Assert
         assert result is False
-        mock_click.echo.assert_called()
 
 
 class TestConvertToMp3:
@@ -158,9 +156,8 @@ class TestConvertToMp3:
     @patch("rekordbox_bulk_edit.commands.convert.get_audio_info")
     @patch("rekordbox_bulk_edit.utils.check_ffmpeg_available")
     @patch("rekordbox_bulk_edit.commands.convert.ffmpeg")
-    @patch("rekordbox_bulk_edit.commands.convert.click")
     def test_convert_to_mp3_success(
-        self, mock_click, mock_ffmpeg, mock_check_ffmpeg, mock_get_audio_info
+        self, mock_ffmpeg, mock_check_ffmpeg, mock_get_audio_info
     ):
         """Test successful MP3 conversion."""
         # Setup
@@ -185,14 +182,12 @@ class TestConvertToMp3:
             map_metadata=0,
             write_id3v2=1,
         )
-        mock_click.echo.assert_called_with("Converting to MP3 320kbps CBR")
 
     @patch("rekordbox_bulk_edit.commands.convert.get_audio_info")
     @patch("rekordbox_bulk_edit.utils.check_ffmpeg_available")
     @patch("rekordbox_bulk_edit.commands.convert.ffmpeg")
-    @patch("rekordbox_bulk_edit.commands.convert.click")
     def test_convert_to_mp3_ffmpeg_error(
-        self, mock_click, mock_ffmpeg, mock_check_ffmpeg, mock_get_audio_info
+        self, mock_ffmpeg, mock_check_ffmpeg, mock_get_audio_info
     ):
         """Test MP3 conversion with ffmpeg error."""
         # Setup
@@ -211,14 +206,12 @@ class TestConvertToMp3:
 
         # Assert
         assert result is False
-        mock_click.echo.assert_called()
 
 
 class TestVerifyBitDepth:
     """Test _verify_bit_depth function."""
 
-    @patch("rekordbox_bulk_edit.commands.convert.click")
-    def test_verify_bit_depth_match(self, mock_click):
+    def test_verify_bit_depth_match(self):
         """Test bit depth verification when depths match."""
         # Setup
         mock_content = Mock()
@@ -228,13 +221,7 @@ class TestVerifyBitDepth:
         # Execute - should not raise exception
         _verify_bit_depth(mock_content, converted_audio_info)
 
-        # Assert
-        mock_click.echo.assert_called_with(
-            "  ✓ Bit depth verification passed: 24-bit matches database"
-        )
-
-    @patch("rekordbox_bulk_edit.commands.convert.click")
-    def test_verify_bit_depth_mismatch(self, mock_click):
+    def test_verify_bit_depth_mismatch(self):
         """Test bit depth verification when depths don't match."""
         # Setup
         mock_content = Mock()
@@ -245,8 +232,7 @@ class TestVerifyBitDepth:
         with pytest.raises(Exception, match="Bit depth mismatch"):
             _verify_bit_depth(mock_content, converted_audio_info)
 
-    @patch("rekordbox_bulk_edit.commands.convert.click")
-    def test_verify_bit_depth_no_database_field(self, mock_click):
+    def test_verify_bit_depth_no_database_field(self):
         """Test bit depth verification when database has no BitDepth field."""
         # Setup
         mock_content = Mock()
@@ -259,21 +245,15 @@ class TestVerifyBitDepth:
         # Execute - should not raise exception
         _verify_bit_depth(mock_content, converted_audio_info)
 
-        # Assert
-        mock_click.echo.assert_called_with(
-            "  ⚠ Warning: Could not verify bit depth - no bit depth field found in database"
-        )
-
 
 class TestUpdateDatabaseRecord:
     """Test update_database_record function."""
 
     @patch("rekordbox_bulk_edit.commands.convert.get_audio_info")
     @patch("rekordbox_bulk_edit.commands.convert._verify_bit_depth")
-    @patch("rekordbox_bulk_edit.commands.convert.click")
     @patch("os.path.join")
     def test_update_database_record_flac(
-        self, mock_join, mock_click, mock_verify, mock_get_audio_info
+        self, mock_join, mock_verify, mock_get_audio_info
     ):
         """Test updating database record for FLAC conversion."""
         # Setup
@@ -297,11 +277,8 @@ class TestUpdateDatabaseRecord:
         mock_verify.assert_called_once()
 
     @patch("rekordbox_bulk_edit.commands.convert.get_audio_info")
-    @patch("rekordbox_bulk_edit.commands.convert.click")
     @patch("os.path.join")
-    def test_update_database_record_mp3(
-        self, mock_join, mock_click, mock_get_audio_info
-    ):
+    def test_update_database_record_mp3(self, mock_join, mock_get_audio_info):
         """Test updating database record for MP3 conversion."""
         # Setup
         mock_db = Mock()
@@ -322,8 +299,7 @@ class TestUpdateDatabaseRecord:
         assert mock_content.FileType == 1  # MP3 file type
         assert mock_content.BitRate == 320
 
-    @patch("rekordbox_bulk_edit.commands.convert.click")
-    def test_update_database_record_content_not_found(self, mock_click):
+    def test_update_database_record_content_not_found(self):
         """Test updating database record when content not found."""
         # Setup
         mock_db = Mock()
@@ -385,10 +361,7 @@ class TestCheckFileExistsAndConfirm:
 
     @patch("os.path.exists")
     @patch("rekordbox_bulk_edit.commands.convert.confirm")
-    @patch("rekordbox_bulk_edit.commands.convert.click")
-    def test_file_exists_user_confirms_skip(
-        self, mock_click, mock_confirm, mock_exists
-    ):
+    def test_file_exists_user_confirms_skip(self, mock_confirm, mock_exists):
         """Test when file exists and user confirms to skip conversion."""
         mock_exists.return_value = True
         mock_confirm.return_value = True
@@ -396,15 +369,11 @@ class TestCheckFileExistsAndConfirm:
         result = check_file_exists_and_confirm("/path/output.aiff", "aiff", False)
 
         assert result is True
-        mock_click.echo.assert_called()
         mock_confirm.assert_called_once()
 
     @patch("os.path.exists")
     @patch("rekordbox_bulk_edit.commands.convert.confirm")
-    @patch("rekordbox_bulk_edit.commands.convert.click")
-    def test_file_exists_user_declines_skip(
-        self, mock_click, mock_confirm, mock_exists
-    ):
+    def test_file_exists_user_declines_skip(self, mock_confirm, mock_exists):
         """Test when file exists and user declines to skip conversion."""
         mock_exists.return_value = True
         mock_confirm.return_value = False
@@ -412,26 +381,22 @@ class TestCheckFileExistsAndConfirm:
         result = check_file_exists_and_confirm("/path/output.aiff", "aiff", False)
 
         assert result is None
-        mock_click.echo.assert_called()
 
     @patch("os.path.exists")
-    @patch("rekordbox_bulk_edit.commands.convert.click")
-    def test_file_exists_auto_confirm(self, mock_click, mock_exists):
+    def test_file_exists_auto_confirm(self, mock_exists):
         """Test when file exists with auto-confirm enabled."""
         mock_exists.return_value = True
 
         result = check_file_exists_and_confirm("/path/output.aiff", "aiff", True)
 
         assert result is True
-        mock_click.echo.assert_called()
 
 
 class TestCleanupConvertedFiles:
     """Test cleanup_converted_files function."""
 
     @patch("os.remove")
-    @patch("rekordbox_bulk_edit.commands.convert.click")
-    def test_cleanup_converted_files_success(self, mock_click, mock_remove):
+    def test_cleanup_converted_files_success(self, mock_remove):
         """Test successful cleanup of converted files."""
         converted_files = [
             {"output_path": "/path/file1.aiff"},
@@ -445,8 +410,7 @@ class TestCleanupConvertedFiles:
         mock_remove.assert_any_call("/path/file2.aiff")
 
     @patch("os.remove")
-    @patch("rekordbox_bulk_edit.commands.convert.click")
-    def test_cleanup_converted_files_with_error(self, mock_click, mock_remove):
+    def test_cleanup_converted_files_with_error(self, mock_remove):
         """Test cleanup when file removal fails."""
         converted_files = [{"output_path": "/path/file1.aiff"}]
         mock_remove.side_effect = OSError("Permission denied")
@@ -464,8 +428,7 @@ class TestHandleOriginalFileDeletion:
 
     @patch("os.remove")
     @patch("rekordbox_bulk_edit.commands.convert.confirm")
-    @patch("rekordbox_bulk_edit.commands.convert.click")
-    def test_handle_deletion_user_confirms(self, mock_click, mock_confirm, mock_remove):
+    def test_handle_deletion_user_confirms(self, mock_confirm, mock_remove):
         """Test handling deletion when user confirms."""
         mock_confirm.return_value = True
         converted_files = [
@@ -480,15 +443,12 @@ class TestHandleOriginalFileDeletion:
         mock_remove.assert_any_call("/path/file2.flac")
 
     @patch("rekordbox_bulk_edit.commands.convert.confirm")
-    @patch("rekordbox_bulk_edit.commands.convert.click")
-    def test_handle_deletion_user_declines(self, mock_click, mock_confirm):
+    def test_handle_deletion_user_declines(self, mock_confirm):
         """Test handling deletion when user declines."""
         mock_confirm.return_value = False
         converted_files = [{"source_path": "/path/file1.flac"}]
 
         handle_original_file_deletion(converted_files, False)
-
-        mock_click.echo.assert_called_with("Original files preserved")
 
     @patch("rekordbox_bulk_edit.commands.convert.confirm")
     def test_handle_deletion_user_quits(self, mock_confirm):
@@ -529,6 +489,7 @@ class TestConvertCommand:
         mock_check_file_exists,
         mock_cleanup_files,
         mock_handle_deletion,
+        mock_logger,
     ):
         """Test convert_command successfully completes with auto-confirm enabled."""
         # Setup basic mocks
@@ -577,16 +538,19 @@ class TestConvertCommand:
         runner = CliRunner()
         result = runner.invoke(convert_command, ["--auto-confirm"])
 
-        # Debug output if test fails
-        if result.exit_code != 0:
-            print(f"Exit code: {result.exit_code}")
-            print(f"Output: {result.output}")
-            print(f"Exception: {result.exception}")
-
         # Validate successful execution
         assert result.exit_code == 0
-        assert "Found 1 files to convert" in result.output
-        assert "Successfully converted 1 lossless files to AIFF" in result.output
+
+        mock_convert.assert_called_once()
+        mock_update_db.assert_called_once()
+        mock_db.session.commit.assert_called_once()
+        mock_handle_deletion.assert_called_once()
+        mock_logger.info.assert_any_call(
+            String() & Regex(".*Found 1 files to convert.*")
+        )
+        mock_logger.info.assert_any_call(
+            String() & Regex(".*Database changes committed successfully.*")
+        )
 
         # Verify conversion and database update were called
         mock_convert.assert_called_once()
@@ -595,10 +559,8 @@ class TestConvertCommand:
     @patch("rekordbox_bulk_edit.commands.convert.get_rekordbox_pid")
     @patch("rekordbox_bulk_edit.commands.convert.Rekordbox6Database")
     @patch("rekordbox_bulk_edit.utils.check_ffmpeg_available")
-    @patch("rekordbox_bulk_edit.commands.convert.click.echo")
     def test_convert_command_rekordbox_running_error(
         self,
-        mock_click_echo,
         mock_check_ffmpeg,
         mock_db_class,
         mock_get_rb_pid,
@@ -615,14 +577,11 @@ class TestConvertCommand:
 
         # Assert
         assert result.exit_code == 1
-        mock_click_echo.assert_any_call("ERROR: Rekordbox is currently running (12345)")
 
     @patch("rekordbox_bulk_edit.commands.convert.get_rekordbox_pid")
     @patch("rekordbox_bulk_edit.utils.check_ffmpeg_available")
-    @patch("rekordbox_bulk_edit.commands.convert.click.echo")
     def test_convert_command_ffmpeg_not_available_error(
         self,
-        mock_click_echo,
         mock_check_ffmpeg,
         mock_get_rb_pid,
     ):
@@ -639,22 +598,18 @@ class TestConvertCommand:
 
         # Assert
         assert result.exit_code == 1
-        mock_click_echo.assert_any_call(
-            "ERROR: FFmpeg is required but not found in PATH"
-        )
 
+    @patch("rekordbox_bulk_edit.commands.convert.print_track_info")
     @patch("rekordbox_bulk_edit.commands.convert.get_rekordbox_pid")
     @patch("rekordbox_bulk_edit.commands.convert.Rekordbox6Database")
     @patch("rekordbox_bulk_edit.utils.check_ffmpeg_available")
-    @patch("rekordbox_bulk_edit.commands.convert.print_track_info")
-    @patch("rekordbox_bulk_edit.commands.convert.click.echo")
     def test_convert_command_filters_out_lossy_formats(
         self,
-        mock_click_echo,
-        mock_print_track_info,
         mock_check_ffmpeg,
         mock_db_class,
         mock_get_rb_pid,
+        mock_print_track_info,
+        mock_logger,
     ):
         """Test convert_command filters out MP3 and M4A files."""
         # Setup mocks
@@ -669,15 +624,15 @@ class TestConvertCommand:
         # Create mixed content
         mock_flac_content = Mock()
         mock_flac_content.FileType = 5  # FLAC
-        mock_flac_content.ID = 1
+        mock_flac_content.ID = "AAAAAA"
 
         mock_mp3_content = Mock()
         mock_mp3_content.FileType = 1  # MP3
-        mock_mp3_content.ID = 2
+        mock_mp3_content.ID = "BBBBBB"
 
         mock_m4a_content = Mock()
         mock_m4a_content.FileType = 4  # M4A
-        mock_m4a_content.ID = 3
+        mock_m4a_content.ID = "CCCCCC"
 
         mock_db.get_content.return_value.all.return_value = [
             mock_flac_content,
@@ -693,16 +648,14 @@ class TestConvertCommand:
 
         # Assert - should only process FLAC file, filter out MP3/M4A
         assert result.exit_code == 0
-        mock_click_echo.assert_any_call("Found 1 files to convert to AIFF")
+        mock_print_track_info.assert_called_once_with([mock_flac_content])
 
     @patch("rekordbox_bulk_edit.commands.convert.get_rekordbox_pid")
     @patch("rekordbox_bulk_edit.commands.convert.Rekordbox6Database")
     @patch("rekordbox_bulk_edit.utils.check_ffmpeg_available")
     @patch("rekordbox_bulk_edit.commands.convert.print_track_info")
-    @patch("rekordbox_bulk_edit.commands.convert.click.echo")
     def test_convert_command_no_files_to_convert(
         self,
-        mock_click_echo,
         mock_print_track_info,
         mock_check_ffmpeg,
         mock_db_class,
@@ -727,4 +680,3 @@ class TestConvertCommand:
 
         # Assert
         assert result.exit_code == 0
-        mock_click_echo.assert_any_call("No files need conversion. Exiting.")

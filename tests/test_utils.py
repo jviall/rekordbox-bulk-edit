@@ -100,7 +100,7 @@ class TestPrintTrackInfo:
         print_track_info([])
 
         captured = capsys.readouterr()
-        assert "No tracks found." in captured.out
+        assert captured.out == ""
 
     def test_single_track_complete_info(self, capsys):
         """Test printing single track with complete information."""
@@ -432,7 +432,9 @@ class TestGetAudioInfo:
     @patch("rekordbox_bulk_edit.utils.ffmpeg.probe")
     def test_get_audio_info__checks_for_ffmpeg(self, mock_probe):
         """Test that we check for ffmpeg first."""
-        with pytest.raises(Exception, match="FFmpeg not found"):
+        with pytest.raises(
+            Exception, match="FFmpeg is required for rekordbox-bulk-edit."
+        ):
             get_audio_info("/nonexistent/file.flac")
 
     @patch("rekordbox_bulk_edit.utils.ffmpeg.probe")
