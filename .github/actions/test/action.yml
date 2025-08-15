@@ -1,18 +1,6 @@
 name: "Run Unit Tests"
 description: "Set up Python environment and run all unit tests"
 
-inputs:
-  os:
-    description: Either windows-latest or macos-latest
-    required: true
-  python-version:
-    description: "Python version to use"
-    required: false
-    default: "3.11"
-  codecov-token:
-    description: "Auth Token for Codecov"
-    required: true
-
 runs:
   using: "composite"
   steps:
@@ -22,7 +10,7 @@ runs:
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
-        python-version: ${{ inputs.python-version }}
+        python-version: ${{ env.PYTHON }}
 
     - name: Install Poetry
       uses: snok/install-poetry@v1.4.1
@@ -38,10 +26,9 @@ runs:
         poetry run poe coverage
 
     - name: Upload results to Codecov
-      uses: codecov/codecov-action@v5
+      uses: codecov/codecov-action@main
       with:
-        token: ${{ inputs.codecov-token }}
+        token: ${{ env.CODECOV_TOKEN }}
         directory: .coverage
-        os: ${{ inputs.os }}
         env_vars: OS,PYTHON
         verbose: true
