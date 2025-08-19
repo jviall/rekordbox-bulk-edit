@@ -1,3 +1,18 @@
+## v0.2.7 (2025-08-19)
+
+
+- ci: fix broken version-bump.yml
+- ci: add codecov.yml config
+- ci: fix codecov publishing
+- fix: use a logger to separate log levels and output a log file to system user data folder
+- ci: one final typo in publish.yml
+- ci: don't validate empty commit ranges on main
+- ci: Customize commit convention and validate during CI
+- ci: fix publish workflow
+- chore: fix version-bump workflow typo
+- chore: add re-actors/alls-green action for easier status checks
+- chore: fix workflows
+
 ## v0.2.6 (2025-08-10)
 
 ### Fix
