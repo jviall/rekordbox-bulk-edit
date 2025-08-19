@@ -1,7 +1,7 @@
 # Rekordbox Bulk Edit
 
 [![Tests](https://img.shields.io/github/actions/workflow/status/jviall/rekordbox-bulk-edit/ci.yml?branch=main&logo=github&style=flat)](https://github.com/jviall/rekordbox-bulk-edit/blob/main/.github/workflows/ci.yml)
-[![Coverage](https://codecov.io/gh/jviall/rekordbox-bulk-edit/branch/main/graph/badge.svg)](https://app.codecov.io/gh/jviall/rekordbox-bulk-edit/tree/main)
+[![Coverage](https://codecov.io/gh/jviall/rekordbox-bulk-edit/graph/badge.svg?token=ILZ1XHE61V)](https://codecov.io/gh/jviall/rekordbox-bulk-edit)
 [![Version](https://img.shields.io/pypi/v/rekordbox-bulk-edit?style=flat)](https://pypi.org/project/rekordbox-bulk-edit/)
 [![Platforms](https://img.shields.io/badge/platform-win%20%7C%20osx-blue?style=flat)](https://pypi.org/project/rekordbox-bulk-edit/)
 [![License](https://img.shields.io/pypi/l/rekordbox-bulk-edit?color=lightgrey)](https://github.com/jviall/rekordbox-bulk-edit/blob/main/LICENSE)
