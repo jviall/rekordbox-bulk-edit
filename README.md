@@ -6,14 +6,14 @@
 [![Platforms](https://img.shields.io/badge/platform-win%20%7C%20osx-blue?style=flat)](https://pypi.org/project/rekordbox-bulk-edit/)
 [![License](https://img.shields.io/pypi/l/rekordbox-bulk-edit?color=lightgrey)](https://github.com/jviall/rekordbox-bulk-edit/blob/main/LICENSE)
 
-A command-line tool for bulk editing and managing Rekordbox music files and database records
+A command-line tool for bulk editing and managing Pioneer Rekordbox audio files and database records.
 
-[!CAUTION]
-**ALWAYS BACK UP YOUR DATA BEFORE USING THIS TOOL!**
+> [!CAUTION]
+> **ALWAYS BACK UP YOUR DATA BEFORE USING THIS TOOL!**
 
-This tool directly modifies your Rekordbox database and can potentially move, rename, or delete your music files. While there are safety checks, unexpected issues could result in data loss. Before using this tool, consider some or all of the following:
+This tool directly modifies your Rekordbox database and can potentially move, rename, or delete your music files. While there are checks to prevent unintentional changes, unexpected issues could result in data loss. Before using this tool, consider some or all of the following:
 
-- Always backup your Rekordbox database. While some versions of RB make backups for you, you'll likely be opening and closing RB often, which will make a new backup everytime, causing you to quickly lose your backup history and render them only as useful as the last time you opened RB. Before beginning development, I recommend you make copies of all the backups so that RB doesn't overwrite them.
+- Always backup your Rekordbox database. While some versions of RB make backups for you, you'll likely be opening and closing RB often, which will make a new backup everytime, causing you to quickly lose your backup history and render them only as useful as the last time you opened RB. Before running this tool, I recommend you make additonal copies of all the backups so that RB doesn't overwrite them.
 - Creating a backup of your entire music library
 - Test the tool on a small subset of files first using a filter option
 - Use the `--dry-run` option to preview changes before applying them

@@ -13,7 +13,7 @@ requires-python = ">=3.10,<4.0"
 keywords = ["rekordbox", "dj", "music", "database", "bulk", "edit", "convert"]
 packages = [{include = "rekordbox_bulk_edit"}]
 dependencies = [
-    "pyrekordbox(>=0.4.3)",
+    "pyrekordbox(==0.4.4)",
     "ffmpeg-python(>=0.2.0)",
     "click(>=8.0.0,<=9.0.0)",
     "platformdirs (>=4.3.8,<5.0.0)"
@@ -70,7 +70,7 @@ major_version_zero = true
 message_template = "{{change_type}}{{scope}}: {{message}}"
 example = "feat(convert): add new conversion feature"
 schema = "<type>(<scope>): <body>"
-schema_pattern = "^(BREAKING|feat|fix|perf|hotfix|refactor|ci|tests|docs|config)(\\(convert|read\\))?!?: .+"
+schema_pattern = "^(BREAKING|feat|fix|perf|hotfix|refactor|ci|tests|docs|config)(\\([^)]*\\))?!?: .+"
 bump_pattern = "^(BREAKING|feat|fix|perf|hotfix|refactor)"
 bump_map = { "BREAKING" = "MAJOR", "feat" = "MINOR", "fix" = "PATCH", "perf" = "PATCH", "hotfix" = "PATCH", "refactor" = "PATCH" }
 
