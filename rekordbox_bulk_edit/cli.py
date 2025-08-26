@@ -7,6 +7,7 @@ import click
 
 from rekordbox_bulk_edit.commands.convert import convert_command
 from rekordbox_bulk_edit.commands.read import read_command
+from rekordbox_bulk_edit.commands.search import search_command
 from rekordbox_bulk_edit.logger import Logger
 
 logger = Logger()
@@ -20,6 +21,7 @@ def cli():
 
 
 cli.add_command(read_command)
+cli.add_command(search_command)
 cli.add_command(
     convert_command,
 )
@@ -28,6 +30,7 @@ cli.add_command(
 def main():
     """Entry point for the CLI."""
     try:
+        logger.debug(f"Running with input: {''.join(sys.argv)}")
         cli()
     except KeyboardInterrupt:
         logger.debug("User killed the process.")

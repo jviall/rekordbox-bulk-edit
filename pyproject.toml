@@ -26,6 +26,7 @@ Issues = "https://github.com/jviall/rekordbox-bulk-edit/issues"
 
 [project.scripts]
 rekordbox-bulk-edit = "rekordbox_bulk_edit.cli:main"
+rbe = "rekordbox_bulk_edit.cli:main"
 
 [tool.coverage.run]
 branch = true
