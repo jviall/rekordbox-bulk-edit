@@ -52,9 +52,7 @@ class CollectionQuery:
         new_inst._conditions.append(DjmdContent.ID.in_(track_ids))
         return new_inst
 
-    def by_artist(
-        self, artist_name: str, exact_match: bool = False
-    ) -> "CollectionQuery":
+    def by_artist(self, artist_name: str, exact: bool = False) -> "CollectionQuery":
         """Filter by artist name."""
         if artist_name is None:
             logger.warning("Artist cannot be None")
@@ -65,11 +63,13 @@ class CollectionQuery:
         ArtistAlias = aliased(DjmdArtist)
 
         # Join with DjmdArtist table
-        new_inst._stmt = new_inst._stmt.join(
+        new_inst._stmt = new_inst._stmt.outerjoin(
             ArtistAlias, DjmdContent.ArtistID == ArtistAlias.ID
         )
 
-        if exact_match:
+        if not artist_name:
+            condition = ArtistAlias.Name.is_(None)
+        elif exact:
             condition = ArtistAlias.Name == artist_name
         else:
             condition = ArtistAlias.Name.ilike(f"%{artist_name}%")
@@ -77,9 +77,9 @@ class CollectionQuery:
         new_inst._conditions.append(condition)
         return new_inst
 
-    def by_track(self, track_name: str, exact: bool = False) -> "CollectionQuery":
+    def by_title(self, title: str, exact: bool = False) -> "CollectionQuery":
         """Filter by track name."""
-        if track_name is None:
+        if title is None:
             logger.warning(
                 "track_name value of None has no effect. Did you mean to pass an empty string?"
             )
@@ -87,10 +87,12 @@ class CollectionQuery:
 
         new_inst = self._copy()
 
-        if exact:
-            condition = DjmdContent.Title == track_name
+        if not title:
+            condition = DjmdContent.Title.is_(None)
+        elif exact:
+            condition = DjmdContent.Title == title
         else:
-            condition = DjmdContent.Title.ilike(f"%{track_name}%")
+            condition = DjmdContent.Title.ilike(f"%{title}%")
 
         new_inst._conditions.append(condition)
         return new_inst
@@ -121,9 +123,7 @@ class CollectionQuery:
         new_inst._conditions.append(condition)
         return new_inst
 
-    def by_playlist(
-        self, playlist_name: str, exact_match: bool = False
-    ) -> "CollectionQuery":
+    def by_playlist(self, playlist_name: str, exact: bool = False) -> "CollectionQuery":
         """Filter by playlist name."""
         if playlist_name is None:
             logger.warning(
@@ -137,11 +137,13 @@ class CollectionQuery:
         SongPlaylistAlias = aliased(DjmdSongPlaylist)
 
         # Join through the many-to-many relationship
-        new_inst._stmt = new_inst._stmt.join(
+        new_inst._stmt = new_inst._stmt.outerjoin(
             SongPlaylistAlias, DjmdContent.ID == SongPlaylistAlias.ContentID
-        ).join(PlaylistAlias, SongPlaylistAlias.PlaylistID == PlaylistAlias.ID)
+        ).outerjoin(PlaylistAlias, SongPlaylistAlias.PlaylistID == PlaylistAlias.ID)
 
-        if exact_match:
+        if not playlist_name:
+            condition = SongPlaylistAlias.ContentID.is_(None)
+        elif exact:
             condition = PlaylistAlias.Name == playlist_name
         else:
             condition = PlaylistAlias.Name.ilike(f"%{playlist_name}%")
@@ -212,15 +214,17 @@ class CollectionQuery:
 
 def get_filtered_content(
     db: Rekordbox6Database,
+    track_id_args: List[str] | None = None,
     track_ids: List[str] | None = None,
     formats: List[str] | None = None,
     playlists: List[str] | None = None,
+    exact_playlists: List[str] | None = None,
     artists: List[str] | None = None,
+    exact_artists: List[str] | None = None,
     albums: List[str] | None = None,
     exact_albums: List[str] | None = None,
-    tracks: List[str] | None = None,
-    exact_tracks: List[str] | None = None,
-    track_id_args: List[str] | None = None,
+    titles: List[str] | None = None,
+    exact_titles: List[str] | None = None,
     match_all: bool = False,
 ) -> Result[Tuple[DjmdContent]]:
     """Queries the Rekordbox database according to the provided filters and conditions.
@@ -231,12 +235,16 @@ def get_filtered_content(
 
     query = CollectionQuery()
 
-    if track_id_args and len(track_id_args) > 0:
+    if track_id_args:
+        logger.verbose(f"Filtering by {len(track_id_args)} passed-in Track ID(s)")
         query = query.by_track_ids(track_ids=track_id_args)
         return query.execute(db)
-
-    for track_id in track_ids if track_ids is not None else []:
-        query = query.by_track_ids(track_id)
+        # TODO: verbose log each filter applied
+    logger.verbose("Filtering by")
+    if track_ids is not None:
+        logger.verbose("Filtering by:")
+        for track_id in track_ids:
+            query = query.by_track_ids(track_id)
 
     for format in formats if formats is not None else []:
         query = query.by_format(format)
@@ -244,16 +252,26 @@ def get_filtered_content(
     for playlist in playlists if playlists is not None else []:
         query = query.by_playlist(playlist)
 
+    for exact_playlist in exact_playlists if exact_playlists is not None else []:
+        query = query.by_playlist(exact_playlist, exact=True)
+
     for artist in artists if artists is not None else []:
         query = query.by_artist(artist)
 
+    for exact_artist in exact_artists if exact_artists is not None else []:
+        query = query.by_artist(exact_artist)
+
     for album in albums if albums is not None else []:
         query = query.by_album(album)
+
     for exact_album in exact_albums if exact_albums is not None else []:
         query = query.by_album(exact_album, exact=True)
 
-    for track in tracks if tracks is not None else []:
-        query = query.by_track(track)
+    for track in titles if titles is not None else []:
+        query = query.by_title(track)
+
+    for exact_track in exact_titles if exact_titles is not None else []:
+        query = query.by_title(exact_track)
 
     if match_all:
         query.match_all()
