@@ -253,13 +253,12 @@ class TestUpdateDatabaseRecord:
     @patch("rekordbox_bulk_edit.commands.convert._verify_bit_depth")
     @patch("os.path.join")
     def test_update_database_record_flac(
-        self, mock_join, mock_verify, mock_get_audio_info
+        self, mock_join, mock_verify, mock_get_audio_info, make_djmd_content_item
     ):
         """Test updating database record for FLAC conversion."""
         # Setup
         mock_db = Mock()
-        mock_content = Mock()
-        mock_content.ID = 123
+        mock_content = make_djmd_content_item(ID=123)
         mock_db.get_content().filter_by(ID=123).first.return_value = mock_content
 
         mock_join.return_value = "/path/to/output.flac"
@@ -278,12 +277,13 @@ class TestUpdateDatabaseRecord:
 
     @patch("rekordbox_bulk_edit.commands.convert.get_audio_info")
     @patch("os.path.join")
-    def test_update_database_record_mp3(self, mock_join, mock_get_audio_info):
+    def test_update_database_record_mp3(
+        self, mock_join, mock_get_audio_info, make_djmd_content_item
+    ):
         """Test updating database record for MP3 conversion."""
         # Setup
         mock_db = Mock()
-        mock_content = Mock()
-        mock_content.ID = 123
+        mock_content = make_djmd_content_item(ID=123)
         mock_db.get_content().filter_by(ID=123).first.return_value = mock_content
 
         mock_join.return_value = "/path/to/output.mp3"
@@ -490,6 +490,7 @@ class TestConvertCommand:
         mock_cleanup_files,
         mock_handle_deletion,
         mock_logger,
+        make_djmd_content_item,
     ):
         """Test convert_command successfully completes with auto-confirm enabled."""
         # Setup basic mocks
@@ -524,11 +525,12 @@ class TestConvertCommand:
         mock_db.session = Mock()
 
         # Create a mock content object for conversion
-        mock_flac_content = Mock()
-        mock_flac_content.FileType = 5  # FLAC
-        mock_flac_content.ID = 123
-        mock_flac_content.FileNameL = "test_song.flac"
-        mock_flac_content.FolderPath = "/music/folder/test_song.flac"
+        mock_flac_content = make_djmd_content_item(
+            FileType=5,  # FLAC
+            ID=123,
+            FileNameL="test_song.flac",
+            FolderPath="/music/folder/test_song.flac",
+        )
 
         mock_db.get_content.return_value.all.return_value = [mock_flac_content]
 
@@ -610,6 +612,7 @@ class TestConvertCommand:
         mock_get_rb_pid,
         mock_print_track_info,
         mock_logger,
+        make_djmd_content_item,
     ):
         """Test convert_command filters out MP3 and M4A files."""
         # Setup mocks
@@ -622,17 +625,20 @@ class TestConvertCommand:
         mock_db.session = Mock()
 
         # Create mixed content
-        mock_flac_content = Mock()
-        mock_flac_content.FileType = 5  # FLAC
-        mock_flac_content.ID = "AAAAAA"
+        mock_flac_content = make_djmd_content_item(
+            FileType=5,  # FLAC
+            ID="AAAAAA",
+        )
 
-        mock_mp3_content = Mock()
-        mock_mp3_content.FileType = 1  # MP3
-        mock_mp3_content.ID = "BBBBBB"
+        mock_mp3_content = make_djmd_content_item(
+            FileType=1,  # MP3
+            ID="BBBBBB",
+        )
 
-        mock_m4a_content = Mock()
-        mock_m4a_content.FileType = 4  # M4A
-        mock_m4a_content.ID = "CCCCCC"
+        mock_m4a_content = make_djmd_content_item(
+            FileType=4,  # M4A
+            ID="CCCCCC",
+        )
 
         mock_db.get_content.return_value.all.return_value = [
             mock_flac_content,
