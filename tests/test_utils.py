@@ -1,17 +1,52 @@
 """Unit tests for utils module functionality."""
 
-from unittest.mock import Mock, patch
+from typing import Callable, cast
+from unittest.mock import MagicMock, patch
 
 import pytest
+from pyrekordbox.db6 import DjmdContent
 
 from rekordbox_bulk_edit.utils import (
+    PRINT_WIDTHS,
+    PrintableField,
     get_audio_info,
     get_extension_for_format,
     get_file_type_for_format,
     get_file_type_name,
-    get_track_info,
     print_track_info,
 )
+
+
+@pytest.fixture()
+def make_djmd_content_item():
+    """Create a factory that returns a single mock row of the DjmdContent table."""
+    ID = 0
+
+    def factory(id: str | None = None, **kwargs) -> DjmdContent:
+        nonlocal ID
+        id = id or str(ID)
+
+        item_mock = MagicMock(spec=DjmdContent)
+        item: DjmdContent = cast(DjmdContent, item_mock)
+        item.ID = kwargs.get("ID", id)
+        item.Title = kwargs.get("Title", "Test Song")
+        item.ArtistID = kwargs.get("ArtistID", "Artist" + str(id))
+        item.ArtistName = kwargs.get("ArtistName", "Test Artist")
+        item.AlbumID = kwargs.get("AlbumID", "Album" + str(id))
+        item.AlbumName = kwargs.get("AlbumName", "Test Album")
+        item.FileNameL = kwargs.get("FileNameL", "test-song.wav")
+        item.FolderPath = kwargs.get(
+            "FolderPath",
+            "/super/very/extra/unnecessarily/long/path/to/music/test_track.wav",
+        )
+        item.SampleRate = kwargs.get("SampleRate", 41000)
+        item.BitDepth = kwargs.get("BitDepth", 16)
+        item.BitRate = kwargs.get("BitRate", 2113)
+        item.FileType = kwargs.get("FileType", 11)
+        ID += 1
+        return item
+
+    yield factory
 
 
 class TestGetFileTypeName:
@@ -92,8 +127,85 @@ class TestGetGetExtensionForFormat:
             get_extension_for_format(None)  # pyright: ignore
 
 
+class TestTruncateField:
+    """Test truncate_field function."""
+
+    def test_truncate_field_none_value(self):
+        """Test truncate_field returns empty string for None value."""
+        from rekordbox_bulk_edit.utils import PrintableField, truncate_field
+
+        result = truncate_field(PrintableField.Title, None)
+        assert result == ""
+
+    def test_truncate_field_empty_string(self):
+        """Test truncate_field with empty string."""
+        from rekordbox_bulk_edit.utils import PrintableField, truncate_field
+
+        result = truncate_field(PrintableField.Title, "")
+        assert result == ""
+
+    def test_truncate_field_short_value(self):
+        """Test truncate_field returns value as-is when it fits."""
+        from rekordbox_bulk_edit.utils import PrintableField, truncate_field
+
+        short_title = "Short Title"
+        result = truncate_field(PrintableField.Title, short_title)
+        assert result == short_title
+
+    def test_truncate_field_exact_width(self):
+        """Test truncate_field with value exactly at width limit."""
+        from rekordbox_bulk_edit.utils import (
+            PRINT_WIDTHS,
+            PrintableField,
+            truncate_field,
+        )
+
+        # Create a value exactly the width of Title field (25 chars)
+        exact_width_title = "X" * PRINT_WIDTHS[PrintableField.Title]
+        result = truncate_field(PrintableField.Title, exact_width_title)
+        assert result == exact_width_title
+
+    def test_truncate_field_long_value(self):
+        """Test truncate_field truncates long values with ellipsis."""
+        from rekordbox_bulk_edit.utils import PrintableField, truncate_field
+
+        long_title = "This is a very long title that exceeds the width limit"
+        result = truncate_field(PrintableField.Title, long_title)
+
+        assert "..." in result
+        assert len(result) == PRINT_WIDTHS[PrintableField.Title]
+
+    def test_truncate_field_minimal_truncation(self):
+        """Test truncate_field with value just over the limit."""
+        from rekordbox_bulk_edit.utils import (
+            PRINT_WIDTHS,
+            PrintableField,
+            truncate_field,
+        )
+
+        # Create a value just 1 char over the limit
+        over_limit_title = "X" * (PRINT_WIDTHS[PrintableField.Title] + 1)
+        result = truncate_field(PrintableField.Title, over_limit_title)
+
+        assert "..." in result
+        assert len(result) == PRINT_WIDTHS[PrintableField.Title]
+
+
 class TestPrintTrackInfo:
     """Test print_track_info function."""
+
+    TEST_PRINT_COLUMNS = [
+        PrintableField.ID,
+        PrintableField.FileNameL,
+        PrintableField.Title,
+        PrintableField.ArtistName,
+        PrintableField.AlbumName,
+        PrintableField.FileType,
+        PrintableField.SampleRate,
+        PrintableField.BitDepth,
+        PrintableField.BitRate,
+        PrintableField.FolderPath,
+    ]
 
     def test_empty_content_list(self, capsys):
         """Test printing with empty content list."""
@@ -102,220 +214,66 @@ class TestPrintTrackInfo:
         captured = capsys.readouterr()
         assert captured.out == ""
 
-    def test_single_track_complete_info(self, capsys):
-        """Test printing single track with complete information."""
+    def test_default_columns(
+        self, capsys, make_djmd_content_item: Callable[[], DjmdContent]
+    ):
+        """Test printing a single track with the default print_columns."""
         # Setup mock content
-        mock_content = Mock()
-        mock_content.ID = 123
-        mock_content.FileNameL = "test_track.flac"
-        mock_content.FileType = 5  # FLAC
-        mock_content.SampleRate = 44100
-        mock_content.BitRate = 1411
-        mock_content.BitDepth = 16
-        mock_content.FolderPath = "/path/to/music/test_track.flac"
+        mock_content = make_djmd_content_item()
 
         print_track_info([mock_content])
 
         captured = capsys.readouterr()
-        assert "123" in captured.out
-        assert "test_track.flac" in captured.out
-        assert "FLAC" in captured.out
-        assert "44100" in captured.out
-        assert "1411" in captured.out
-        assert "16" in captured.out
-        assert "/path/to/music/test_track.flac" in captured.out
+        assert mock_content.Title in captured.out
+        assert mock_content.ArtistName in captured.out
+        assert mock_content.AlbumName in captured.out
+        assert get_file_type_name(mock_content.FileType) in captured.out
+        assert str(mock_content.SampleRate) in captured.out
+        assert str(mock_content.BitDepth) in captured.out
+        assert mock_content.FolderPath[:10] in captured.out
+        assert "..." in captured.out
+        assert mock_content.FolderPath[-10:] in captured.out
 
-    def test_track_with_missing_fields(self, capsys):
-        """Test printing track with missing/None fields."""
-        # Setup mock content with missing fields
-        mock_content = Mock()
-        mock_content.ID = None
-        mock_content.FileNameL = None
-        mock_content.SampleRate = 0
-        mock_content.FileType = 5
-        mock_content.BitRate = None
-        mock_content.BitDepth = None
-        mock_content.FolderPath = None
-
-        print_track_info([mock_content])
-
-        captured = capsys.readouterr()
-        assert "N/A" in captured.out
-        assert "--" in captured.out
-
-    def test_track_with_zero_values(self, capsys):
+    def test_track_with_zero_values(self, capsys, make_djmd_content_item):
         """Test printing track with zero values."""
         # Setup mock content with zero values
-        mock_content = Mock()
-        mock_content.ID = 123
-        mock_content.FileNameL = "test.flac"
-        mock_content.FileType = 5
-        mock_content.SampleRate = 0
-        mock_content.BitRate = 0
-        mock_content.BitDepth = 0
-        mock_content.FolderPath = "/path/test.flac"
+        mock_content = make_djmd_content_item(
+            ID=123,
+            SampleRate=0,
+            BitRate=0,
+            BitDepth=0,
+        )
 
-        print_track_info([mock_content])
+        print_track_info([mock_content], self.TEST_PRINT_COLUMNS)
 
         captured = capsys.readouterr()
-        # BitRate and BitDepth should show "0", SampleRate should show "--"
         lines = captured.out.split("\n")
-        data_line = [line for line in lines if "123" in line][0]
-        assert "0" in data_line  # Should show 0 for BitRate and BitDepth
-        assert "--" in data_line  # Should show -- for SampleRate
+        data_line = [line for line in lines if "test" in line][0]
+        assert data_line.count("0") == 3
 
-    def test_long_filename_truncation(self, capsys):
-        """Test truncation of long filenames."""
-        # Setup mock content with very long filename
-        long_filename = "a" * 60 + ".flac"  # Longer than width limit
-        mock_content = Mock()
-        mock_content.ID = 123
-        mock_content.FileNameL = long_filename
-        mock_content.FileType = 5
-        mock_content.SampleRate = 44100
-        mock_content.BitRate = 1411
-        mock_content.BitDepth = 16
-        mock_content.FolderPath = "/path/test.flac"
-
-        print_track_info([mock_content])
-
-        captured = capsys.readouterr()
-        assert "..." in captured.out  # Should contain truncation indicator
-
-    def test_multiple_tracks(self, capsys):
+    def test_multiple_tracks(self, capsys, make_djmd_content_item):
         """Test printing multiple tracks."""
-        # Setup multiple mock content objects
-        mock_content1 = Mock()
-        mock_content1.ID = 123
-        mock_content1.FileNameL = "track1.flac"
-        mock_content1.FileType = 5
-        mock_content1.SampleRate = 44100
-        mock_content1.BitRate = 1411
-        mock_content1.BitDepth = 16
-        mock_content1.FolderPath = "/path/track1.flac"
+        mock_content1 = make_djmd_content_item(
+            ID=123,
+            FileNameL="track1.flac",
+            FileType=5,
+            FolderPath="/path/track1.flac",
+        )
 
-        mock_content2 = Mock()
-        mock_content2.ID = 456
-        mock_content2.FileNameL = "track2.mp3"
-        mock_content2.FileType = 1
-        mock_content2.SampleRate = 44100
-        mock_content2.BitRate = 320
-        mock_content2.BitDepth = None
-        mock_content2.FolderPath = "/path/track2.mp3"
+        mock_content2 = make_djmd_content_item(
+            ID=456,
+            FileNameL="track2.mp3",
+            FileType=1,
+            FolderPath="/path/track2.mp3",
+        )
 
         print_track_info([mock_content1, mock_content2])
 
         captured = capsys.readouterr()
-        assert "123" in captured.out
-        assert "456" in captured.out
         assert "track1.flac" in captured.out
         assert "track2.mp3" in captured.out
         assert "FLAC" in captured.out
         assert "MP3" in captured.out
-
-
-class TestGetTrackInfo:
-    """Test get_track_info function."""
-
-    @patch("rekordbox_bulk_edit.utils.Rekordbox6Database")
-    def test_get_specific_track_by_id(self, mock_db_class):
-        """Test getting specific track by ID."""
-        # Setup mock database
-        mock_db = Mock()
-        mock_db_class.return_value = mock_db
-
-        mock_track = Mock()
-        mock_track.ID = 123
-        mock_all_content = [mock_track, Mock(ID=456)]
-        mock_db.get_content.return_value = mock_all_content
-
-        # Execute
-        result = get_track_info(track_id=123)
-
-        # Assert
-        assert len(result) == 1
-        assert result[0].ID == 123
-
-    @patch("rekordbox_bulk_edit.utils.Rekordbox6Database")
-    def test_get_all_tracks_no_filter(self, mock_db_class):
-        """Test getting all tracks without filter."""
-        # Setup mock database
-        mock_db = Mock()
-        mock_db_class.return_value = mock_db
-
-        mock_track1 = Mock(FileType=5)  # FLAC
-        mock_track2 = Mock(FileType=1)  # MP3
-        mock_track3 = Mock(FileType=999)  # Unknown type
-        mock_all_content = [mock_track1, mock_track2, mock_track3]
-        mock_db.get_content.return_value = mock_all_content
-
-        # Execute
-        result = get_track_info()
-
-        # Assert - should exclude unknown file types
-        assert len(result) == 2
-        assert mock_track1 in result
-        assert mock_track2 in result
-        assert mock_track3 not in result
-
-    @patch("rekordbox_bulk_edit.utils.Rekordbox6Database")
-    def test_get_tracks_with_format_filter(self, mock_db_class):
-        """Test getting tracks with format filter."""
-        # Setup mock database
-        mock_db = Mock()
-        mock_db_class.return_value = mock_db
-
-        mock_flac_track = Mock(FileType=5)  # FLAC
-        mock_mp3_track = Mock(FileType=1)  # MP3
-        mock_all_content = [mock_flac_track, mock_mp3_track]
-        mock_db.get_content.return_value = mock_all_content
-
-        # Execute - filter for FLAC only
-        result = get_track_info(format_filter="flac")
-
-        # Assert
-        assert len(result) == 1
-        assert result[0] == mock_flac_track
-
-    @patch("rekordbox_bulk_edit.utils.Rekordbox6Database")
-    def test_get_tracks_invalid_format_filter(self, mock_db_class):
-        """Test getting tracks with invalid format filter."""
-        # Setup mock database
-        mock_db = Mock()
-        mock_db_class.return_value = mock_db
-        mock_db.get_content.return_value = [Mock(FileType=5)]
-
-        # Execute - invalid format should return empty list due to exception handling
-        result = get_track_info(format_filter="invalid")
-
-        # Assert - should return empty list when format is invalid
-        assert len(result) == 0
-
-    @patch("rekordbox_bulk_edit.utils.Rekordbox6Database")
-    def test_database_error_handling(self, mock_db_class):
-        """Test handling of database errors."""
-        # Setup mock to raise exception
-        mock_db_class.side_effect = Exception("Database connection failed")
-
-        # Execute
-        result = get_track_info()
-
-        # Assert - should return empty list on error
-        assert result == []
-
-    @patch("rekordbox_bulk_edit.utils.Rekordbox6Database")
-    def test_track_not_found_by_id(self, mock_db_class):
-        """Test when specific track ID is not found."""
-        # Setup mock database
-        mock_db = Mock()
-        mock_db_class.return_value = mock_db
-        mock_db.get_content.return_value = [Mock(ID=456)]  # Different ID
-
-        # Execute
-        result = get_track_info(track_id=123)
-
-        # Assert
-        assert len(result) == 0
 
 
 class TestGetAudioInfo:
@@ -430,11 +388,10 @@ class TestGetAudioInfo:
             get_audio_info("/path/to/video.mp4")
 
     @patch("rekordbox_bulk_edit.utils.ffmpeg.probe")
-    def test_get_audio_info__checks_for_ffmpeg(self, mock_probe):
+    @patch("rekordbox_bulk_edit.utils.check_ffmpeg_available", return_value=False)
+    def test_get_audio_info__checks_for_ffmpeg(self, mock_check_ffmpeg, mock_probe):
         """Test that we check for ffmpeg first."""
-        with pytest.raises(
-            Exception, match="FFmpeg is required for rekordbox-bulk-edit."
-        ):
+        with pytest.raises(Exception, match="FFmpeg is required"):
             get_audio_info("/nonexistent/file.flac")
 
     @patch("rekordbox_bulk_edit.utils.ffmpeg.probe")
