@@ -2,9 +2,11 @@
 
 import platform
 import shutil
+from enum import Enum
+from typing import Dict, Sequence
 
 import ffmpeg
-from pyrekordbox import Rekordbox6Database
+from pyrekordbox.db6 import DjmdContent
 
 from rekordbox_bulk_edit.logger import Logger
 
@@ -56,130 +58,102 @@ def get_extension_for_format(format_name: str):
     return extension
 
 
-def print_track_info(content_list):
+class PrintableField(Enum):
+    """Columns of DjmdContent that you can print"""
+
+    ID = "ID"
+    FileNameL = "FileNameL"
+    FolderPath = "FolderPath"
+    FileType = "FileType"
+    SampleRate = "SampleRate"
+    BitDepth = "BitDepth"
+    BitRate = "BitRate"
+    ArtistName = "ArtistName"
+    AlbumName = "AlbumName"
+    Title = "Title"
+
+
+# Column widths (total ≈ 240 chars with spacing)
+PRINT_WIDTHS: Dict[PrintableField, int] = {
+    PrintableField.ID: 10,
+    PrintableField.FileNameL: 25,
+    PrintableField.Title: 25,
+    PrintableField.ArtistName: 20,
+    PrintableField.AlbumName: 20,
+    PrintableField.FileType: 4,
+    PrintableField.SampleRate: 8,
+    PrintableField.BitRate: 5,
+    PrintableField.BitDepth: 5,
+    PrintableField.FolderPath: 50,
+}
+
+# Print header
+PRINT_HEADERS: Dict[PrintableField, str] = {
+    PrintableField.ID: f"{'ID':<{PRINT_WIDTHS[PrintableField.ID]}}",
+    PrintableField.FileNameL: f"{'File':<{PRINT_WIDTHS[PrintableField.FileNameL]}}",
+    PrintableField.Title: f"{'Title':<{PRINT_WIDTHS[PrintableField.Title]}}",
+    PrintableField.ArtistName: f"{'Artist':<{PRINT_WIDTHS[PrintableField.ArtistName]}}",
+    PrintableField.AlbumName: f"{'Album':<{PRINT_WIDTHS[PrintableField.AlbumName]}}",
+    PrintableField.FileType: f"{'Type':<{PRINT_WIDTHS[PrintableField.FileType]}}",
+    PrintableField.SampleRate: f"{'SampleRt':<{PRINT_WIDTHS[PrintableField.SampleRate]}}",
+    PrintableField.BitRate: f"{'BitRt':<{PRINT_WIDTHS[PrintableField.BitRate]}}",
+    PrintableField.BitDepth: f"{'BitDp':<{PRINT_WIDTHS[PrintableField.BitDepth]}}",
+    PrintableField.FolderPath: f"{'FolderPath':<{PRINT_WIDTHS[PrintableField.FolderPath]}}",
+}
+
+
+def truncate_field(field: PrintableField, value: str | None):
+    if value is None:
+        return ""
+    if len(value) <= PRINT_WIDTHS[field]:
+        return value
+    available = PRINT_WIDTHS[field] - 3  # Reserve 3 chars for "..."
+    start_chars = available // 5 * 2
+    end_chars = available - start_chars
+    return f"{value[:start_chars]}...{value[-end_chars:]}"
+
+
+def print_track_info(
+    content_list: Sequence[DjmdContent],
+    print_columns: Sequence[PrintableField] | None = None,
+):
     """Print formatted track information"""
     if not content_list:
         return
 
-    # Column widths (total ≈ 240 chars with spacing)
-    widths = {
-        "id": 10,
-        "filename": 40,
-        "type": 8,
-        "sample_rate": 14,
-        "bitrate": 8,
-        "bit_depth": 8,
-        "location": 70,
-    }
+    print_columns = print_columns or [
+        PrintableField.Title,
+        PrintableField.ArtistName,
+        PrintableField.AlbumName,
+        PrintableField.FileType,
+        PrintableField.SampleRate,
+        PrintableField.BitDepth,
+        PrintableField.FolderPath,
+    ]
 
-    # Print header
-    header = (
-        f"{'ID':<{widths['id']}}   "
-        f"{'FileNameL':<{widths['filename']}}   "
-        f"{'Type':<{widths['type']}}   "
-        f"{'SampleRate':<{widths['sample_rate']}}   "
-        f"{'BitRate':<{widths['bitrate']}}   "
-        f"{'BitDepth':<{widths['bit_depth']}}   "
-        f"{'FolderPath':<{widths['location']}}"
-    )
-
+    header = "  ".join(map(lambda col: PRINT_HEADERS[col], print_columns))
     logger.info(header)
     logger.info("-" * len(header))
 
     # Print each track
     for content in content_list:
-        # Get values with fallbacks
-        track_id = str(content.ID or "")
-        filename = content.FileNameL or "N/A"
-        file_format = get_file_type_name(content.FileType)
-
-        # Get sample rate
-        value = content.SampleRate
-        if value and value != 0:
-            sample_rate = str(value)
-        else:
-            sample_rate = "--"
-
-        # Get bitrate
-        value = content.BitRate
-        if value or value == 0:
-            bitrate = str(value)
-        else:
-            bitrate = "--"
-
-        # Get bit depth
-        value = content.BitDepth
-        if value or value == 0:
-            bit_depth = str(value)
-        else:
-            bit_depth = "--"
-
-        location = content.FolderPath or "N/A"
-
-        # Truncate long values in the middle
-        if len(filename) > widths["filename"]:
-            available = widths["filename"] - 3  # Reserve 3 chars for "..."
-            start_chars = available // 2
-            end_chars = available - start_chars
-            filename = filename[:start_chars] + "..." + filename[-end_chars:]
-        if len(location) > widths["location"]:
-            available = widths["location"] - 3  # Reserve 3 chars for "..."
-            start_chars = available // 2
-            end_chars = available - start_chars
-            location = location[:start_chars] + "..." + location[-end_chars:]
-
         # Print row
-        row = (
-            f"{track_id:<{widths['id']}}   "
-            f"{filename:<{widths['filename']}}   "
-            f"{file_format:<{widths['type']}}   "
-            f"{sample_rate:<{widths['sample_rate']}}   "
-            f"{bitrate:<{widths['bitrate']}}   "
-            f"{bit_depth:<{widths['bit_depth']}}   "
-            f"{location:<{widths['location']}}"
-        )
+        rows = {
+            PrintableField.ID: f"{content.ID:<{PRINT_WIDTHS[PrintableField.ID]}}",
+            PrintableField.FileNameL: f"{truncate_field(PrintableField.FileNameL, content.FileNameL):<{PRINT_WIDTHS[PrintableField.FileNameL]}}",
+            PrintableField.Title: f"{truncate_field(PrintableField.Title, content.Title):<{PRINT_WIDTHS[PrintableField.Title]}}",
+            PrintableField.AlbumName: f"{truncate_field(PrintableField.AlbumName, content.AlbumName):<{PRINT_WIDTHS[PrintableField.AlbumName]}}",
+            PrintableField.ArtistName: f"{truncate_field(PrintableField.ArtistName, content.ArtistName):<{PRINT_WIDTHS[PrintableField.ArtistName]}}",
+            PrintableField.FileType: f"{get_file_type_name(content.FileType):<{PRINT_WIDTHS[PrintableField.FileType]}}",
+            PrintableField.SampleRate: f"{content.SampleRate:<{PRINT_WIDTHS[PrintableField.SampleRate]}}",
+            PrintableField.BitRate: f"{content.BitRate:<{PRINT_WIDTHS[PrintableField.BitRate]}}",
+            PrintableField.BitDepth: f"{content.BitDepth:<{PRINT_WIDTHS[PrintableField.BitDepth]}}",
+            PrintableField.FolderPath: f"{truncate_field(PrintableField.FolderPath, content.FolderPath):<{PRINT_WIDTHS[PrintableField.FolderPath]}}",
+        }
+
+        row = "  ".join(map(lambda col: rows[col], print_columns))
 
         logger.info(row)
-
-
-def get_track_info(track_id=None, format_filter=None):
-    """Get track information from database. Returns list of matching tracks."""
-    try:
-        db = Rekordbox6Database()
-        all_content = db.get_content()
-
-        if track_id:
-            # Find specific track
-            content_list = [
-                content for content in all_content if content.ID == int(track_id)
-            ]
-        else:
-            if format_filter:
-                # Filter by specific format
-                try:
-                    target_file_type = get_file_type_for_format(format_filter)
-                    content_list = [
-                        content
-                        for content in all_content
-                        if content.FileType == target_file_type
-                    ]
-                except ValueError:
-                    content_list = []
-            else:
-                # Get all audio files (exclude unknown types)
-                known_file_types = {0, 1, 4, 5, 11, 12}  # Known file type codes
-                content_list = [
-                    content
-                    for content in all_content
-                    if content.FileType in known_file_types
-                ]
-
-        return content_list
-
-    except Exception as e:
-        logger.error(f"{get_track_info.__name__}: Failed to access RekordBox database.")
-        logger.error(e, exc_info=True)
-        return []
 
 
 def check_ffmpeg_available():
