@@ -11,23 +11,18 @@ A command-line tool for bulk editing and managing Pioneer Rekordbox audio files 
 > [!CAUTION]
 > **ALWAYS BACK UP YOUR DATA BEFORE USING THIS TOOL!**
 
-This tool directly modifies your Rekordbox database and can potentially move, rename, or delete your music files. While there are checks to prevent unintentional changes, unexpected issues could result in data loss. Before using this tool, consider some or all of the following:
+This tool directly modifies your Rekordbox database and in some cases moves, renames, modifies, or even deletes your music files if you direct it to. While there are checks to prevent unintentional changes, unexpected issues could result in data loss. Before using this tool, consider some or all of the following:
 
-- Always backup your Rekordbox database. While some versions of RB make backups for you, you'll likely be opening and closing RB often, which will make a new backup everytime, causing you to quickly lose your backup history and render them only as useful as the last time you opened RB. Before running this tool, I recommend you make additonal copies of all the backups so that RB doesn't overwrite them.
+- Always backup your Rekordbox database. While recent versions of RB make backups for you, it does so every time you exit it. This means that openingcausing you to quickly lose your backup history and render them only as useful as the last time you opened RB. Before running this tool, I recommend you make additonal copies of all the backups prior to using this so that you can manually revert back to the database prior to .
 - Creating a backup of your entire music library
 - Test the tool on a small subset of files first using a filter option
-- Use the `--dry-run` option to preview changes before applying them
+- Use the `--dry-run` option to preview a command before committing to its use.
 
 **Use this tool at your own risk.**
 
 ## Credits
 
-I made this project to help me correct poor decisions and bad habits in my library management, but it's only possible thanks to [pyrekordbox](https://github.com/dylanljones/pyrekordbox), which provides a comprehensive Python API into Rekordbox databases and XML files.
-
-## Features
-
-- **Convert**: Convert between lossless audio formats (FLAC, AIFF, WAV) and MP3, updating Rekordbox database records accordingly
-- **Read**: Read and display track information from Rekordbox database with format filtering support
+I initially made this project to help me correct poor past decisions and bad habits in my library management, but it's only possible thanks to [pyrekordbox](https://github.com/dylanljones/pyrekordbox), which provides a comprehensive Python API into Rekordbox databases and XML files.
 
 ## Installation
 
@@ -62,6 +57,17 @@ sudo apt install ffmpeg
 ```bash
 winget install --id=Gyan.FFmpeg  -e
 ```
+
+## Commands
+
+- **Convert**: Convert between lossless audio formats (FLAC, AIFF, WAV) and MP3, updating Rekordbox database records accordingly.
+- **Search**: Find tracks and display their information from Rekordbox database.
+
+## Options and Filtering
+
+All commands support a shared set of filters and other options that allow for precise selection of the tracks you want to operate on.
+
+<!-- Fill in brief documentation  -->
 
 ## Usage
 
@@ -109,7 +115,7 @@ rekordbox-bulk-edit read [OPTIONS]
 
 ## Contributing
 
-Interested in contributing? Check out [CONTRIBUTING.md](CONTRIBUTING.md) for development setup instructions, coding guidelines, and how to submit changes.
+Interested in contributing? Check out [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Requirements
 
