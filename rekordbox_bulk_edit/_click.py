@@ -3,17 +3,18 @@ from enum import Enum
 import click
 
 
-class OutputChoice(Enum):
+class PrintChoice(Enum):
     SILENT = 0
     IDS = 1
     INFO = 2
 
 
-output_option = click.option(
-    "--output",
+print_option = click.option(
+    "--print",
+    "print_opt",  # avoid shadowing the print() function
     default="info",
-    type=click.Choice(OutputChoice, case_sensitive=False),
-    help="Configures the kind of output you want from the command, if any. The 'ids' option can be used to pipe a list of resulting content IDs into to another command.",
+    type=click.Choice(PrintChoice, case_sensitive=False),
+    help="Configures the kind of console output you want from the command, if any. The 'ids' option can be used to pipe a list of resulting content IDs into to another command.",
 )
 
 track_ids_argument = click.argument(
