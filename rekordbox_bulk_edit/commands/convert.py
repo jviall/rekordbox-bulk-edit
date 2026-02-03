@@ -1,5 +1,6 @@
 """Convert command for rekordbox-bulk-edit."""
 
+import logging
 import os
 import signal
 import sys
@@ -13,8 +14,10 @@ from pyrekordbox import Rekordbox6Database
 from pyrekordbox.utils import get_rekordbox_pid
 
 from rekordbox_bulk_edit._click import (
+    PrintChoice,
     add_click_options,
     global_click_filters,
+    print_option,
     track_ids_argument,
 )
 from rekordbox_bulk_edit.logger import Logger
@@ -183,9 +186,9 @@ def get_output_path(content, output_format):
     help="Auto-confirm the batch conversion (skip confirmation prompt)",
 )
 @click.option(
-    "--delete",
-    is_flag=True,
-    help="Delete original files after successful conversion",
+    "--delete/--keep",
+    default=None,
+    help="Delete or keep original files after conversion (default: delete for lossless, keep for MP3)",
 )
 @click.option(
     "--overwrite",
@@ -204,7 +207,7 @@ def get_output_path(content, output_format):
     default="aiff",
     help="Output format (default: aiff)",
 )
-@add_click_options([*global_click_filters, track_ids_argument])
+@add_click_options([*global_click_filters, print_option, track_ids_argument])
 def convert_command(
     dry_run,
     yes,
@@ -224,6 +227,7 @@ def convert_command(
     exact_playlist: List[str] | None,
     format: List[str] | None,
     match_all: bool,
+    print_opt: PrintChoice | None,
 ):
     """Convert lossless audio files between formats and update RekordBox database.
 
@@ -233,6 +237,21 @@ def convert_command(
     Skips lossy formats and files already in the target format.
     """
     from rekordbox_bulk_edit.utils import ffmpeg_in_path, get_ffmpeg_directions
+
+    # Validate --print option requirements
+    scripting_mode = print_opt in (PrintChoice.IDS, PrintChoice.SILENT)
+    if scripting_mode:
+        if not (dry_run or yes):
+            raise click.UsageError(
+                "--print=ids or --print=silent requires --dry-run or --yes"
+            )
+        logger.set_level(logging.ERROR)
+
+    # Determine delete behavior: smart default based on output format
+    if delete is None:
+        should_delete = format_out.upper() != "MP3"
+    else:
+        should_delete = delete
 
     db = None
     converted_files = []
@@ -257,6 +276,12 @@ def convert_command(
         # === PRECONDITIONS ===
         rekordbox_pid = get_rekordbox_pid()
         if rekordbox_pid:
+            if scripting_mode:
+                logger.error(
+                    f"Rekordbox is running (PID {rekordbox_pid}). "
+                    "Cannot proceed in scripting mode."
+                )
+                sys.exit(1)
             logger.warning(f"Rekordbox is running (PID {rekordbox_pid})")
             logger.warning(
                 "Modifying the database while Rekordbox is open can cause conflicts."
@@ -324,6 +349,10 @@ def convert_command(
             if overwrite:
                 logger.info(f"{len(conflicts)} output files exist (will overwrite)")
                 convertible = files_to_convert
+            elif yes:
+                # Silent skip when --yes without --overwrite
+                if not convertible:
+                    return
             else:
                 logger.warning(
                     f"Skipping {len(conflicts)} files (output exists, use --overwrite)"
@@ -341,6 +370,8 @@ def convert_command(
         print_track_info(files_to_process)
 
         if dry_run:
+            if print_opt is PrintChoice.IDS:
+                print(" ".join(str(c.ID) for c in files_to_process))
             return
 
         # === CONFIRM ===
@@ -434,8 +465,12 @@ def convert_command(
             rollback_and_cleanup()
             sys.exit(1)
 
+        # === OUTPUT ===
+        if print_opt is PrintChoice.IDS:
+            print(" ".join(str(f["content_id"]) for f in converted_files))
+
         # === DELETE ORIGINALS ===
-        if delete:
+        if should_delete:
             deleted_count = 0
             for file_info in converted_files:
                 try:
