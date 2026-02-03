@@ -1,4 +1,4 @@
-"""Read command for rekordbox-bulk-edit."""
+"""Search command for rekordbox-bulk-edit."""
 
 import logging
 from typing import List
@@ -45,6 +45,34 @@ def search_command(
         logger.set_level(logging.ERROR)
 
     logger.debug("Connecting to RekordBox database...")
+
+    # Log search parameters for troubleshooting
+    filters = []
+    if track_ids:
+        filters.append(f"track_ids={track_ids}")
+    if track_id:
+        filters.append(f"track_id={track_id}")
+    if artist:
+        filters.append(f"artist={artist}")
+    if exact_artist:
+        filters.append(f"exact_artist={exact_artist}")
+    if title:
+        filters.append(f"title={title}")
+    if exact_title:
+        filters.append(f"exact_title={exact_title}")
+    if album:
+        filters.append(f"album={album}")
+    if exact_album:
+        filters.append(f"exact_album={exact_album}")
+    if playlist:
+        filters.append(f"playlist={playlist}")
+    if exact_playlist:
+        filters.append(f"exact_playlist={exact_playlist}")
+    if format:
+        filters.append(f"format={format}")
+    if match_all:
+        filters.append("match_all=True")
+    logger.debug(f"Search filters: {', '.join(filters) if filters else 'none'}")
 
     db = Rekordbox6Database()
     if not db.session:

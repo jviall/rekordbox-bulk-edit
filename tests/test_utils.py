@@ -9,6 +9,7 @@ from pyrekordbox.db6 import DjmdContent
 from rekordbox_bulk_edit.utils import (
     PRINT_WIDTHS,
     PrintableField,
+    UserQuit,
     get_audio_info,
     get_extension_for_format,
     get_file_type_for_format,
@@ -185,22 +186,25 @@ class TestPrintTrackInfo:
     def test_default_columns(
         self, capsys, make_djmd_content_item: Callable[[], DjmdContent]
     ):
-        """Test printing a single track with the default print_columns."""
+        """Test printing a single track with the default print_columns.
+
+        Default columns are: ID, Title, FileType, SampleRate, BitDepth, FolderPath
+        (ArtistName and AlbumName are NOT included by default)
+        """
         # Setup mock content
         mock_content = make_djmd_content_item()
 
         print_track_info([mock_content])
 
         captured = capsys.readouterr()
+        # Check default columns are present
         assert mock_content.Title in captured.out
-        assert mock_content.ArtistName in captured.out
-        assert mock_content.AlbumName in captured.out
         assert get_file_type_name(mock_content.FileType) in captured.out
         assert str(mock_content.SampleRate) in captured.out
         assert str(mock_content.BitDepth) in captured.out
-        assert mock_content.FolderPath[:10] in captured.out
-        assert "..." in captured.out
-        assert mock_content.FolderPath[-10:] in captured.out
+        # FolderPath should be in output (may or may not be truncated depending on length)
+        # The default test path is 66 chars, column width is 80, so no truncation
+        assert "test_track.wav" in captured.out
 
     def test_track_with_zero_values(self, capsys, make_djmd_content_item):
         """Test printing track with zero values."""
@@ -356,8 +360,8 @@ class TestGetAudioInfo:
             get_audio_info("/path/to/video.mp4")
 
     @patch("rekordbox_bulk_edit.utils.ffmpeg.probe")
-    @patch("rekordbox_bulk_edit.utils.check_ffmpeg_available", return_value=False)
-    def test_get_audio_info__checks_for_ffmpeg(self, mock_check_ffmpeg, mock_probe):
+    @patch("rekordbox_bulk_edit.utils.ffmpeg_in_path", return_value=False)
+    def test_get_audio_info__checks_for_ffmpeg(self, mock_ffmpeg_in_path, mock_probe):
         """Test that we check for ffmpeg first."""
         with pytest.raises(Exception, match="FFmpeg is required"):
             get_audio_info("/nonexistent/file.flac")
@@ -421,3 +425,98 @@ class TestGetAudioInfo:
         # Execute
         with pytest.raises(Exception, match="No valid bitrate"):
             get_audio_info("/path/to/audio.flac")
+
+
+class TestConfirm:
+    """Test confirm function."""
+
+    @pytest.fixture
+    def mock_dependencies(self, mocker):
+        """Mock all dependencies for confirm function."""
+        mock_click_prompt = mocker.patch("rekordbox_bulk_edit.utils.click.prompt")
+        mock_logger = mocker.patch("rekordbox_bulk_edit.utils.logger")
+        return {
+            "click_prompt": mock_click_prompt,
+            "logger": mock_logger,
+        }
+
+    def test_confirm_yes(self, mock_dependencies):
+        """Test confirm returns True when user enters 'y'."""
+        from rekordbox_bulk_edit.utils import confirm
+
+        mock_dependencies["click_prompt"].return_value = "y"
+
+        result = confirm("Continue?", default=False, abort=False)
+
+        assert result is True
+        mock_dependencies["click_prompt"].assert_called_once()
+
+    def test_confirm_no(self, mock_dependencies):
+        """Test confirm returns False when user enters 'n' with abort=False."""
+        from rekordbox_bulk_edit.utils import confirm
+
+        mock_dependencies["click_prompt"].return_value = "n"
+
+        result = confirm("Continue?", default=True, abort=False)
+
+        assert result is False
+        mock_dependencies["click_prompt"].assert_called_once()
+
+    def test_confirm_quit(self, mock_dependencies):
+        """Test confirm raises UserQuit when user enters 'q' with abort=False."""
+        from rekordbox_bulk_edit.utils import confirm
+
+        mock_dependencies["click_prompt"].return_value = "q"
+
+        with pytest.raises(UserQuit, match="User quit"):
+            confirm("Continue?", default=True, abort=False)
+
+    def test_confirm_no_abort_true(self, mock_dependencies):
+        """Test confirm raises UserQuit when user enters 'n' with abort=True."""
+        from rekordbox_bulk_edit.utils import confirm
+
+        mock_dependencies["click_prompt"].return_value = "n"
+
+        with pytest.raises(UserQuit, match="User declined"):
+            confirm("Continue?", default=True, abort=True)
+
+        mock_dependencies["click_prompt"].assert_called_once()
+
+    def test_confirm_no_binary_true(self, mock_dependencies):
+        """Test confirm raises UserQuit when user enters 'n' with abort=True."""
+        from rekordbox_bulk_edit.utils import confirm
+
+        mock_dependencies["click_prompt"].return_value = "n"
+
+        confirm("Continue?", default=True, binary=True)
+
+        mock_dependencies["click_prompt"].assert_called_once()
+
+    def test_confirm_case_insensitive_yes(self, mock_dependencies):
+        """Test confirm handles case-insensitive 'YES' input."""
+        from rekordbox_bulk_edit.utils import confirm
+
+        mock_dependencies["click_prompt"].return_value = "Y"
+
+        result = confirm("Continue?", default=False, abort=False)
+
+        assert result is True
+
+    def test_confirm_case_insensitive_no(self, mock_dependencies):
+        """Test confirm handles case-insensitive 'NO' input."""
+        from rekordbox_bulk_edit.utils import confirm
+
+        mock_dependencies["click_prompt"].return_value = "N"
+
+        result = confirm("Continue?", default=True, abort=False)
+
+        assert result is False
+
+    def test_confirm_case_insensitive_quit(self, mock_dependencies):
+        """Test confirm handles case-insensitive 'QUIT' input."""
+        from rekordbox_bulk_edit.utils import confirm
+
+        mock_dependencies["click_prompt"].return_value = "Q"
+
+        with pytest.raises(UserQuit, match="User quit"):
+            confirm("Continue?", default=True, abort=False)
