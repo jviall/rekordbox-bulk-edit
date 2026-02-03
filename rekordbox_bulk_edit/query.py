@@ -229,51 +229,88 @@ def get_filtered_content(
 ) -> Result[Tuple[DjmdContent]]:
     """Queries the Rekordbox database according to the provided filters and conditions.
     When `track_id_args` is provided, it's the only filter applied and all others are skipped."""
-    db = Rekordbox6Database()
+    db = db if db is not None else Rekordbox6Database()
     if not db.session:
         raise RuntimeError("Failed to connect to Rekordbox Database: No Session.")
 
     query = CollectionQuery()
 
+    # Log all active filters
     if track_id_args:
+        logger.verbose(
+            "Detected track ID arguments--ignoring all other filter options."
+        )
         logger.verbose(f"Filtering by {len(track_id_args)} passed-in Track ID(s)")
         query = query.by_track_ids(track_ids=track_id_args)
         return query.execute(db)
-        # TODO: verbose log each filter applied
-    logger.verbose("Filtering by")
-    if track_ids is not None:
-        logger.verbose("Filtering by:")
+
+    if track_ids:
+        logger.verbose(f"Matching tracks with ID(s): {', '.join(track_ids)}")
         for track_id in track_ids:
             query = query.by_track_ids(track_id)
 
-    for format in formats if formats is not None else []:
-        query = query.by_format(format)
+    if formats:
+        logger.verbose(
+            f"Matching tracks with format: {', '.join(f.upper() for f in formats)}"
+        )
+        for format in formats:
+            query = query.by_format(format)
 
-    for playlist in playlists if playlists is not None else []:
-        query = query.by_playlist(playlist)
+    if playlists:
+        logger.verbose(
+            f"Matching tracks in playlists named like: {', '.join(playlists)}"
+        )
+        for playlist in playlists:
+            query = query.by_playlist(playlist)
 
-    for exact_playlist in exact_playlists if exact_playlists is not None else []:
-        query = query.by_playlist(exact_playlist, exact=True)
+    if exact_playlists:
+        logger.verbose(
+            f"Matching tracks in playlists with exact names: {', '.join(exact_playlists)}"
+        )
+        for exact_playlist in exact_playlists:
+            query = query.by_playlist(exact_playlist, exact=True)
 
-    for artist in artists if artists is not None else []:
-        query = query.by_artist(artist)
+    if artists:
+        logger.verbose(f"Matching tracks with artists named like: {', '.join(artists)}")
+        for artist in artists:
+            query = query.by_artist(artist)
 
-    for exact_artist in exact_artists if exact_artists is not None else []:
-        query = query.by_artist(exact_artist)
+    if exact_artists:
+        logger.verbose(
+            f"Matching tracks with artists with exact names: {', '.join(exact_artists)}"
+        )
+        for exact_artist in exact_artists:
+            query = query.by_artist(exact_artist, exact=True)
 
-    for album in albums if albums is not None else []:
-        query = query.by_album(album)
+    if albums:
+        logger.verbose(f"Matching tracks in albums named like: {', '.join(albums)}")
+        for album in albums:
+            query = query.by_album(album)
 
-    for exact_album in exact_albums if exact_albums is not None else []:
-        query = query.by_album(exact_album, exact=True)
+    if exact_albums:
+        logger.verbose(
+            f"Matching tracks in albums with exact names: {', '.join(exact_albums)}"
+        )
+        for exact_album in exact_albums:
+            query = query.by_album(exact_album, exact=True)
 
-    for track in titles if titles is not None else []:
-        query = query.by_title(track)
+    if titles:
+        logger.verbose(f"Matching tracks with titles named like: {', '.join(titles)}")
+        for track in titles:
+            query = query.by_title(track)
 
-    for exact_track in exact_titles if exact_titles is not None else []:
-        query = query.by_title(exact_track)
+    if exact_titles:
+        logger.verbose(
+            f"Matching tracks with titles with exact names: {', '.join(exact_titles)}"
+        )
+        for exact_track in exact_titles:
+            query = query.by_title(exact_track, exact=True)
 
+    # Log combination logic
     if match_all:
-        query.match_all()
+        logger.verbose("Results must match all filters")
+        query = query.match_all()
+    else:
+        logger.verbose("Results may match any filters")
 
     return query.execute(db)
