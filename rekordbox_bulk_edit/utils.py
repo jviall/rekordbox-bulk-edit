@@ -5,12 +5,19 @@ import shutil
 from enum import Enum
 from typing import Dict, Sequence
 
+import click
 import ffmpeg
 from pyrekordbox.db6 import DjmdContent
 
 from rekordbox_bulk_edit.logger import Logger
 
 logger = Logger()
+
+
+class UserQuit(Exception):
+    """Exception raised when user chooses to quit"""
+
+    pass
 
 
 # File type mappings for Rekordbox database
@@ -84,7 +91,7 @@ PRINT_WIDTHS: Dict[PrintableField, int] = {
     PrintableField.SampleRate: 8,
     PrintableField.BitRate: 5,
     PrintableField.BitDepth: 5,
-    PrintableField.FolderPath: 50,
+    PrintableField.FolderPath: 80,
 }
 
 # Print header
@@ -122,21 +129,24 @@ def print_track_info(
         return
 
     print_columns = print_columns or [
+        PrintableField.ID,
         PrintableField.Title,
-        PrintableField.ArtistName,
-        PrintableField.AlbumName,
         PrintableField.FileType,
         PrintableField.SampleRate,
         PrintableField.BitDepth,
         PrintableField.FolderPath,
     ]
 
-    header = "  ".join(map(lambda col: PRINT_HEADERS[col], print_columns))
+    # Calculate width for position column: 2 spaces + digits needed for max position
+    pos_width = 2 + len(str(len(content_list)))
+    header = f"{'#':<{pos_width}}" + "  ".join(
+        map(lambda col: PRINT_HEADERS[col], print_columns)
+    )
     logger.info(header)
     logger.info("-" * len(header))
 
     # Print each track
-    for content in content_list:
+    for i, content in enumerate(content_list, 1):
         # Print row
         rows = {
             PrintableField.ID: f"{content.ID:<{PRINT_WIDTHS[PrintableField.ID]}}",
@@ -151,13 +161,14 @@ def print_track_info(
             PrintableField.FolderPath: f"{truncate_field(PrintableField.FolderPath, content.FolderPath):<{PRINT_WIDTHS[PrintableField.FolderPath]}}",
         }
 
-        row = "  ".join(map(lambda col: rows[col], print_columns))
+        row = f"{i:<{pos_width}}" + "  ".join(map(lambda col: rows[col], print_columns))
 
         logger.info(row)
+    logger.info("")
 
 
-def check_ffmpeg_available():
-    """Check if ffmpeg is available in PATH"""
+def ffmpeg_in_path():
+    """Check availability of ffmpeg program via which command"""
     return shutil.which("ffmpeg") is not None
 
 
@@ -182,7 +193,7 @@ def get_audio_info(file_path) -> dict[str, int]:
     """Get audio information from file using ffmpeg probe"""
     try:
         # Check if ffmpeg is available first
-        if not check_ffmpeg_available():
+        if not ffmpeg_in_path():
             raise Exception(get_ffmpeg_directions())
 
         probe = ffmpeg.probe(file_path)
@@ -191,7 +202,7 @@ def get_audio_info(file_path) -> dict[str, int]:
             None,
         )
         if not audio_stream:
-            raise Exception("No audio stream")
+            raise Exception(f"No audio stream found in {file_path}")
 
         # Try multiple ways to get bit depth
         bit_depth = -1  # default
@@ -220,16 +231,16 @@ def get_audio_info(file_path) -> dict[str, int]:
         if "bit_rate" in audio_stream and audio_stream["bit_rate"]:
             bitrate = int(audio_stream["bit_rate"]) // 1000  # Convert to kbps
         else:
-            logger.verbose("Calculating bit rate...")
+            logger.debug("Calculating bit rate from sample_rate * bit_depth * channels")
             # Calculate bitrate: sample_rate * bit_depth * channels, then convert to kbps
             sample_rate = int(audio_stream.get("sample_rate", -1))
             channels = int(audio_stream.get("channels", 1))
             bitrate = (sample_rate * bit_depth * channels) // 1000  # Convert to kbps
 
         if bit_depth < 0:
-            raise Exception("No valid bit depth")
+            raise Exception(f"No valid bit depth found for {file_path}")
         if bitrate < 0:
-            raise Exception("No valid bitrate")
+            raise Exception(f"No valid bitrate found for {file_path}")
 
         return {
             "bit_depth": bit_depth,
@@ -238,6 +249,58 @@ def get_audio_info(file_path) -> dict[str, int]:
             "bitrate": bitrate,
         }
     except Exception as e:
-        logger.error(f"Failed to get info for {file_path}")
-        logger.error(e, exc_info=True)
+        logger.error(f"Failed to get audio info for {file_path}: {e}")
+        logger.debug("Full traceback:", exc_info=True)
         raise e
+
+
+def confirm(
+    prompt: str,
+    default: bool = False,
+    binary: bool = False,
+    abort: bool = False,
+):
+    """Prompts the user to prompt [y]es/[n]o/[q]uit
+
+    Args:
+        prompt: The question to ask the user
+        default: Default response (True for y, False for n)
+        binary: If True, prompt a simple y/n
+        abort: If True, prompt a simple y/n where 'n' raises a UserQuit Exception
+    """
+    from enum import Enum
+
+    class ConfirmChoice(Enum):
+        YES = "y"
+        NO = "n"
+        QUIT = "q"
+
+    if abort or binary:
+        choices = [ConfirmChoice.YES.value, ConfirmChoice.NO.value]
+        default_choice = ConfirmChoice.YES.value if default else ConfirmChoice.NO.value
+    else:
+        choices = [
+            ConfirmChoice.YES.value,
+            ConfirmChoice.NO.value,
+            ConfirmChoice.QUIT.value,
+        ]
+        default_choice = ConfirmChoice.YES.value if default else ConfirmChoice.NO.value
+
+    response: str = click.prompt(
+        prompt,
+        type=click.Choice(choices, case_sensitive=False),
+        default=default_choice,
+    )
+
+    if response.lower() == ConfirmChoice.YES.value:
+        logger.debug(f"User confirmed: {prompt}")
+        return True
+    elif response.lower() == ConfirmChoice.NO.value:
+        logger.debug(f"User declined: {prompt}")
+        if abort:
+            raise UserQuit("User declined to continue")
+        else:
+            return False
+    elif response.lower()[0] == ConfirmChoice.QUIT.value:
+        logger.debug("User quit.")
+        raise UserQuit("User quit")
