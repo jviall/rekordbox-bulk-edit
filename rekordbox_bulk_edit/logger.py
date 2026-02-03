@@ -10,10 +10,9 @@ from typing import Optional
 import click
 from platformdirs import PlatformDirs
 
-# between DEBUG=10 and INFO=20
-VERBOSE = 15
+VERBOSE = 15  # between DEBUG=10 and INFO=20
 logging.addLevelName(VERBOSE, "VERBOSE")
-LOG_FILE_NAME = f"debug_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.log"  # define at module level once
+LOG_FILE_NAME = f"debug_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.log"
 
 
 class ConsoleLogHandler(logging.Handler):
@@ -22,7 +21,6 @@ class ConsoleLogHandler(logging.Handler):
     def emit(self, record):
         try:
             msg = self.format(record)
-            # Apply Click styling based on log level
             if record.levelno >= logging.CRITICAL:
                 click.echo(click.style(msg, fg="red", bold=True))
             elif record.levelno >= logging.ERROR:
@@ -33,7 +31,7 @@ class ConsoleLogHandler(logging.Handler):
                 click.echo(msg)
             elif record.levelno >= VERBOSE:
                 click.echo(msg)
-            else:  # DEBUG
+            else:
                 click.echo(click.style(msg, dim=True, fg="blue"))
 
         except Exception:
@@ -58,23 +56,17 @@ class Logger:
             log_file: Path to log file. If None, uses system temp directory.
             level: Minimum level for log output (default: INFO)
         """
-        logging.raiseExceptions = False  # don't raise exceptions in the Logger
+        logging.raiseExceptions = False
         self.logger = logging.getLogger(f"rekordbox_bulk_edit_{id(self)}")
         self.logger.setLevel(logging.DEBUG)
-
-        # Clear any existing handlers
         self.logger.handlers.clear()
 
-        # Setup log file path
         if log_file:
             self._log_file_path = Path(log_file)
         else:
             self._log_file_path = self._app_dir / LOG_FILE_NAME
-
-        # Ensure log directory exists
         self._log_file_path.parent.mkdir(parents=True, exist_ok=True)
 
-        # Setup file handler - logs everything (DEBUG and above)
         self.file_handler = logging.FileHandler(
             self._log_file_path, mode="a", encoding="utf-8"
         )
@@ -85,7 +77,6 @@ class Logger:
         self.file_handler.setFormatter(file_formatter)
         self.logger.addHandler(self.file_handler)
 
-        # Setup console handler - default INFO and above
         self.click_echo_handler = ConsoleLogHandler()
         self.click_echo_handler.setLevel(
             level if (level is not None and level >= 0) else logging.INFO

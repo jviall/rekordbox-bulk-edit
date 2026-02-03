@@ -59,10 +59,7 @@ class CollectionQuery:
             return self
 
         new_inst = self._copy()
-
         ArtistAlias = aliased(DjmdArtist)
-
-        # Join with DjmdArtist table
         new_inst._stmt = new_inst._stmt.outerjoin(
             ArtistAlias, DjmdContent.ArtistID == ArtistAlias.ID
         )
@@ -80,9 +77,7 @@ class CollectionQuery:
     def by_title(self, title: str, exact: bool = False) -> "CollectionQuery":
         """Filter by track name."""
         if title is None:
-            logger.warning(
-                "track_name value of None has no effect. Did you mean to pass an empty string?"
-            )
+            logger.warning("title=None has no effect; use empty string to match null")
             return self
 
         new_inst = self._copy()
@@ -100,15 +95,11 @@ class CollectionQuery:
     def by_album(self, album_name: str, exact: bool = False) -> "CollectionQuery":
         """Filter by album name."""
         if album_name is None:
-            logger.warning(
-                "album_name value of None has no effect. Did you mean to pass an empty string?"
-            )
+            logger.warning("album=None has no effect; use empty string to match null")
             return self
 
         new_inst = self._copy()
-
         AlbumAlias = aliased(DjmdAlbum)
-
         new_inst._stmt = new_inst._stmt.outerjoin(
             AlbumAlias, DjmdContent.AlbumID == AlbumAlias.ID
         )
@@ -127,16 +118,14 @@ class CollectionQuery:
         """Filter by playlist name."""
         if playlist_name is None:
             logger.warning(
-                "playlist_name value of None has no effect. Did you mean to pass an empty string?"
+                "playlist=None has no effect; use empty string to match null"
             )
             return self
 
         new_inst = self._copy()
-
         PlaylistAlias = aliased(DjmdPlaylist)
         SongPlaylistAlias = aliased(DjmdSongPlaylist)
 
-        # Join through the many-to-many relationship
         new_inst._stmt = new_inst._stmt.outerjoin(
             SongPlaylistAlias, DjmdContent.ID == SongPlaylistAlias.ContentID
         ).outerjoin(PlaylistAlias, SongPlaylistAlias.PlaylistID == PlaylistAlias.ID)
@@ -156,7 +145,7 @@ class CollectionQuery:
         from rekordbox_bulk_edit.utils import get_file_type_for_format
 
         if not format_name:
-            logger.warning("An empty format filter has no effect")
+            logger.warning("Empty format filter has no effect")
             return self
 
         new_inst = self._copy()
@@ -170,7 +159,7 @@ class CollectionQuery:
         return new_inst
 
     def limit(self, count: int) -> "CollectionQuery":
-        """Limits query results to the first {count} items."""
+        """Limit query results to the first {count} items."""
         new_inst = self._copy()
         new_inst._limit_count = count
         return new_inst
@@ -180,7 +169,6 @@ class CollectionQuery:
         if not db.session:
             raise RuntimeError("Failed to connect to Rekordbox Database: No Session.")
         stmt = self._get_full_statement()
-        # Create count query using the existing statement as subquery
         count_stmt = select(func.count()).select_from(stmt.subquery())
         result = db.session.execute(count_stmt)
         return result.scalar_one()
@@ -200,6 +188,10 @@ class CollectionQuery:
         stmt = self._stmt
 
         if self._conditions:
+            logic = "AND" if self._match_all else "OR"
+            logger.debug(
+                f"Building query with {len(self._conditions)} condition(s) using {logic} logic"
+            )
             if self._match_all:
                 combined_condition = and_(*self._conditions)
             else:
@@ -207,6 +199,7 @@ class CollectionQuery:
             stmt = stmt.where(combined_condition)
 
         if self._limit_count is not None:
+            logger.debug(f"Query limit: {self._limit_count}")
             stmt = stmt.limit(self._limit_count)
 
         return stmt
@@ -227,90 +220,63 @@ def get_filtered_content(
     exact_titles: List[str] | None = None,
     match_all: bool = False,
 ) -> Result[Tuple[DjmdContent]]:
-    """Queries the Rekordbox database according to the provided filters and conditions.
-    When `track_id_args` is provided, it's the only filter applied and all others are skipped."""
+    """Query the Rekordbox database with the provided filters.
+
+    When track_id_args is provided, it's the only filter applied.
+    """
     db = db if db is not None else Rekordbox6Database()
     if not db.session:
         raise RuntimeError("Failed to connect to Rekordbox Database: No Session.")
 
     query = CollectionQuery()
 
-    # Log all active filters
+    # track_id_args takes precedence over all other filters
     if track_id_args:
-        logger.verbose(
-            "Detected track ID arguments--ignoring all other filter options."
-        )
-        logger.verbose(f"Filtering by {len(track_id_args)} passed-in Track ID(s)")
+        logger.debug(f"Filtering by {len(track_id_args)} track ID argument(s)")
         query = query.by_track_ids(track_ids=track_id_args)
         return query.execute(db)
 
     if track_ids:
-        logger.verbose(f"Matching tracks with ID(s): {', '.join(track_ids)}")
         for track_id in track_ids:
             query = query.by_track_ids(track_id)
 
     if formats:
-        logger.verbose(
-            f"Matching tracks with format: {', '.join(f.upper() for f in formats)}"
-        )
-        for format in formats:
-            query = query.by_format(format)
+        for fmt in formats:
+            query = query.by_format(fmt)
 
     if playlists:
-        logger.verbose(
-            f"Matching tracks in playlists named like: {', '.join(playlists)}"
-        )
         for playlist in playlists:
             query = query.by_playlist(playlist)
 
     if exact_playlists:
-        logger.verbose(
-            f"Matching tracks in playlists with exact names: {', '.join(exact_playlists)}"
-        )
         for exact_playlist in exact_playlists:
             query = query.by_playlist(exact_playlist, exact=True)
 
     if artists:
-        logger.verbose(f"Matching tracks with artists named like: {', '.join(artists)}")
         for artist in artists:
             query = query.by_artist(artist)
 
     if exact_artists:
-        logger.verbose(
-            f"Matching tracks with artists with exact names: {', '.join(exact_artists)}"
-        )
         for exact_artist in exact_artists:
             query = query.by_artist(exact_artist, exact=True)
 
     if albums:
-        logger.verbose(f"Matching tracks in albums named like: {', '.join(albums)}")
         for album in albums:
             query = query.by_album(album)
 
     if exact_albums:
-        logger.verbose(
-            f"Matching tracks in albums with exact names: {', '.join(exact_albums)}"
-        )
         for exact_album in exact_albums:
             query = query.by_album(exact_album, exact=True)
 
     if titles:
-        logger.verbose(f"Matching tracks with titles named like: {', '.join(titles)}")
-        for track in titles:
-            query = query.by_title(track)
+        for title in titles:
+            query = query.by_title(title)
 
     if exact_titles:
-        logger.verbose(
-            f"Matching tracks with titles with exact names: {', '.join(exact_titles)}"
-        )
-        for exact_track in exact_titles:
-            query = query.by_title(exact_track, exact=True)
+        for exact_title in exact_titles:
+            query = query.by_title(exact_title, exact=True)
 
-    # Log combination logic
     if match_all:
-        logger.verbose("Results must match all filters")
         query = query.match_all()
-    else:
-        logger.verbose("Results may match any filters")
 
     return query.execute(db)
