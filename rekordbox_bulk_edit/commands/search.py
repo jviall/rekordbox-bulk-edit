@@ -7,10 +7,10 @@ import click
 from pyrekordbox import Rekordbox6Database
 
 from rekordbox_bulk_edit._click import (
-    OutputChoice,
+    PrintChoice,
     add_click_options,
     global_click_filters,
-    output_option,
+    print_option,
     track_ids_argument,
 )
 from rekordbox_bulk_edit.logger import Logger
@@ -23,7 +23,7 @@ logger = Logger()
 
 
 @click.command()
-@add_click_options([output_option, *global_click_filters, track_ids_argument])
+@add_click_options([*global_click_filters, print_option, track_ids_argument])
 def search_command(
     track_id: List[str] | None,
     track_ids: List[str] | None,
@@ -37,11 +37,11 @@ def search_command(
     exact_title: List[str] | None,
     format: List[str] | None,
     match_all: bool,
-    output: OutputChoice | None,
+    print_opt: PrintChoice | None,
 ):
     """Search the RekordBox database."""
 
-    if output is OutputChoice.IDS or output is OutputChoice.SILENT:
+    if print_opt is PrintChoice.IDS or print_opt is PrintChoice.SILENT:
         logger.set_level(logging.ERROR)
 
     logger.debug("Connecting to RekordBox database...")
@@ -66,9 +66,9 @@ def search_command(
         match_all=match_all,
     )
 
-    if output is OutputChoice.SILENT:
+    if print_opt is PrintChoice.SILENT:
         pass
-    elif output is OutputChoice.IDS:
+    elif print_opt is PrintChoice.IDS:
         print(" ".join(content.ID for content in filtered_result.scalars().all()))
     else:
         print_track_info(filtered_result.scalars().all())
