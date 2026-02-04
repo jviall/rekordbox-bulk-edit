@@ -9,7 +9,7 @@ description = "Tools for managing and modifying a RekordBox library en-masse"
 authors = [{ name = "James Viall", email= "jamesviall@pm.me"}]
 license = "MIT"
 readme = "README.md"
-requires-python = ">=3.9,<4.0"
+requires-python = ">=3.10,<4.0"
 keywords = ["rekordbox", "dj", "music", "database", "bulk", "edit", "convert"]
 packages = [{include = "rekordbox_bulk_edit"}]
 dependencies = [

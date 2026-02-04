@@ -19,6 +19,8 @@ jobs:
     permissions:
       contents: write
       id-token: write
+    env:
+      PYTHON: "3.14"
 
     steps:
       - name: Check out
@@ -26,13 +28,8 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: "3.13"
-
-      - name: Install Poetry
-        uses: snok/install-poetry@v1.4.1
+      - name: Setup Poetry
+        uses: ./.github/actions/install
 
       - name: Bump to dev version
         id: bump
