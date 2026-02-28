@@ -165,9 +165,10 @@ def cleanup_converted_files(converted_files):
 
 def get_output_path(content, output_format):
     """Calculate output path for a content item."""
-    src_folder_path = content.FolderPath or ""
+    src_folder_path = os.path.normpath(content.FolderPath or "")
     src_file_name = content.FileNameL or ""
     src_dirname = os.path.dirname(src_folder_path)
+
     extension = get_extension_for_format(output_format.upper())
     output_filename = Path(src_file_name).stem + extension
     return os.path.join(src_dirname, output_filename), output_filename, src_dirname

@@ -1,5 +1,6 @@
 """Unit tests for convert command functionality."""
 
+import os
 from unittest.mock import Mock, patch
 
 import ffmpeg
@@ -327,9 +328,9 @@ class TestGetOutputPath:
 
         output_path, output_filename, src_dirname = get_output_path(content, "aiff")
 
-        assert output_path == "/music/folder/song.aiff"
+        assert output_path == os.path.normpath("/music/folder/song.aiff")
         assert output_filename == "song.aiff"
-        assert src_dirname == "/music/folder"
+        assert src_dirname == os.path.normpath("/music/folder")
 
     def test_get_output_path_mp3(self, make_djmd_content_item):
         """Test output path calculation for MP3."""
@@ -340,8 +341,9 @@ class TestGetOutputPath:
 
         output_path, output_filename, src_dirname = get_output_path(content, "mp3")
 
-        assert output_path == "/music/folder/song.mp3"
+        assert output_path == os.path.normpath("/music/folder/song.mp3")
         assert output_filename == "song.mp3"
+        assert src_dirname == os.path.normpath("/music/folder")
 
 
 class TestConvertCommand:

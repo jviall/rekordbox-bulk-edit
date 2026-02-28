@@ -79,7 +79,7 @@ rbe search [OPTIONS]
 # Show all FLAC tracks by artist
 rbe search --artist "Aphex Twin" --format flac
 
-# Get track IDs for scripting
+# Get all the track IDs in a playlist
 rbe search --playlist "Techno" --print ids
 
 # Find tracks matching ALL filters (AND logic)
@@ -94,12 +94,12 @@ Convert audio files between formats and update the Rekordbox database. Your cues
 rbe convert [OPTIONS]
 ```
 
-**Supported formats:**
+#### Supported formats
 
-- Input: FLAC, AIFF, WAV (lossless only)
-- Output: AIFF, FLAC, WAV, ALAC (lossless) or MP3 (320kbps CBR)
+- Input: FLAC, AIFF, WAV
+- Output: AIFF, FLAC, WAV, ALAC or MP3 (320kbps CBR)
 
-**Key options:**
+#### options
 
 - `--format-out [aiff|flac|wav|alac|mp3]`: Output format (default: aiff)
 - `--dry-run`: Preview changes without converting.
@@ -127,10 +127,10 @@ rbe convert --format-out mp3 --playlist "Export" --yes --delete
 # Keep originals when converting to AIFF
 rbe convert --format-out aiff --format flac --yes --keep
 
-# Scripting: get IDs of files that would be converted
+# Get just the IDs of files that would be converted
 rbe convert --format-out aiff --format flac --print ids --dry-run
 
-# Scripting: convert and get IDs of converted files
+# Convert and get the IDs of converted tracks
 rbe convert --format-out aiff --format flac --print ids --yes
 ```
 
