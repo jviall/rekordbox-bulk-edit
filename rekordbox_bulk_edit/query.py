@@ -167,6 +167,7 @@ class CollectionQuery:
         if not db.session:
             raise RuntimeError("Failed to connect to Rekordbox Database: No Session.")
         stmt = self._get_full_statement()
+        logger.debug(f"Executing Query:\n{str(stmt)}")
         return db.session.execute(stmt)
 
     def _get_full_statement(self):

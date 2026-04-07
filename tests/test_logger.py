@@ -8,6 +8,7 @@ from pathlib import Path
 import pytest
 from platformdirs import PlatformDirs
 
+from rekordbox_bulk_edit._click import PrintChoice
 from rekordbox_bulk_edit.logger import LOG_FILE_NAME, VERBOSE, Logger
 
 
@@ -218,9 +219,7 @@ class TestLogger:
             handler.close()
             second_logger.logger.removeHandler(handler)
 
-    def test_set_level_updates_console_handler(
-        self, logger_custom_file: tuple[Logger, Path]
-    ):
+    def test_set_level(self, logger_custom_file: tuple[Logger, Path]):
         """Test that set_level updates the console handler log level."""
         logger, _ = logger_custom_file
 
@@ -228,8 +227,43 @@ class TestLogger:
         assert logger.click_echo_handler.level == logging.INFO
 
         # Change level and verify it was updated
-        logger.set_level(logging.ERROR)
+        logger.set_level(None)
+        assert logger.click_echo_handler.level == logging.INFO
+
+    def test_set_level_error(self, logger_custom_file: tuple[Logger, Path]):
+        """Test that set_level updates the console handler log level."""
+        logger, _ = logger_custom_file
+
+        # Verify initial level
+        assert logger.click_echo_handler.level == logging.INFO
+
+        # Change level and verify it was updated
+        logger.set_level(PrintChoice.IDS)
         assert logger.click_echo_handler.level == logging.ERROR
+        logger.set_level(PrintChoice.SILENT)
+        assert logger.click_echo_handler.level == logging.ERROR
+
+    def test_set_level_verbose(self, logger_custom_file: tuple[Logger, Path]):
+        """Test that set_level updates the console handler log level."""
+        logger, _ = logger_custom_file
+
+        # Verify initial level
+        assert logger.click_echo_handler.level == logging.INFO
+
+        # Change level and verify it was updated
+        logger.set_level(PrintChoice.VERBOSE)
+        assert logger.click_echo_handler.level == VERBOSE
+
+    def test_set_level_debug(self, logger_custom_file: tuple[Logger, Path]):
+        """Test that set_level updates the console handler log level."""
+        logger, _ = logger_custom_file
+
+        # Verify initial level
+        assert logger.click_echo_handler.level == logging.INFO
+
+        # Change level and verify it was updated
+        logger.set_level(PrintChoice.DEBUG)
+        assert logger.click_echo_handler.level == logging.DEBUG
 
     def test_verbose_level_constant(self):
         """Test that VERBOSE level is set to 15."""

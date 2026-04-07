@@ -1,6 +1,5 @@
 """Convert command for rekordbox-bulk-edit."""
 
-import logging
 import os
 import signal
 import sys
@@ -241,14 +240,15 @@ def convert_command(
     """
     from rekordbox_bulk_edit.utils import ffmpeg_in_path, get_ffmpeg_directions
 
+    logger.set_level(print_opt)
+
     # Validate --print option requirements
     scripting_mode = print_opt in (PrintChoice.IDS, PrintChoice.SILENT)
     if scripting_mode:
         if not (dry_run or yes):
             raise click.UsageError(
-                "--print=ids or --print=silent requires --dry-run or --yes"
+                "--print=ids or --print=silent requires --dry-run or --yes to skip confirmation of potentially destructive changes"
             )
-        logger.set_level(logging.ERROR)
 
     # Determine delete behavior: smart default based on output format
     if delete is None:
@@ -285,9 +285,8 @@ def convert_command(
                     "Cannot proceed in scripting mode."
                 )
                 sys.exit(1)
-            logger.warning(f"Rekordbox is running (PID {rekordbox_pid})")
             logger.warning(
-                "Modifying the database while Rekordbox is open can cause conflicts."
+                f"Rekordbox is running (PID {rekordbox_pid}). Modifying the database while Rekordbox is open can cause conflicts."
             )
             try:
                 if not confirm("Continue anyway?", default=False):
