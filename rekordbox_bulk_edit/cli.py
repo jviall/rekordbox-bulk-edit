@@ -12,7 +12,9 @@ from rekordbox_bulk_edit.logger import Logger
 logger = Logger()
 
 
-@click.group()
+@click.group(
+    epilog=f"Debug logs for each run can be found at:\n{logger.get_debug_file_path().parent}"
+)
 @click.version_option()
 def cli():
     """RekordBox Bulk Edit - Tools for bulk editing RekordBox database records."""
