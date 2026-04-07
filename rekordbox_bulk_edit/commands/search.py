@@ -1,6 +1,5 @@
 """Search command for rekordbox-bulk-edit."""
 
-import logging
 from typing import List
 
 import click
@@ -43,8 +42,7 @@ def search_command(
 ):
     """Search the RekordBox database."""
 
-    if print_opt is PrintChoice.IDS or print_opt is PrintChoice.SILENT:
-        logger.set_level(logging.ERROR)
+    logger.set_level(print_opt)
 
     logger.debug("Connecting to RekordBox database...")
 

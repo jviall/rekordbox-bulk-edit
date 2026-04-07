@@ -10,6 +10,8 @@ from typing import Optional
 import click
 from platformdirs import PlatformDirs
 
+from rekordbox_bulk_edit._click import PrintChoice
+
 VERBOSE = 15  # between DEBUG=10 and INFO=20
 logging.addLevelName(VERBOSE, "VERBOSE")
 LOG_FILE_NAME = f"debug_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.log"
@@ -92,13 +94,20 @@ class Logger:
         for handler in self.logger.handlers:
             handler.flush()
 
-    def set_level(self, level: int):
+    def set_level(self, level: PrintChoice | None):
         """Update the console handler log level.
 
         Args:
             level: New minimum log level for console output
         """
-        self.click_echo_handler.setLevel(level)
+        if level == PrintChoice.SILENT or level == PrintChoice.IDS:
+            self.click_echo_handler.setLevel(logging.ERROR)
+        elif level == PrintChoice.VERBOSE:
+            self.click_echo_handler.setLevel(VERBOSE)
+        elif level == PrintChoice.DEBUG:
+            self.click_echo_handler.setLevel(logging.DEBUG)
+        else:
+            self.click_echo_handler.setLevel(logging.INFO)
 
     def get_debug_file_path(self) -> Path:
         return self._log_file_path
