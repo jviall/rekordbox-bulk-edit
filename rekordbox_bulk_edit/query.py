@@ -29,7 +29,7 @@ class CollectionQuery:
         new_inst._stmt = self._stmt._clone()
         new_inst._conditions = self._conditions.copy()
         new_inst._limit_count = self._limit_count
-        new_inst._match_all = self.match_any
+        new_inst._match_all = self._match_all
         return new_inst
 
     def match_any(self) -> "CollectionQuery":

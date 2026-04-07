@@ -272,3 +272,26 @@ class TestCollectionQuery:
 
         # Verify the helper function was called
         mock_get_file_type.assert_called_once_with(format_name)
+
+    def test_copy(self):
+        """ """
+        query = CollectionQuery()
+        query_copy = query._copy()
+
+        assert query_copy._match_all == query._match_all
+        assert query_copy._conditions == query._conditions
+        assert query_copy._limit_count == query._limit_count
+        assert str(query_copy._stmt) == str(query._stmt)
+        assert str(query_copy._get_full_statement()) == str(query._get_full_statement())
+
+    def test_copy_with_filters(self):
+        """ """
+        query = CollectionQuery()
+        query.by_album("Discovery").by_format("flac").by_format("aiff").by_title("")
+        query_copy = query._copy()
+
+        assert query_copy._match_all == query._match_all
+        assert query_copy._conditions == query._conditions
+        assert query_copy._limit_count == query._limit_count
+        assert str(query_copy._stmt) == str(query._stmt)
+        assert str(query_copy._get_full_statement()) == str(query._get_full_statement())
