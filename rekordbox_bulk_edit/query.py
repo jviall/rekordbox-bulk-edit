@@ -54,9 +54,6 @@ class CollectionQuery:
 
     def by_artist(self, artist_name: str, exact: bool = False) -> "CollectionQuery":
         """Filter by artist name."""
-        if artist_name is None:
-            logger.warning("Artist cannot be None")
-            return self
 
         new_inst = self._copy()
         ArtistAlias = aliased(DjmdArtist)
@@ -76,9 +73,6 @@ class CollectionQuery:
 
     def by_title(self, title: str, exact: bool = False) -> "CollectionQuery":
         """Filter by track name."""
-        if title is None:
-            logger.warning("title=None has no effect; use empty string to match null")
-            return self
 
         new_inst = self._copy()
 
@@ -94,9 +88,6 @@ class CollectionQuery:
 
     def by_album(self, album_name: str, exact: bool = False) -> "CollectionQuery":
         """Filter by album name."""
-        if album_name is None:
-            logger.warning("album=None has no effect; use empty string to match null")
-            return self
 
         new_inst = self._copy()
         AlbumAlias = aliased(DjmdAlbum)
@@ -116,11 +107,6 @@ class CollectionQuery:
 
     def by_playlist(self, playlist_name: str, exact: bool = False) -> "CollectionQuery":
         """Filter by playlist name."""
-        if playlist_name is None:
-            logger.warning(
-                "playlist=None has no effect; use empty string to match null"
-            )
-            return self
 
         new_inst = self._copy()
         PlaylistAlias = aliased(DjmdPlaylist)
