@@ -174,7 +174,9 @@ def get_output_path(content, output_format):
     return os.path.join(src_dirname, output_filename), output_filename, src_dirname
 
 
-@click.command()
+@click.command(
+    epilog=f"Debug logs for each run can be found at:\n{logger.get_debug_file_path().parent}"
+)
 @click.option(
     "--dry-run",
     is_flag=True,

@@ -22,7 +22,9 @@ from rekordbox_bulk_edit.utils import (
 logger = Logger()
 
 
-@click.command()
+@click.command(
+    epilog=f"Debug logs for each run can be found at:\n{logger.get_debug_file_path().parent}"
+)
 @add_click_options([*global_click_filters, print_option, track_ids_argument])
 def search_command(
     track_id: List[str] | None,
