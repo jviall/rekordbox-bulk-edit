@@ -243,6 +243,11 @@ def convert_command(
 
     set_level(print_opt)
 
+    if not sys.stdin.isatty():
+        stdin_data = sys.stdin.read().strip()
+        if stdin_data:
+            track_ids = list(track_ids or []) + stdin_data.split()
+
     # Validate --print option requirements
     scripting_mode = print_opt in (PrintChoice.IDS, PrintChoice.SILENT)
     if scripting_mode:

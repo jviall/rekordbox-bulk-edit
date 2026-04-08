@@ -428,6 +428,85 @@ class TestConvertCommand:
         mock_update_db.assert_called_once()
         mock_convert.assert_called_once()
 
+    @patch("rekordbox_bulk_edit.commands.convert.print_track_info")
+    @patch("rekordbox_bulk_edit.commands.convert.get_rekordbox_pid")
+    @patch("rekordbox_bulk_edit.commands.convert.get_filtered_content")
+    @patch("rekordbox_bulk_edit.commands.convert.Rekordbox6Database")
+    @patch("rekordbox_bulk_edit.utils.ffmpeg_in_path")
+    @patch("os.path.exists")
+    def test_dry_run_shows_files_to_convert(
+        self,
+        mock_exists,
+        mock_ffmpeg_in_path,
+        mock_db_class,
+        mock_get_filtered_content,
+        mock_get_rb_pid,
+        mock_print_track_info,
+        mock_logger,
+        make_djmd_content_item,
+    ):
+        """--dry-run shows files that would be converted without making changes."""
+        mock_get_rb_pid.return_value = None
+        mock_ffmpeg_in_path.return_value = True
+        mock_exists.return_value = False
+
+        mock_db = Mock()
+        mock_db_class.return_value = mock_db
+        mock_db.session = Mock()
+
+        mock_content = make_djmd_content_item(
+            FileType=5,
+            ID="AAA111",
+            FileNameL="song.flac",
+            FolderPath="/music/song.flac",
+        )
+        mock_result = Mock()
+        mock_result.scalars().all.return_value = [mock_content]
+        mock_get_filtered_content.return_value = mock_result
+
+        from click.testing import CliRunner
+
+        result = CliRunner().invoke(convert_command, ["--dry-run"])
+
+        assert result.exit_code == 0
+        mock_print_track_info.assert_called_once_with([mock_content])
+        mock_db.session.commit.assert_not_called()
+
+    @patch("rekordbox_bulk_edit.commands.convert.get_rekordbox_pid")
+    @patch("rekordbox_bulk_edit.commands.convert.get_filtered_content")
+    @patch("rekordbox_bulk_edit.commands.convert.Rekordbox6Database")
+    @patch("rekordbox_bulk_edit.utils.ffmpeg_in_path")
+    def test_filters_passed_to_get_filtered_content(
+        self,
+        mock_ffmpeg_in_path,
+        mock_db_class,
+        mock_get_filtered_content,
+        mock_get_rb_pid,
+    ):
+        """Filter options are forwarded correctly to get_filtered_content."""
+        mock_get_rb_pid.return_value = None
+        mock_ffmpeg_in_path.return_value = True
+
+        mock_db = Mock()
+        mock_db_class.return_value = mock_db
+        mock_db.session = Mock()
+
+        mock_result = Mock()
+        mock_result.scalars().all.return_value = []
+        mock_get_filtered_content.return_value = mock_result
+
+        from click.testing import CliRunner
+
+        CliRunner().invoke(
+            convert_command,
+            ["--dry-run", "--artist", "Daft Punk", "--format", "flac", "--match-all"],
+        )
+
+        call_kwargs = mock_get_filtered_content.call_args.kwargs
+        assert call_kwargs["artists"] == ("Daft Punk",)
+        assert call_kwargs["formats"] == ("flac",)
+        assert call_kwargs["match_all"] is True
+
     @patch("rekordbox_bulk_edit.commands.convert.get_rekordbox_pid")
     @patch("rekordbox_bulk_edit.commands.convert.confirm")
     def test_convert_command_rekordbox_running_prompts(
@@ -1205,3 +1284,113 @@ class TestConvertCommand:
 
         assert result.exit_code == 0
         assert "XYZ789" in result.output
+
+
+class TestConvertStdinPiping:
+    """Test convert command reading track IDs from stdin when piped."""
+
+    @patch("rekordbox_bulk_edit.commands.convert.get_rekordbox_pid")
+    @patch("rekordbox_bulk_edit.commands.convert.get_filtered_content")
+    @patch("rekordbox_bulk_edit.commands.convert.Rekordbox6Database")
+    @patch("rekordbox_bulk_edit.utils.ffmpeg_in_path")
+    def test_reads_track_ids_from_stdin_when_piped(
+        self,
+        mock_ffmpeg_in_path,
+        mock_db_class,
+        mock_get_filtered_content,
+        mock_get_rb_pid,
+    ):
+        """When stdin is piped with no args, those IDs are used as the filter."""
+        mock_get_rb_pid.return_value = None
+        mock_ffmpeg_in_path.return_value = True
+
+        mock_db = Mock()
+        mock_db_class.return_value = mock_db
+        mock_db.session = Mock()
+
+        mock_result = Mock()
+        mock_result.scalars.return_value.all.return_value = []
+        mock_get_filtered_content.return_value = mock_result
+
+        from click.testing import CliRunner
+
+        runner = CliRunner()
+        runner.invoke(
+            convert_command,
+            ["--dry-run"],
+            input="190993005 108916663 59476253",
+        )
+
+        call_kwargs = mock_get_filtered_content.call_args.kwargs
+        assert call_kwargs["track_id_args"] == ["190993005", "108916663", "59476253"]
+
+    @patch("rekordbox_bulk_edit.commands.convert.get_rekordbox_pid")
+    @patch("rekordbox_bulk_edit.commands.convert.get_filtered_content")
+    @patch("rekordbox_bulk_edit.commands.convert.Rekordbox6Database")
+    @patch("rekordbox_bulk_edit.utils.ffmpeg_in_path")
+    def test_merges_stdin_ids_with_argument_ids(
+        self,
+        mock_ffmpeg_in_path,
+        mock_db_class,
+        mock_get_filtered_content,
+        mock_get_rb_pid,
+    ):
+        """When both TRACK_IDS args and piped stdin are provided, they are combined."""
+        mock_get_rb_pid.return_value = None
+        mock_ffmpeg_in_path.return_value = True
+
+        mock_db = Mock()
+        mock_db_class.return_value = mock_db
+        mock_db.session = Mock()
+
+        mock_result = Mock()
+        mock_result.scalars.return_value.all.return_value = []
+        mock_get_filtered_content.return_value = mock_result
+
+        from click.testing import CliRunner
+
+        runner = CliRunner()
+        runner.invoke(
+            convert_command,
+            ["--dry-run", "190993005", "108916663"],
+            input="59476253 113475696",
+        )
+
+        call_kwargs = mock_get_filtered_content.call_args.kwargs
+        assert call_kwargs["track_id_args"] == [
+            "190993005",
+            "108916663",
+            "59476253",
+            "113475696",
+        ]
+
+    @patch("rekordbox_bulk_edit.commands.convert.get_rekordbox_pid")
+    @patch("rekordbox_bulk_edit.commands.convert.get_filtered_content")
+    @patch("rekordbox_bulk_edit.commands.convert.Rekordbox6Database")
+    @patch("rekordbox_bulk_edit.utils.ffmpeg_in_path")
+    def test_empty_stdin_does_not_affect_track_ids(
+        self,
+        mock_ffmpeg_in_path,
+        mock_db_class,
+        mock_get_filtered_content,
+        mock_get_rb_pid,
+    ):
+        """Whitespace-only piped stdin is ignored."""
+        mock_get_rb_pid.return_value = None
+        mock_ffmpeg_in_path.return_value = True
+
+        mock_db = Mock()
+        mock_db_class.return_value = mock_db
+        mock_db.session = Mock()
+
+        mock_result = Mock()
+        mock_result.scalars.return_value.all.return_value = []
+        mock_get_filtered_content.return_value = mock_result
+
+        from click.testing import CliRunner
+
+        runner = CliRunner()
+        runner.invoke(convert_command, ["--dry-run"], input="   ")
+
+        call_kwargs = mock_get_filtered_content.call_args.kwargs
+        assert not call_kwargs["track_id_args"]
