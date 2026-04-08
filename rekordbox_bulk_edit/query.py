@@ -11,9 +11,9 @@ from pyrekordbox.db6.tables import (
 from sqlalchemy import Result, and_, func, or_, select
 from sqlalchemy.orm import aliased
 
-from rekordbox_bulk_edit.logger import Logger
+import logging
 
-logger = Logger()
+logger = logging.getLogger(__name__)
 
 
 class CollectionQuery:

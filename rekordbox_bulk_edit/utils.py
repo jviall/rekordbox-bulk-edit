@@ -9,9 +9,9 @@ import click
 import ffmpeg
 from pyrekordbox.db6 import DjmdContent
 
-from rekordbox_bulk_edit.logger import Logger
+import logging
 
-logger = Logger()
+logger = logging.getLogger(__name__)
 
 
 class UserQuit(Exception):

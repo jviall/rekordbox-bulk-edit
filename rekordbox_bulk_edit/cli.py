@@ -1,19 +1,20 @@
 #!/usr/bin/env python3
 """Command line interface for rekordbox-bulk-edit."""
 
+import logging
 import sys
 
 import click
 
 from rekordbox_bulk_edit.commands.convert import convert_command
 from rekordbox_bulk_edit.commands.search import search_command
-from rekordbox_bulk_edit.logger import Logger
+from rekordbox_bulk_edit.logger import get_debug_file_path, setup_logging
 
-logger = Logger()
+logger = logging.getLogger(__name__)
 
 
 @click.group(
-    epilog=f"Debug logs for each run can be found at:\n{logger.get_debug_file_path().parent}"
+    epilog=f"Debug logs for each run can be found at:\n{get_debug_file_path().parent}"
 )
 @click.version_option()
 def cli():
@@ -30,6 +31,7 @@ cli.add_command(
 def main():
     """Entry point for the CLI."""
     try:
+        setup_logging()
         logger.debug(f"Running with input: {' '.join(sys.argv)}")
         cli()
     except KeyboardInterrupt:
@@ -37,7 +39,7 @@ def main():
     except Exception as e:
         logger.critical("Unhandled exception occured:", exc_info=e)
         logger.info(
-            f"Please report this issue to https://github.com/jviall/rekordbox-bulk-edit/issues with the debug file for this run: {logger.get_debug_file_path().absolute().as_uri()}",
+            f"Please report this issue to https://github.com/jviall/rekordbox-bulk-edit/issues with the debug file for this run: {get_debug_file_path().absolute().as_uri()}",
         )
         sys.exit(1)
 

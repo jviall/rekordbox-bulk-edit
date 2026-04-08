@@ -7,8 +7,7 @@ class PrintChoice(Enum):
     SILENT = 0
     IDS = 1
     INFO = 2
-    VERBOSE = 3
-    DEBUG = 4
+    DEBUG = 3
 
 
 print_option = click.option(
