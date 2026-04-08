@@ -1,3 +1,4 @@
+import logging
 from typing import List, Tuple, Union
 
 from pyrekordbox import Rekordbox6Database
@@ -10,8 +11,6 @@ from pyrekordbox.db6.tables import (
 )
 from sqlalchemy import Result, and_, func, or_, select
 from sqlalchemy.orm import aliased
-
-import logging
 
 logger = logging.getLogger(__name__)
 
