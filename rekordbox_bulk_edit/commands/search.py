@@ -1,5 +1,6 @@
 """Search command for rekordbox-bulk-edit."""
 
+import logging
 from typing import List
 
 import click
@@ -12,17 +13,17 @@ from rekordbox_bulk_edit._click import (
     print_option,
     track_ids_argument,
 )
-from rekordbox_bulk_edit.logger import Logger
+from rekordbox_bulk_edit.logger import get_debug_file_path, set_level
 from rekordbox_bulk_edit.query import get_filtered_content
 from rekordbox_bulk_edit.utils import (
     print_track_info,
 )
 
-logger = Logger()
+logger = logging.getLogger(__name__)
 
 
 @click.command(
-    epilog=f"Debug logs for each run can be found at:\n{logger.get_debug_file_path().parent}"
+    epilog=f"Debug logs for each run can be found at:\n{get_debug_file_path().parent}"
 )
 @add_click_options([*global_click_filters, print_option, track_ids_argument])
 def search_command(
@@ -42,7 +43,7 @@ def search_command(
 ):
     """Search the RekordBox database."""
 
-    logger.set_level(print_opt)
+    set_level(print_opt)
 
     logger.debug("Connecting to RekordBox database...")
 

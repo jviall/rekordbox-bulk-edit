@@ -12,9 +12,14 @@ from platformdirs import PlatformDirs
 
 from rekordbox_bulk_edit._click import PrintChoice
 
-VERBOSE = 15  # between DEBUG=10 and INFO=20
-logging.addLevelName(VERBOSE, "VERBOSE")
 LOG_FILE_NAME = f"debug_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.log"
+
+_APP_DIR = Path(
+    PlatformDirs(appname="rekordbox-bulk-edit", ensure_exists=True).user_data_dir
+)
+
+_console_handler: Optional["ConsoleLogHandler"] = None
+_debug_file_path: Path = _APP_DIR / LOG_FILE_NAME
 
 
 class ConsoleLogHandler(logging.Handler):
@@ -29,109 +34,76 @@ class ConsoleLogHandler(logging.Handler):
                 click.echo(click.style(msg, fg="red"))
             elif record.levelno >= logging.WARNING:
                 click.echo(click.style(msg, fg="yellow"))
-            elif record.levelno >= logging.INFO:
-                click.echo(msg)
-            elif record.levelno >= VERBOSE:
-                click.echo(msg)
             else:
-                click.echo(click.style(msg, dim=True, fg="blue"))
-
+                click.echo(msg)
         except Exception:
             self.handleError(record)
 
 
-class Logger:
-    """Application logger with file and console output."""
+def get_debug_file_path() -> Path:
+    return _debug_file_path
 
-    _app_dir = Path(
-        PlatformDirs(appname="rekordbox-bulk-edit", ensure_exists=True).user_data_dir
+
+def set_level(level: PrintChoice | None) -> None:
+    """Update the console handler log level."""
+    global _console_handler
+
+    if _console_handler is None:
+        return
+    if level in (PrintChoice.SILENT, PrintChoice.IDS):
+        _console_handler.setLevel(logging.ERROR)
+    elif level == PrintChoice.DEBUG:
+        _console_handler.setLevel(logging.DEBUG)
+    else:
+        _console_handler.setLevel(logging.INFO)
+
+
+def setup_logging(log_file: Optional[str] = None) -> None:
+    """Configure the package logger with file and console handlers."""
+    global _console_handler, _debug_file_path
+
+    pkg_logger = logging.getLogger("rekordbox_bulk_edit")
+    pkg_logger.setLevel(logging.DEBUG)
+    pkg_logger.propagate = False
+
+    for handler in pkg_logger.handlers[:]:
+        handler.close()
+        pkg_logger.removeHandler(handler)
+
+    if log_file:
+        _debug_file_path = Path(log_file)
+    else:
+        _debug_file_path = _APP_DIR / LOG_FILE_NAME
+    _debug_file_path.parent.mkdir(parents=True, exist_ok=True)
+
+    file_handler = logging.FileHandler(_debug_file_path, mode="a", encoding="utf-8")
+    file_handler.setLevel(logging.DEBUG)
+    file_handler.setFormatter(
+        logging.Formatter(
+            "%(asctime)s - %(name)s:%(funcName)s:%(lineno)d - %(levelname)s: %(message)s"
+        )
     )
+    pkg_logger.addHandler(file_handler)
 
-    def __init__(
-        self,
-        level: int = logging.INFO,
-        log_file: Optional[str] = None,
-    ):
-        """Initialize logger with file and console handlers.
+    # Add pyrekordbox loggers to debug log file:
+    manager = logging.root.manager
+    for name in manager.loggerDict:
+        lgr = logging.getLogger(name)
+        if name.startswith("pyrekordbox") and isinstance(lgr, logging.Logger):
+            lgr.addHandler(file_handler)
+    # silence the pyrekordbox logger that warns about RB being open--we do that when necessary ourselves
+    pyrekordbox_logger = logging.getLogger("pyrekordbox.db6.database")
+    pyrekordbox_logger.propagate = False
 
-        Args:
-            log_file: Path to log file. If None, uses system temp directory.
-            level: Minimum level for log output (default: INFO)
-        """
-        logging.raiseExceptions = False
-        self.logger = logging.getLogger(f"rekordbox_bulk_edit_{id(self)}")
-        self.logger.setLevel(logging.DEBUG)
-        self.logger.handlers.clear()
+    _console_handler = ConsoleLogHandler()
+    _console_handler.setLevel(logging.INFO)
+    _console_handler.setFormatter(logging.Formatter("%(message)s"))
+    pkg_logger.addHandler(_console_handler)
 
-        if log_file:
-            self._log_file_path = Path(log_file)
-        else:
-            self._log_file_path = self._app_dir / LOG_FILE_NAME
-        self._log_file_path.parent.mkdir(parents=True, exist_ok=True)
 
-        self.file_handler = logging.FileHandler(
-            self._log_file_path, mode="a", encoding="utf-8"
-        )
-        self.file_handler.setLevel(logging.DEBUG)
-        file_formatter = logging.Formatter(
-            "%(asctime)s - %(funcName)s:%(lineno)d - %(levelname)s: %(message)s",
-        )
-        self.file_handler.setFormatter(file_formatter)
-        self.logger.addHandler(self.file_handler)
+def _flush_handlers() -> None:
+    for handler in logging.getLogger("rekordbox_bulk_edit").handlers:
+        handler.flush()
 
-        self.click_echo_handler = ConsoleLogHandler()
-        self.click_echo_handler.setLevel(
-            level if (level is not None and level >= 0) else logging.INFO
-        )
-        console_formatter = logging.Formatter("%(message)s")
-        self.click_echo_handler.setFormatter(console_formatter)
-        self.logger.addHandler(self.click_echo_handler)
 
-        atexit.register(self._flush_handlers)
-
-    def _flush_handlers(self):
-        """Flush all log handlers."""
-        for handler in self.logger.handlers:
-            handler.flush()
-
-    def set_level(self, level: PrintChoice | None):
-        """Update the console handler log level.
-
-        Args:
-            level: New minimum log level for console output
-        """
-        if level == PrintChoice.SILENT or level == PrintChoice.IDS:
-            self.click_echo_handler.setLevel(logging.ERROR)
-        elif level == PrintChoice.VERBOSE:
-            self.click_echo_handler.setLevel(VERBOSE)
-        elif level == PrintChoice.DEBUG:
-            self.click_echo_handler.setLevel(logging.DEBUG)
-        else:
-            self.click_echo_handler.setLevel(logging.INFO)
-
-    def get_debug_file_path(self) -> Path:
-        return self._log_file_path
-
-    def debug(self, message="", *args, **kwargs):
-        """Log a message with DEBUG level."""
-        self.logger.debug(message, *args, **kwargs)
-
-    def verbose(self, message="", *args, **kwargs):
-        """Log a message with VERBOSE level."""
-        self.logger.log(VERBOSE, message, *args, **kwargs)
-
-    def info(self, message="", *args, **kwargs):
-        """Log a message with INFO level."""
-        self.logger.info(message, *args, **kwargs)
-
-    def warning(self, message, *args, **kwargs):
-        """Log a message with WARNING level."""
-        self.logger.warning(message, *args, **kwargs)
-
-    def error(self, message, *args, **kwargs):
-        """Log a message with ERROR level."""
-        self.logger.error(message, *args, **kwargs)
-
-    def critical(self, message, *args, **kwargs):
-        """Log a message with CRITICAL level."""
-        self.logger.critical(message, *args, **kwargs)
+atexit.register(_flush_handlers)

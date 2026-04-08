@@ -1,5 +1,6 @@
 """Convert command for rekordbox-bulk-edit."""
 
+import logging
 import os
 import signal
 import sys
@@ -19,7 +20,7 @@ from rekordbox_bulk_edit._click import (
     print_option,
     track_ids_argument,
 )
-from rekordbox_bulk_edit.logger import Logger
+from rekordbox_bulk_edit.logger import get_debug_file_path, set_level
 from rekordbox_bulk_edit.query import get_filtered_content
 from rekordbox_bulk_edit.utils import (
     UserQuit,
@@ -31,7 +32,7 @@ from rekordbox_bulk_edit.utils import (
     print_track_info,
 )
 
-logger = Logger()
+logger = logging.getLogger(__name__)
 
 
 def convert_to_lossless(input_path, output_path, output_format):
@@ -174,7 +175,7 @@ def get_output_path(content, output_format):
 
 
 @click.command(
-    epilog=f"Debug logs for each run can be found at:\n{logger.get_debug_file_path().parent}"
+    epilog=f"Debug logs for each run can be found at:\n{get_debug_file_path().parent}"
 )
 @click.option(
     "--dry-run",
@@ -240,7 +241,7 @@ def convert_command(
     """
     from rekordbox_bulk_edit.utils import ffmpeg_in_path, get_ffmpeg_directions
 
-    logger.set_level(print_opt)
+    set_level(print_opt)
 
     # Validate --print option requirements
     scripting_mode = print_opt in (PrintChoice.IDS, PrintChoice.SILENT)
@@ -446,7 +447,7 @@ def convert_command(
                         "content_id": content.ID,
                     }
                 )
-                logger.verbose("  Done")
+                logger.debug("  Done")
             except Exception as e:
                 logger.error(f"  Database update failed: {e}")
                 rollback_and_cleanup()
