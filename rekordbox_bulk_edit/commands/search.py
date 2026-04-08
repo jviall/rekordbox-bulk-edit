@@ -1,6 +1,7 @@
 """Search command for rekordbox-bulk-edit."""
 
 import logging
+import sys
 from typing import List
 
 import click
@@ -44,6 +45,11 @@ def search_command(
     """Search the RekordBox database."""
 
     set_level(print_opt)
+
+    if not sys.stdin.isatty():
+        stdin_data = sys.stdin.read().strip()
+        if stdin_data:
+            track_ids = list(track_ids or []) + stdin_data.split()
 
     logger.debug("Connecting to RekordBox database...")
 

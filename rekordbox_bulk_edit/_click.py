@@ -18,11 +18,7 @@ print_option = click.option(
     help="Configures the kind of console output you want from the command, if any. The 'ids' option can be used to pipe a list of resulting content IDs into to another command.",
 )
 
-track_ids_argument = click.argument(
-    "track-ids",
-    type=str,
-    required=False,
-)
+track_ids_argument = click.argument("track-ids", type=str, required=False, nargs=-1)
 
 global_click_filters = [
     click.option(
