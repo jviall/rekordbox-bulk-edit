@@ -243,7 +243,8 @@ def convert_command(
 
     set_level(print_opt)
 
-    if not sys.stdin.isatty():
+    piped_stdin = not sys.stdin.isatty()
+    if piped_stdin:
         stdin_data = sys.stdin.read().strip()
         if stdin_data:
             track_ids = list(track_ids or []) + stdin_data.split()
@@ -253,8 +254,13 @@ def convert_command(
     if scripting_mode:
         if not (dry_run or yes):
             raise click.UsageError(
-                "--print=ids or --print=silent requires --dry-run or --yes to skip confirmation of potentially destructive changes"
+                "--print=ids or --print=silent requires --dry-run or --yes to (dangerously!) skip confirmation prompts"
             )
+
+    if piped_stdin and not (dry_run or yes):
+        raise click.UsageError(
+            "Piping track IDs into convert requires --dry-run or --yes to (dangerously!) skip confirmation prompts"
+        )
 
     # Determine delete behavior: smart default based on output format
     if delete is None:

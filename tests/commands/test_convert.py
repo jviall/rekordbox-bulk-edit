@@ -1364,6 +1364,15 @@ class TestConvertStdinPiping:
             "113475696",
         ]
 
+    def test_piped_stdin_without_yes_or_dry_run_errors(self):
+        """Piping track IDs without --yes or --dry-run raises a UsageError."""
+        from click.testing import CliRunner
+
+        result = CliRunner().invoke(convert_command, [], input="190993005 108916663")
+
+        assert result.exit_code != 0
+        assert "requires --dry-run or --yes" in result.output
+
     @patch("rekordbox_bulk_edit.commands.convert.get_rekordbox_pid")
     @patch("rekordbox_bulk_edit.commands.convert.get_filtered_content")
     @patch("rekordbox_bulk_edit.commands.convert.Rekordbox6Database")
