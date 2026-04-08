@@ -5,7 +5,7 @@ import os
 import signal
 import sys
 from pathlib import Path
-from typing import List
+from typing import List, Tuple
 
 import click
 import ffmpeg
@@ -23,6 +23,7 @@ from rekordbox_bulk_edit._click import (
 from rekordbox_bulk_edit.logger import get_debug_file_path, set_level
 from rekordbox_bulk_edit.query import get_filtered_content
 from rekordbox_bulk_edit.utils import (
+    OutputFormats,
     UserQuit,
     confirm,
     get_audio_info,
@@ -39,32 +40,39 @@ def convert_to_lossless(input_path, output_path, output_format):
     """Convert lossless file to another lossless format, preserving bit depth."""
     from rekordbox_bulk_edit.utils import ffmpeg_in_path, get_ffmpeg_directions
 
+    logger.debug(
+        f"convert_to_lossless: {input_path} -> {output_path} (format={output_format.value})"
+    )
+
     if not ffmpeg_in_path():
         raise Exception(f"FFmpeg not found in PATH.{get_ffmpeg_directions()}")
 
     audio_info = get_audio_info(input_path)
     bit_depth = audio_info["bit_depth"]
+    logger.debug(
+        f"Source audio: bit_depth={bit_depth}, sample_rate={audio_info.get('sample_rate')}, channels={audio_info.get('channels')}"
+    )
 
     codec_maps = {
         "aiff": {16: "pcm_s16be", 24: "pcm_s24be", 32: "pcm_s32be"},
         "wav": {16: "pcm_s16le", 24: "pcm_s24le", 32: "pcm_s32le"},
         "flac": None,
-        "alac": None,
     }
 
-    if output_format not in codec_maps:
+    if output_format.value not in codec_maps:
         raise Exception(f"Unsupported lossless format: {output_format}")
 
-    codec_map = codec_maps[output_format]
+    codec_map = codec_maps[output_format.value]
     codec = (
-        output_format
+        output_format.value
         if codec_map is None
         else codec_map.get(bit_depth, list(codec_map.values())[0])
     )
 
-    logger.debug(f"Converting {bit_depth}-bit using codec: {codec}")
+    logger.debug(f"Selected codec: {codec} (bit_depth={bit_depth})")
 
     output_options = {"acodec": codec, "map_metadata": 0, "write_id3v2": 1}
+    logger.debug(f"Invoking ffmpeg with options: {output_options}")
 
     try:
         (
@@ -73,6 +81,7 @@ def convert_to_lossless(input_path, output_path, output_format):
             .overwrite_output()
             .run(capture_stdout=True, capture_stderr=True)
         )
+        logger.debug(f"Conversion to {output_format.value} succeeded: {output_path}")
         return True
     except FfmpegError as e:
         logger.error(f"FFmpeg conversion failed for {input_path}: {e}")
@@ -82,29 +91,45 @@ def convert_to_lossless(input_path, output_path, output_format):
         return False
     except Exception as e:
         logger.error(f"Conversion failed for {input_path}: {e}")
-        return False
+        raise e
 
 
 def convert_to_mp3(input_path, mp3_path):
     """Convert lossless file to MP3 320kbps CBR."""
     from rekordbox_bulk_edit.utils import ffmpeg_in_path, get_ffmpeg_directions
 
+    logger.debug(f"convert_to_mp3: {input_path} -> {mp3_path}")
+
     if not ffmpeg_in_path():
         raise Exception(f"FFmpeg not found in PATH.{get_ffmpeg_directions()}")
 
     try:
+        acodec = "libmp3lame"
+        audio_bitrate = "320k"
+        map_metadata = 0
+        write_id3v2 = 1
+
+        output_options = {
+            "acodec": acodec,
+            "audio_bitrate": audio_bitrate,
+            "map_metadata": map_metadata,
+            "write_id3v2": write_id3v2,
+        }
+        logger.debug(f"Invoking ffmpeg with options: {output_options}")
         (
             ffmpeg.input(input_path)
             .output(
                 mp3_path,
-                acodec="libmp3lame",
-                audio_bitrate="320k",
-                map_metadata=0,
-                write_id3v2=1,
+                acodec=acodec,
+                audio_bitrate=audio_bitrate,
+                map_metadata=map_metadata,
+                write_id3v2=write_id3v2,
             )
             .overwrite_output()
             .run(capture_stdout=True, capture_stderr=True)
         )
+
+        logger.debug(f"Conversion to mp3 succeeded: {mp3_path}")
         return True
     except FfmpegError as e:
         logger.error(f"FFmpeg conversion failed for {input_path}: {e}")
@@ -114,16 +139,22 @@ def convert_to_mp3(input_path, mp3_path):
         return False
     except Exception as e:
         logger.error(f"Conversion failed for {input_path}: {e}")
-        return False
+        raise e
 
 
-def update_database_record(db, content_id, new_filename, new_folder, output_format):
+def update_database_record(
+    db, content_id, new_filename, new_folder, output_format
+) -> None:
     """Update database record with new file information."""
+    logger.debug(
+        f"update_database_record: content_id={content_id}, new_filename={new_filename}, output_format={output_format}"
+    )
     content = db.get_content().filter_by(ID=content_id).first()
     if not content:
         raise Exception(f"Content record with ID {content_id} not found")
 
     converted_full_path = os.path.join(new_folder, new_filename)
+    logger.debug(f"Probing converted file: {converted_full_path}")
     converted_audio_info = get_audio_info(converted_full_path)
     converted_bitrate = converted_audio_info["bitrate"]
 
@@ -134,6 +165,9 @@ def update_database_record(db, content_id, new_filename, new_folder, output_form
     if output_format.upper() in ["AIFF", "FLAC", "WAV"]:
         converted_bit_depth = converted_audio_info["bit_depth"]
         database_bit_depth = getattr(content, "BitDepth", None)
+        logger.debug(
+            f"Bit depth check: database={database_bit_depth}, file={converted_bit_depth}"
+        )
 
         if database_bit_depth and converted_bit_depth != database_bit_depth:
             raise Exception(
@@ -147,13 +181,17 @@ def update_database_record(db, content_id, new_filename, new_folder, output_form
     # FLAC stores bitrate as 0 in Rekordbox
     if output_format.upper() == "FLAC":
         content.BitRate = 0
+        logger.debug(
+            f"Set FileType={file_type}, BitRate=0 (FLAC), FolderPath={converted_full_path}"
+        )
     else:
         content.BitRate = converted_bitrate
+        logger.debug(
+            f"Set FileType={file_type}, BitRate={converted_bitrate}, FolderPath={converted_full_path}"
+        )
 
-    return True
 
-
-def cleanup_converted_files(converted_files):
+def cleanup_converted_files(converted_files) -> None:
     """Clean up converted files on error or rollback."""
     for file_info in converted_files:
         try:
@@ -163,7 +201,7 @@ def cleanup_converted_files(converted_files):
             pass
 
 
-def get_output_path(content, output_format):
+def get_output_path(content, output_format) -> Tuple[str, str, str]:
     """Calculate output path for a content item."""
     src_folder_path = os.path.normpath(content.FolderPath or "")
     src_file_name = content.FileNameL or ""
@@ -171,7 +209,9 @@ def get_output_path(content, output_format):
 
     extension = get_extension_for_format(output_format.upper())
     output_filename = Path(src_file_name).stem + extension
-    return os.path.join(src_dirname, output_filename), output_filename, src_dirname
+    output_path = os.path.join(src_dirname, output_filename)
+    logger.debug(f"get_output_path: {src_folder_path} -> {output_path}")
+    return output_path, output_filename, src_dirname
 
 
 @click.command(
@@ -265,8 +305,14 @@ def convert_command(
     # Determine delete behavior: smart default based on output format
     if delete is None:
         should_delete = format_out.upper() != "MP3"
+        logger.debug(
+            f"Delete originals: {should_delete} (default for {format_out.upper()})"
+        )
     else:
         should_delete = delete
+        logger.debug(
+            f"Delete originals: {should_delete} (explicit --{'delete' if delete else 'keep'})"
+        )
 
     db = None
     converted_files = []
@@ -311,9 +357,11 @@ def convert_command(
             logger.error(get_ffmpeg_directions())
             sys.exit(1)
 
+        logger.debug("Connecting to RekordBox database...")
         db = Rekordbox6Database()
         if not db.session:
             raise Exception("No database session available")
+        logger.debug("Database connection established")
 
         # === QUERY & FILTER ===
         result = get_filtered_content(
@@ -332,6 +380,7 @@ def convert_command(
             match_all=match_all,
         )
         filtered_content = result.scalars().all()
+        logger.debug(f"Query returned {len(filtered_content)} tracks")
 
         target_file_type = get_file_type_for_format(format_out)
         mp3_type = get_file_type_for_format("MP3")
@@ -344,6 +393,10 @@ def convert_command(
             and content.FileType != mp3_type
             and content.FileType != m4a_type
         ]
+
+        logger.debug(
+            f"After format filter: {len(files_to_convert)} tracks need conversion (skipped {len(filtered_content) - len(files_to_convert)} already in target format or lossy)"
+        )
 
         if not files_to_convert:
             logger.info("No files need conversion.")
@@ -428,13 +481,14 @@ def convert_command(
                 sys.exit(1)
 
             if os.path.exists(output_path) and not overwrite:
+                logger.debug("  Skipping: output already exists")
                 continue
 
             if format_out.upper() == "MP3":
                 success = convert_to_mp3(src_folder_path, output_path)
             else:
                 success = convert_to_lossless(
-                    src_folder_path, output_path, format_out.lower()
+                    src_folder_path, output_path, OutputFormats(format_out.lower())
                 )
 
             if not success:
@@ -458,7 +512,6 @@ def convert_command(
                         "content_id": content.ID,
                     }
                 )
-                logger.debug("  Done")
             except Exception as e:
                 logger.error(f"  Database update failed: {e}")
                 rollback_and_cleanup()

@@ -15,6 +15,7 @@ from rekordbox_bulk_edit.commands.convert import (
     get_output_path,
     update_database_record,
 )
+from rekordbox_bulk_edit.utils import OutputFormats
 
 
 @pytest.fixture(autouse=True)
@@ -45,7 +46,7 @@ class TestConvertToLossless:
         mock_output.run.return_value = None
 
         # Execute
-        result = convert_to_lossless("input.flac", "output.aiff", "aiff")
+        result = convert_to_lossless("input.flac", "output.aiff", OutputFormats.AIFF)
 
         # Assert
         assert result is True
@@ -73,7 +74,7 @@ class TestConvertToLossless:
         mock_output.run.return_value = None
 
         # Execute
-        result = convert_to_lossless("input.flac", "output.wav", "wav")
+        result = convert_to_lossless("input.flac", "output.wav", OutputFormats.WAV)
 
         # Assert
         assert result is True
@@ -99,7 +100,7 @@ class TestConvertToLossless:
         mock_output.run.return_value = None
 
         # Execute
-        result = convert_to_lossless("input.wav", "output.flac", "flac")
+        result = convert_to_lossless("input.wav", "output.flac", OutputFormats.FLAC)
 
         # Assert
         assert result is True
@@ -118,9 +119,13 @@ class TestConvertToLossless:
         mock_ffmpeg_in_path.return_value = True
         mock_get_audio_info.return_value = {"bit_depth": 16}
 
+        # Simulate an OutputFormats-like value whose .value is not in codec_maps
+        fake_format = Mock()
+        fake_format.value = "xyz"
+
         # Execute & Assert - should raise, not return False
         with pytest.raises(Exception, match="Unsupported lossless format"):
-            convert_to_lossless("input.flac", "output.xyz", "xyz")
+            convert_to_lossless("input.flac", "output.xyz", fake_format)
 
     @patch("rekordbox_bulk_edit.commands.convert.get_audio_info")
     @patch("rekordbox_bulk_edit.utils.ffmpeg_in_path")
@@ -143,7 +148,7 @@ class TestConvertToLossless:
         mock_output.run.side_effect = error
 
         # Execute
-        result = convert_to_lossless("input.flac", "output.aiff", "aiff")
+        result = convert_to_lossless("input.flac", "output.aiff", OutputFormats.AIFF)
 
         # Assert
         assert result is False
@@ -225,10 +230,9 @@ class TestUpdateDatabaseRecord:
         mock_get_audio_info.return_value = {"bitrate": 1000, "bit_depth": 24}
 
         # Execute
-        result = update_database_record(mock_db, 123, "output.flac", "/path/to", "FLAC")
+        update_database_record(mock_db, 123, "output.flac", "/path/to", "FLAC")
 
         # Assert
-        assert result is True
         assert mock_content.FileNameL == "output.flac"
         assert mock_content.FolderPath == "/path/to/output.flac"
         assert mock_content.FileType == 5  # FLAC file type
@@ -249,10 +253,9 @@ class TestUpdateDatabaseRecord:
         mock_get_audio_info.return_value = {"bitrate": 320, "bit_depth": 16}
 
         # Execute
-        result = update_database_record(mock_db, 123, "output.mp3", "/path/to", "MP3")
+        update_database_record(mock_db, 123, "output.mp3", "/path/to", "MP3")
 
         # Assert
-        assert result is True
         assert mock_content.FileNameL == "output.mp3"
         assert mock_content.FolderPath == "/path/to/output.mp3"
         assert mock_content.FileType == 1  # MP3 file type

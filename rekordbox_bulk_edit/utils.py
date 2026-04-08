@@ -1,5 +1,6 @@
 """Shared utility functions for rekordbox-bulk-edit."""
 
+import logging
 import platform
 import shutil
 from enum import Enum
@@ -8,8 +9,6 @@ from typing import Dict, Sequence
 import click
 import ffmpeg
 from pyrekordbox.db6 import DjmdContent
-
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -63,6 +62,19 @@ def get_extension_for_format(format_name: str):
     if extension is None:
         raise ValueError(f"Unknown format: {format_name}")
     return extension
+
+
+class OutputFormats(Enum):
+    MP3 = "mp3"
+    FLAC = "flac"
+    AIFF = "aiff"
+    WAV = "wav"
+
+
+class InputFormats(Enum):
+    FLAC = "flac"
+    AIFF = "aiff"
+    WAV = "wav"
 
 
 class PrintableField(Enum):
