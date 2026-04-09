@@ -14,12 +14,12 @@ jobs:
       - name: checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
-      - name: Setup Poetry
+      - name: Setup UV
         uses: ./.github/actions/install
 
       - name: Build distribution
         run: |
-          poetry build
+          uv build
       - uses: actions/upload-artifact@v4
         with:
           name: dist

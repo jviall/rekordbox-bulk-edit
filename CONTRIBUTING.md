@@ -6,15 +6,15 @@ Thanks for your interest in contributing to this project! I am by no means a pyt
 
 ### Prerequisites
 
-- Python 3.11+
-- Poetry for dependency management
+- Python 3.10+
+- [UV](https://docs.astral.sh/uv/) for dependency management
 
 ### Installation
 
-1. **Install Poetry** (if not already installed):
+1. **Install UV** (if not already installed):
 
    ```bash
-   curl -sSL https://install.python-poetry.org | python3 -
+   curl -LsSf https://astral.sh/uv/install.sh | sh
    ```
 
 2. **Clone the repository**:
@@ -27,19 +27,19 @@ Thanks for your interest in contributing to this project! I am by no means a pyt
 3. **Install the project and dependencies**:
 
    ```bash
-   poetry install --with dev
+   uv sync
    ```
 
 4. **Activate the virtual environment**:
 
    ```bash
-   eval $(poetry env activate)
+   source .venv/bin/activate    # macOS/Linux
    ```
 
    _or_
 
    ```Powershell
-   Invoke-Expression (poetry env activate)
+   .venv\Scripts\activate       # Windows
    ```
 
 5. Install `pre-commit` hooks
@@ -53,46 +53,49 @@ Thanks for your interest in contributing to this project! I am by no means a pyt
    rekordbox-bulk-edit --version
    ```
 
-### Tasks (via poethepoet)
+### Tasks (via Make)
 
 ```bash
+# Run tests
+make test
+
 # Run tests with coverage
-poe test
+make coverage
 
 # Run linting and auto-fix issues
-poe lint
+make lint
+
+# Run formatting
+make format
 
 # Run all pre-commit hooks on all files
-poe run-hooks
+make run-hooks
 ```
 
 ### Managing Dependencies
 
 ```bash
 # Add a new runtime dependency
-poetry add package-name
+uv add package-name
 
 # Add a new development dependency
-poetry add --group dev package-name
+uv add --group dev package-name
 
 # Update dependencies
-poetry update
+uv lock --upgrade
 
 # Show dependency tree
-poetry show --tree
+uv tree
 ```
 
 ### Building and Publishing
 
 ```bash
 # Build the package
-poetry build
-
-# Check the built package
-poetry run twine check dist/*
+uv build
 
 # Publish to PyPI (requires authentication)
-poetry publish
+uv publish
 ```
 
 ## Commit Convention
