@@ -215,9 +215,9 @@ Limit the potential impact of a mistake by using filters to target a few tracks 
 
 ## AI Usage
 
-Did I use AI to help me build this? Yes. Is this project "vibe coded"? No.
+I believe it's important to be aware of and to disclose AI usage.
 
-I have nearly 10 years of professional experience as a Software Engineer. I do not wish to be replaced, and don't believe that AI could (yet) replace me. That being said, Python is not my bread and butter, so AI has helped me fill those knowledge gaps and skip repetitive tasks. Also, time is scarce and I simply never would have had the time to build this out without leaning somewhat on AI. As is with all open-source code, you should inspect it for yourself and determine if it's up to snuff.
+I have nearly 10 years of professional experience as a Software Engineer. I do not wish to be replaced, and I don't believe that AI could (yet) replace me. That being said, Python is not my bread and butter, so generative AI has helped me fill those knowledge gaps, explore what is possible with this tool, and skip repetitive tasks. Also, time is scarce and I simply never would have gotten to build this out without leaning somewhat on AI. On the flip side, there's no way AI (today) could have built this without me (or some other experienced dev) and gotten the same quality. As is with all open-source code, you should inspect it for yourself and determine if it's up to snuff.
 
 If it's any consolation, my main test subject has been my own 10,000+ track RekordBox library--a risk I do not take lightly!
 
