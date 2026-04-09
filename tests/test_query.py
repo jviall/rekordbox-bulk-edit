@@ -416,13 +416,6 @@ class TestCollectionQuery:
 
 
 @pytest.fixture
-def mock_db():
-    db = MagicMock()
-    db.session = MagicMock()
-    return db
-
-
-@pytest.fixture
 def mock_query(mocker):
     instance = MagicMock(spec=CollectionQuery)
     for method in [
@@ -544,3 +537,55 @@ class TestGetFilteredContent:
         mock_query.by_track_ids.assert_called_once_with(track_ids=["123"])
         mock_query.by_artist.assert_called_once_with("Justice")
         mock_query.match_all.assert_not_called()
+
+    def test_no_session_raises(self, mock_db):
+        """get_filtered_content raises RuntimeError when db has no session."""
+        mock_db.session = None
+
+        with pytest.raises(RuntimeError, match="No Session"):
+            get_filtered_content(mock_db)
+
+
+class TestCollectionQueryExecution:
+    """Tests for the count() and execute() methods on CollectionQuery."""
+
+    def test_count_returns_scalar(self):
+        """count() executes a COUNT query and returns the scalar result."""
+        mock_db = MagicMock()
+        mock_db.session = MagicMock()
+        mock_result = MagicMock()
+        mock_result.scalar_one.return_value = 42
+        mock_db.session.execute.return_value = mock_result
+
+        count = CollectionQuery().count(mock_db)
+
+        assert count == 42
+        mock_db.session.execute.assert_called_once()
+
+    def test_count_with_conditions(self):
+        """count() works correctly when the query has filter conditions."""
+        mock_db = MagicMock()
+        mock_db.session = MagicMock()
+        mock_result = MagicMock()
+        mock_result.scalar_one.return_value = 7
+        mock_db.session.execute.return_value = mock_result
+
+        count = CollectionQuery().by_title("One More Time").count(mock_db)
+
+        assert count == 7
+
+    def test_count_no_session_raises(self):
+        """count() raises RuntimeError when db has no session."""
+        mock_db = MagicMock()
+        mock_db.session = None
+
+        with pytest.raises(RuntimeError, match="No Session"):
+            CollectionQuery().count(mock_db)
+
+    def test_execute_no_session_raises(self):
+        """execute() raises RuntimeError when db has no session."""
+        mock_db = MagicMock()
+        mock_db.session = None
+
+        with pytest.raises(RuntimeError, match="No Session"):
+            CollectionQuery().execute(mock_db)

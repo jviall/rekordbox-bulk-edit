@@ -102,6 +102,19 @@ class TestSearchCommand:
         assert result.output.strip() == ""
         mock_print_track_info.assert_not_called()
 
+    @patch("rekordbox_bulk_edit.commands.search.Rekordbox6Database")
+    def test_search_no_db_session_raises(self, mock_db_class):
+        """RuntimeError is raised (and propagated) when the db has no session."""
+        mock_db = Mock()
+        mock_db_class.return_value = mock_db
+        mock_db.session = None
+
+        from click.testing import CliRunner
+
+        result = CliRunner().invoke(search_command, [])
+
+        assert result.exit_code != 0
+
     @patch("rekordbox_bulk_edit.commands.search.print_track_info")
     @patch("rekordbox_bulk_edit.commands.search.get_filtered_content")
     @patch("rekordbox_bulk_edit.commands.search.Rekordbox6Database")
