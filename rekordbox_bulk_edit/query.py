@@ -206,21 +206,16 @@ def get_filtered_content(
     exact_titles: List[str] | None = None,
     match_all: bool = False,
 ) -> Result[Tuple[DjmdContent]]:
-    """Query the Rekordbox database with the provided filters.
-
-    When track_id_args is provided, it's the only filter applied.
-    """
+    """Query the Rekordbox database with the provided filters."""
     db = db if db is not None else Rekordbox6Database()
     if not db.session:
         raise RuntimeError("Failed to connect to Rekordbox Database: No Session.")
 
     query = CollectionQuery()
 
-    # track_id_args takes precedence over all other filters
     if track_id_args:
         logger.debug(f"Filtering by {len(track_id_args)} track ID argument(s)")
         query = query.by_track_ids(track_ids=track_id_args)
-        return query.execute(db)
 
     if track_ids:
         for track_id in track_ids:

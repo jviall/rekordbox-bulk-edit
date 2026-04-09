@@ -389,12 +389,13 @@ class TestGetAudioInfo:
         assert result["bit_depth"] == 24
 
     @patch("rekordbox_bulk_edit.utils.ffmpeg.probe")
-    def test_get_audio_info__invalid_bit_depth(self, mock_probe, ffmpeg_exists):
-        """Test handling of no valid bit depth."""
+    def test_get_audio_info__unknown_bit_depth_returns_none(
+        self, mock_probe, ffmpeg_exists
+    ):
+        """When bit depth cannot be determined, bit_depth is None."""
         mock_probe.return_value = {
             "streams": [
                 {
-                    # no fields with bit depth info
                     "codec_type": "audio",
                     "sample_rate": "48000",
                     "channels": 2,
@@ -403,28 +404,54 @@ class TestGetAudioInfo:
             ]
         }
 
-        # Execute
-        with pytest.raises(Exception, match="No valid bit depth"):
-            get_audio_info("/path/to/audio.flac")
+        result = get_audio_info("/path/to/audio.flac")
+
+        assert result["bit_depth"] is None
+        assert result["bitrate"] == 1411  # still available from probe
 
     @patch("rekordbox_bulk_edit.utils.ffmpeg.probe")
-    def test_get_audio_info__invalid_bitrate(self, mock_probe, ffmpeg_exists):
-        """Test handling of no valid bitrate."""
+    def test_get_audio_info__unknown_bitrate_returns_none(
+        self, mock_probe, ffmpeg_exists
+    ):
+        """When bitrate cannot be determined (no stream bitrate, no sample_rate to calculate), bitrate is None."""
         mock_probe.return_value = {
             "streams": [
                 {
-                    # missing sample rate which it needs to calculate a missing bitrate
                     "codec_type": "audio",
                     "bits_per_sample": 24,
                     "sample_fmt": "s24",
                     "channels": 2,
+                    # no bit_rate, no sample_rate — calculation impossible
                 }
             ]
         }
 
-        # Execute
-        with pytest.raises(Exception, match="No valid bitrate"):
-            get_audio_info("/path/to/audio.flac")
+        result = get_audio_info("/path/to/audio.flac")
+
+        assert result["bit_depth"] == 24
+        assert result["bitrate"] is None
+
+    @patch("rekordbox_bulk_edit.utils.ffmpeg.probe")
+    def test_get_audio_info__mp3_bit_depth_is_none(self, mock_probe, ffmpeg_exists):
+        """MP3 has no true bit depth; get_audio_info returns None and leaves it to the caller."""
+        mock_probe.return_value = {
+            "streams": [
+                {
+                    "codec_type": "audio",
+                    "codec_name": "mp3",
+                    "bits_per_sample": 0,  # ffmpeg typically reports 0 for mp3
+                    "sample_rate": "44100",
+                    "channels": 2,
+                    "bit_rate": "320000",
+                }
+            ]
+        }
+
+        result = get_audio_info("/path/to/audio.mp3")
+
+        assert result["bit_depth"] is None
+        assert result["bitrate"] == 320
+        assert result["sample_rate"] == 44100
 
 
 class TestConfirm:

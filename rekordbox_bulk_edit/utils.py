@@ -201,8 +201,13 @@ or https://ffmpeg.org/download.html
 """
 
 
-def get_audio_info(file_path) -> dict[str, int]:
-    """Get audio information from file using ffmpeg probe"""
+def get_audio_info(file_path) -> dict[str, int | None]:
+    """Get audio information from file using ffmpeg probe.
+
+    Returns None for any field that cannot be determined from the probe data.
+    Callers are responsible for handling None values and applying format-specific
+    assumptions (e.g. MP3 has no true bit depth).
+    """
     try:
         # Check if ffmpeg is available first
         if not ffmpeg_in_path():
@@ -217,7 +222,7 @@ def get_audio_info(file_path) -> dict[str, int]:
             raise Exception(f"No audio stream found in {file_path}")
 
         # Try multiple ways to get bit depth
-        bit_depth = -1  # default
+        bit_depth = None
 
         # Method 1: bits_per_sample
         if "bits_per_sample" in audio_stream and audio_stream["bits_per_sample"] != 0:
@@ -238,21 +243,22 @@ def get_audio_info(file_path) -> dict[str, int]:
             elif "32" in sample_fmt:
                 bit_depth = 32
 
-        # Get bitrate (try from stream first, then calculate)
-        bitrate = -1
+        if bit_depth is None:
+            logger.debug(f"Could not determine bit depth for {file_path}")
+
+        # Get bitrate from stream, or calculate from audio properties if available
+        bitrate = None
         if "bit_rate" in audio_stream and audio_stream["bit_rate"]:
             bitrate = int(audio_stream["bit_rate"]) // 1000  # Convert to kbps
-        else:
+        elif bit_depth is not None:
             logger.debug("Calculating bit rate from sample_rate * bit_depth * channels")
-            # Calculate bitrate: sample_rate * bit_depth * channels, then convert to kbps
-            sample_rate = int(audio_stream.get("sample_rate", -1))
+            sample_rate = int(audio_stream.get("sample_rate", 0))
             channels = int(audio_stream.get("channels", 1))
-            bitrate = (sample_rate * bit_depth * channels) // 1000  # Convert to kbps
+            if sample_rate > 0:
+                bitrate = (sample_rate * bit_depth * channels) // 1000
 
-        if bit_depth < 0:
-            raise Exception(f"No valid bit depth found for {file_path}")
-        if bitrate < 0:
-            raise Exception(f"No valid bitrate found for {file_path}")
+        if bitrate is None:
+            logger.debug(f"Could not determine bitrate for {file_path}")
 
         return {
             "bit_depth": bit_depth,
