@@ -28,7 +28,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Setup Poetry
+      - name: Setup UV
         uses: ./.github/actions/install
 
       - name: Bump to dev version
@@ -42,11 +42,11 @@ jobs:
 
       - name: Get version
         id: version
-        run: echo "version=$(poetry version -s)" >> $GITHUB_OUTPUT
+        run: echo "version=$(python -c "import tomllib; print(tomllib.load(open('pyproject.toml','rb'))['project']['version'])")" >> $GITHUB_OUTPUT
 
       - name: Build distribution
         run: |
-          poetry build
+          uv build
 
       - name: Create and push tag
         run: |

@@ -1,30 +1,20 @@
-name: "Setup Poetry"
-description: "Install Poetry and cache virtualenv"
+name: "Setup UV"
+description: "Install UV, set up Python, and install dependencies"
 
 runs:
   using: "composite"
   steps:
+    - name: Install UV
+      uses: astral-sh/setup-uv@v4
+      with:
+        enable-cache: true
+
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
         python-version: ${{ env.PYTHON }}
 
-    - name: Install Poetry
-      uses: snok/install-poetry@v1.4.1
-      with:
-        virtualenvs-create: true
-        virtualenvs-in-project: true
-        installer-parallel: true
-
-    - name: Load cached venv
-      id: cached-poetry-dependencies
-      uses: actions/cache@v4
-      with:
-        path: .venv
-        key: venv-${{ runner.os }}-${{ env.PYTHON }}-${{ hashFiles('**/poetry.lock') }}
-
     - name: Install dependencies
-      if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
       shell: bash
       run: |
-        poetry install --all-groups
+        uv sync --all-groups
