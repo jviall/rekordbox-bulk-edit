@@ -8,6 +8,11 @@
 
 A command-line tool for bulk operations on your Rekordbox library. Convert audio formats, search tracks, and update your database while preserving all your cues, analysis, and metadata.
 
+> [!CAUTION]
+> This tool can modify your Rekordbox database and audio files. Always back up your data first.
+> No warranty is provided--you assume all risk and liability of data loss in using this.
+> See [Safety & Best Practices](#safety--best-practices)
+
 ## Installation
 
 ```bash
@@ -18,28 +23,6 @@ pip install rekordbox-bulk-edit
 
 - Python 3.11+
 - FFmpeg (for audio conversion)
-
-### Installing FFmpeg
-
-**macOS (Homebrew):**
-
-```bash
-brew install ffmpeg
-```
-
-**Ubuntu/Debian:**
-
-```bash
-sudo apt update && sudo apt install ffmpeg
-```
-
-**Windows:**
-
-```bash
-winget install --id=Gyan.FFmpeg -e
-```
-
-Or download from [ffmpeg.org](https://ffmpeg.org/download.html).
 
 ## Quick Start
 
@@ -181,44 +164,68 @@ All commands support all levels of output. These generally control how much info
 
 Output levels are configured with the `--print` option:
 
-- `--print [ids|silent|info]`: Control output format
+- `--print [ids|silent|info|debug]`: Control output format
 
-> **Note**: When specifying `--print silent` or `--print ids`, you must also provide either the `--yes` or the `--dry-run` flag, since any prompts would contradict the spirit of those options.
+> [!NOTE]
+> When specifying `--print silent` or `--print ids`, you must also explicitly provide either the `--yes` or the `--dry-run` flag, since any prompts would contradict the spirit of those print options.
 
 ### Scripting
 
 The `--print ids` option is especially interesting when used in conjunction with the `ids` arguments. By specifying `--print ids` you can use the output of one `rbe` command as the input to a second, e.g.:
 
 ```bash
-# Convert all of the items found by the inital search command
+# Convert all of the items found by the initial search command
 rbe search --artist "Lauren Hill" --print ids | rbe convert
 ```
 
-This is example is a bit contrived, but I have fun ideas for future commands that will make this much more interesting :)
+This example is a bit contrived, but this method of piping can be used to combine OR and AND logic that couldn't otherwise be expressed in a single command:
+
+**AND-narrowing** — pipe a broad OR result into a second command with `--match-all` to intersect:
+
+```bash
+# (Daft Punk OR Justice) AND flac
+rbe search --artist "Daft Punk" --artist "Justice" --print ids \
+  | rbe search --format flac --match-all
+```
+
+**OR between AND-groups** — merge results from two commands using a subshell:
+
+```bash
+# (Daft Punk AND flac) OR (Justice AND aiff)
+{ rbe search --artist "Daft Punk" --format flac --match-all --print ids; \
+  rbe search --artist "Justice" --format aiff --match-all --print ids; } \
+  | rbe convert --format-out mp3 --dry-run
+```
 
 ## Safety & Best Practices
-
-> **CAUTION**: This tool can modify your Rekordbox database and audio files. Always back up your data first.
 
 **Before using this tool:**
 
 1. **Back up your Rekordbox database**
-   - Rekordbox creates backups on exit, but they get overwritten quickly on repetitive exits.
-   - Manually copy all database backups before running this tool
-   - Location: `~/Library/Pioneer/rekordbox/` (macOS) or `%APPDATA%\Pioneer\rekordbox\` (Windows)
-2. **Back up your music library**
-3. **Test on a subset first**
-   - Use filters to target a few tracks: `--artist "Test" --limit 5`
-   - Always run with `--dry-run` first
-4. **Close Rekordbox before running commands**
 
-**Use at your own risk.**
+   Rekordbox already keeps multiple backups. But every time you close it, it creates a fresh one and deletes the oldest, so repetitive exits will quickly make those backups fairly useless.
+
+   You should make manual copies of RB's database backups before using this. You can usually find them in `~/Library/Pioneer/rekordbox/` on macOS or `%APPDATA%\Pioneer\rekordbox\` on Windows.
+
+2. **Back up your music library**
+
+   If you don't have a back up already it's a very worthwhile investment, even if you don't plan to use this tool! Find yourself a cheap external drive, you won't regret it.
+
+Limit the potential impact of a mistake by using filters to target a few tracks at a time e.g. `--artist "Crazy Frog" --limit 5` before targeting a larger set, and always run with `--dry-run` first.
+
+## AI Usage
+
+Did I use AI to help me build this? Yes. Is this project "vibe coded"? No.
+
+I have nearly 10 years of professional experience as a Software Engineer. I do not wish to be replaced, and don't believe that AI could (yet) replace me. That being said, Python is not my bread and butter, so AI has helped me fill those knowledge gaps and skip repetitive tasks. Also, time is scarce and I simply never would have had the time to build this out without leaning somewhat on AI. As is with all open-source code, you should inspect it for yourself and determine if it's up to snuff.
+
+If it's any consolation, my main test subject has been my own 10,000+ track RekordBox library--a risk I do not take lightly!
 
 ## Credits
 
-This project exists thanks to [pyrekordbox](https://github.com/dylanljones/pyrekordbox), which provides the Python API for Rekordbox databases.
+This project exists thanks to [@dylanjones](https://github.com/dylanjones), the creator of [pyrekordbox](https://github.com/dylanljones/pyrekordbox), which provides the Python API for Rekordbox databases.
 
-I built this tool to fix my own library management mistakes. If it helps you too, great. If you find issues or have ideas, contributions are welcome.
+I built this tool to help correct my own bad habits and misteps in managing and organizing my rekordbox library. If it helps you too, great! If you find issues or have ideas, contributions are welcome.
 
 ## Contributing
 

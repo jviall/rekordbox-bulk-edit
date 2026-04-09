@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 """Tests for the CollectionQuery class."""
 
-from rekordbox_bulk_edit.query import CollectionQuery
+import pytest
+from unittest.mock import MagicMock
+
+from rekordbox_bulk_edit.query import CollectionQuery, get_filtered_content
 
 
 class TestCollectionQuery:
@@ -295,3 +298,249 @@ class TestCollectionQuery:
         assert query_copy._limit_count == query._limit_count
         assert str(query_copy._stmt) == str(query._stmt)
         assert str(query_copy._get_full_statement()) == str(query._get_full_statement())
+
+    def test_by_track_ids_single_string(self):
+        """A single string ID is accepted and results in an IN condition."""
+        query = CollectionQuery()
+        new_query = query.by_track_ids("123")
+
+        assert new_query is not query
+        assert len(new_query._conditions) == 1
+        condition_str = str(new_query._conditions[0]).lower()
+        assert "in" in condition_str
+
+    def test_by_track_ids_list(self):
+        """A list of IDs results in a single IN condition."""
+        query = CollectionQuery()
+        new_query = query.by_track_ids(["123", "456", "789"])
+
+        assert new_query is not query
+        assert len(new_query._conditions) == 1
+        condition_str = str(new_query._conditions[0]).lower()
+        assert "in" in condition_str
+
+    def test_by_artist_empty_string(self):
+        """Empty artist name adds an IS NULL condition."""
+        query = CollectionQuery()
+        new_query = query.by_artist("")
+
+        assert len(new_query._conditions) == 1
+        condition_str = str(new_query._conditions[0]).lower()
+        assert "null" in condition_str
+
+    def test_by_title_empty_string(self):
+        """Empty title adds an IS NULL condition."""
+        query = CollectionQuery()
+        new_query = query.by_title("")
+
+        assert len(new_query._conditions) == 1
+        condition_str = str(new_query._conditions[0]).lower()
+        assert "null" in condition_str
+
+    def test_by_album_empty_string(self):
+        """Empty album name adds an IS NULL condition."""
+        query = CollectionQuery()
+        new_query = query.by_album("")
+
+        assert len(new_query._conditions) == 1
+        condition_str = str(new_query._conditions[0]).lower()
+        assert "null" in condition_str
+
+    def test_by_playlist_empty_string(self):
+        """Empty playlist name adds an IS NULL condition for tracks not in any playlist."""
+        query = CollectionQuery()
+        new_query = query.by_playlist("")
+
+        assert len(new_query._conditions) == 1
+        condition_str = str(new_query._conditions[0]).lower()
+        assert "null" in condition_str
+
+    def test_by_format_empty_string(self, mocker):
+        """Empty format string logs a warning and returns self unchanged."""
+        mock_warn = mocker.patch("rekordbox_bulk_edit.query.logger")
+        query = CollectionQuery()
+        result = query.by_format("")
+
+        assert result is query
+        assert len(result._conditions) == 0
+        mock_warn.warning.assert_called_once()
+
+    def test_by_format_invalid(self, mocker):
+        """Invalid format logs a warning and returns a copy without adding a condition."""
+        mocker.patch(
+            "rekordbox_bulk_edit.utils.get_file_type_for_format",
+            side_effect=ValueError("unknown format"),
+        )
+        mock_warn = mocker.patch("rekordbox_bulk_edit.query.logger")
+        query = CollectionQuery()
+        new_query = query.by_format("xyz")
+
+        assert new_query is not query
+        assert len(new_query._conditions) == 0
+        mock_warn.warning.assert_called_once()
+
+    def test_limit(self):
+        """limit() sets _limit_count and returns a new instance."""
+        query = CollectionQuery()
+        new_query = query.limit(10)
+
+        assert new_query is not query
+        assert new_query._limit_count == 10
+        assert query._limit_count is None
+
+    def test_limit_in_sql(self):
+        """limit() results in a LIMIT clause in the final statement."""
+        query = CollectionQuery().limit(5)
+        stmt_str = str(query._get_full_statement()).lower()
+        assert "limit" in stmt_str
+
+    def test_get_full_statement_no_conditions(self):
+        """No conditions produces a statement with no WHERE clause."""
+        query = CollectionQuery()
+        stmt_str = str(query._get_full_statement()).lower()
+        assert "where" not in stmt_str
+
+    def test_get_full_statement_or_logic(self):
+        """Multiple conditions with default OR logic produces OR in the WHERE clause."""
+        query = CollectionQuery().by_title("A").by_title("B")
+        stmt_str = str(query._get_full_statement()).lower()
+        assert " or " in stmt_str
+        assert " and " not in stmt_str
+
+    def test_get_full_statement_and_logic(self):
+        """Multiple conditions with match_all=True produces AND in the WHERE clause."""
+        query = CollectionQuery().by_title("A").by_title("B").match_all()
+        stmt_str = str(query._get_full_statement()).lower()
+        assert " and " in stmt_str
+        assert " or " not in stmt_str
+
+
+@pytest.fixture
+def mock_db():
+    db = MagicMock()
+    db.session = MagicMock()
+    return db
+
+
+@pytest.fixture
+def mock_query(mocker):
+    instance = MagicMock(spec=CollectionQuery)
+    for method in [
+        "by_track_ids",
+        "by_artist",
+        "by_title",
+        "by_album",
+        "by_playlist",
+        "by_format",
+        "match_all",
+        "match_any",
+    ]:
+        getattr(instance, method).return_value = instance
+    mocker.patch("rekordbox_bulk_edit.query.CollectionQuery", return_value=instance)
+    return instance
+
+
+class TestGetFilteredContent:
+    """Tests for the get_filtered_content function."""
+
+    def test_no_filters(self, mock_db, mock_query):
+        get_filtered_content(mock_db)
+        mock_query.by_track_ids.assert_not_called()
+        mock_query.by_artist.assert_not_called()
+        mock_query.by_title.assert_not_called()
+        mock_query.by_album.assert_not_called()
+        mock_query.by_playlist.assert_not_called()
+        mock_query.by_format.assert_not_called()
+        mock_query.match_all.assert_not_called()
+        mock_query.execute.assert_called_once_with(mock_db)
+
+    def test_track_id_args(self, mock_db, mock_query):
+        get_filtered_content(mock_db, track_id_args=["123", "456"])
+        mock_query.by_track_ids.assert_called_once_with(track_ids=["123", "456"])
+
+    def test_track_ids(self, mock_db, mock_query):
+        get_filtered_content(mock_db, track_ids=["123", "456"])
+        assert mock_query.by_track_ids.call_count == 2
+        mock_query.by_track_ids.assert_any_call("123")
+        mock_query.by_track_ids.assert_any_call("456")
+
+    def test_artist(self, mock_db, mock_query):
+        get_filtered_content(mock_db, artists=["Daft Punk"])
+        mock_query.by_artist.assert_called_once_with("Daft Punk")
+
+    def test_multiple_artists(self, mock_db, mock_query):
+        get_filtered_content(mock_db, artists=["Daft Punk", "Justice"])
+        assert mock_query.by_artist.call_count == 2
+        mock_query.by_artist.assert_any_call("Daft Punk")
+        mock_query.by_artist.assert_any_call("Justice")
+
+    def test_exact_artist(self, mock_db, mock_query):
+        get_filtered_content(mock_db, exact_artists=["Daft Punk"])
+        mock_query.by_artist.assert_called_once_with("Daft Punk", exact=True)
+
+    def test_title(self, mock_db, mock_query):
+        get_filtered_content(mock_db, titles=["One More Time"])
+        mock_query.by_title.assert_called_once_with("One More Time")
+
+    def test_exact_title(self, mock_db, mock_query):
+        get_filtered_content(mock_db, exact_titles=["One More Time"])
+        mock_query.by_title.assert_called_once_with("One More Time", exact=True)
+
+    def test_album(self, mock_db, mock_query):
+        get_filtered_content(mock_db, albums=["Discovery"])
+        mock_query.by_album.assert_called_once_with("Discovery")
+
+    def test_exact_album(self, mock_db, mock_query):
+        get_filtered_content(mock_db, exact_albums=["Discovery"])
+        mock_query.by_album.assert_called_once_with("Discovery", exact=True)
+
+    def test_playlist(self, mock_db, mock_query):
+        get_filtered_content(mock_db, playlists=["My Playlist"])
+        mock_query.by_playlist.assert_called_once_with("My Playlist")
+
+    def test_exact_playlist(self, mock_db, mock_query):
+        get_filtered_content(mock_db, exact_playlists=["My Playlist"])
+        mock_query.by_playlist.assert_called_once_with("My Playlist", exact=True)
+
+    def test_format(self, mock_db, mock_query):
+        get_filtered_content(mock_db, formats=["flac"])
+        mock_query.by_format.assert_called_once_with("flac")
+
+    def test_multiple_formats(self, mock_db, mock_query):
+        get_filtered_content(mock_db, formats=["flac", "aiff"])
+        assert mock_query.by_format.call_count == 2
+        mock_query.by_format.assert_any_call("flac")
+        mock_query.by_format.assert_any_call("aiff")
+
+    def test_match_all(self, mock_db, mock_query):
+        get_filtered_content(mock_db, artists=["Daft Punk"], match_all=True)
+        mock_query.match_all.assert_called_once()
+
+    def test_default_no_match_all(self, mock_db, mock_query):
+        get_filtered_content(mock_db, artists=["Daft Punk"])
+        mock_query.match_all.assert_not_called()
+
+    def test_track_id_args_combined_with_format(self, mock_db, mock_query):
+        """track_id_args should combine with other filters, not override them."""
+        get_filtered_content(
+            mock_db, track_id_args=["123"], formats=["flac"], match_all=True
+        )
+        mock_query.by_track_ids.assert_called_once_with(track_ids=["123"])
+        mock_query.by_format.assert_called_once_with("flac")
+        mock_query.match_all.assert_called_once()
+
+    def test_track_id_args_combined_with_artist(self, mock_db, mock_query):
+        """Piped IDs + artist filter with match_all narrows to artist within that ID set."""
+        get_filtered_content(
+            mock_db, track_id_args=["123", "456"], artists=["Justice"], match_all=True
+        )
+        mock_query.by_track_ids.assert_called_once_with(track_ids=["123", "456"])
+        mock_query.by_artist.assert_called_once_with("Justice")
+        mock_query.match_all.assert_called_once()
+
+    def test_track_id_args_or_with_artist(self, mock_db, mock_query):
+        """Piped IDs OR'd with artist expands the result set."""
+        get_filtered_content(mock_db, track_id_args=["123"], artists=["Justice"])
+        mock_query.by_track_ids.assert_called_once_with(track_ids=["123"])
+        mock_query.by_artist.assert_called_once_with("Justice")
+        mock_query.match_all.assert_not_called()

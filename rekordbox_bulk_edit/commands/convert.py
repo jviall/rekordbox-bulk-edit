@@ -63,11 +63,13 @@ def convert_to_lossless(input_path, output_path, output_format):
         raise Exception(f"Unsupported lossless format: {output_format}")
 
     codec_map = codec_maps[output_format.value]
-    codec = (
-        output_format.value
-        if codec_map is None
-        else codec_map.get(bit_depth, list(codec_map.values())[0])
-    )
+    if codec_map is None:
+        codec = output_format.value
+    elif bit_depth in codec_map:
+        codec = codec_map[bit_depth]
+    else:
+        codec = list(codec_map.values())[0]
+        logger.debug(f"bit_depth={bit_depth} not in codec map, falling back to {codec}")
 
     logger.debug(f"Selected codec: {codec} (bit_depth={bit_depth})")
 
@@ -158,6 +160,10 @@ def update_database_record(
     converted_audio_info = get_audio_info(converted_full_path)
     converted_bitrate = converted_audio_info["bitrate"]
 
+    if output_format.upper() == "MP3" and converted_bitrate is None:
+        logger.debug("MP3 bitrate not found in probe, assuming 320kbps")
+        converted_bitrate = 320
+
     file_type = get_file_type_for_format(output_format)
     if not file_type:
         raise Exception(f"Unsupported output format: {output_format}")
@@ -169,16 +175,20 @@ def update_database_record(
             f"Bit depth check: database={database_bit_depth}, file={converted_bit_depth}"
         )
 
-        if database_bit_depth and converted_bit_depth != database_bit_depth:
+        if (
+            database_bit_depth
+            and converted_bit_depth
+            and converted_bit_depth != database_bit_depth
+        ):
             raise Exception(
-                f"Bit depth mismatch: database={database_bit_depth}, file={converted_bit_depth}"
+                f"Bit depth mismatch for lossless transcode: database={database_bit_depth}, file={converted_bit_depth}"
             )
 
     content.FileNameL = new_filename
     content.FolderPath = converted_full_path
     content.FileType = file_type
 
-    # FLAC stores bitrate as 0 in Rekordbox
+    # FLAC stores bitrate as 0 in Rekordbox to represent VBR
     if output_format.upper() == "FLAC":
         content.BitRate = 0
         logger.debug(
@@ -210,7 +220,6 @@ def get_output_path(content, output_format) -> Tuple[str, str, str]:
     extension = get_extension_for_format(output_format.upper())
     output_filename = Path(src_file_name).stem + extension
     output_path = os.path.join(src_dirname, output_filename)
-    logger.debug(f"get_output_path: {src_folder_path} -> {output_path}")
     return output_path, output_filename, src_dirname
 
 
