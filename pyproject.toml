@@ -49,7 +49,14 @@ dev = [
     "pytest-cov>=6.2.1,<7",
     "pytest-mock>=3.14.1,<4",
     "callee>=0.3.1,<1",
+    "ty>=0.0.1,<1",
 ]
+
+[tool.ty.environment]
+python-version = "3.10"
+
+[tool.ty.analysis]
+allowed-unresolved-imports = ["pyrekordbox", "ffmpeg"]
 
 [tool.commitizen]
 name = "cz_customize"

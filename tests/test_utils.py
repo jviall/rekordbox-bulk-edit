@@ -34,7 +34,7 @@ class TestGetFileTypeName:
         """Test get_file_type_name with unknown file type codes."""
 
         with pytest.raises(ValueError, match="Unknown file_type: None"):
-            get_file_type_name(None)  # pyright: ignore
+            get_file_type_name(None)  # ty: ignore[invalid-argument-type]
         with pytest.raises(ValueError, match="Unknown file_type: -1"):
             get_file_type_name(-1)
         with pytest.raises(ValueError, match="Unknown file_type: 99"):
@@ -64,7 +64,7 @@ class TestGetFileTypeForFormat:
             get_file_type_for_format("")
 
         with pytest.raises(ValueError, match="Format name cannot be empty or None"):
-            get_file_type_for_format(None)  # pyright: ignore
+            get_file_type_for_format(None)  # ty: ignore[invalid-argument-type]
 
 
 class TestGetGetExtensionForFormat:
@@ -93,7 +93,7 @@ class TestGetGetExtensionForFormat:
             get_extension_for_format("")
 
         with pytest.raises(ValueError, match="Format name cannot be empty or None"):
-            get_extension_for_format(None)  # pyright: ignore
+            get_extension_for_format(None)  # ty: ignore[invalid-argument-type]
 
 
 class TestTruncateField:

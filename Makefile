@@ -1,4 +1,4 @@
-.PHONY: test coverage lint format install-hooks run-hooks
+.PHONY: test coverage lint format typecheck install-hooks run-hooks
 
 test:
 	uv run pytest tests
@@ -11,6 +11,9 @@ lint:
 
 format:
 	uv run ruff format
+
+typecheck:
+	uv run ty check
 
 install-hooks:
 	uv run pre-commit install --hook-type pre-commit --hook-type commit-msg
