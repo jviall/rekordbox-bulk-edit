@@ -203,12 +203,34 @@ def update_database_record(
 
 def cleanup_converted_files(converted_files) -> None:
     """Clean up converted files on error or rollback."""
+    logger.debug("Cleaning up converted files due to aborted conversion.")
     for file_info in converted_files:
         try:
             os.remove(file_info["output_path"])
             logger.debug(f"Cleaned up {file_info['output_path']}")
         except Exception:
             pass
+
+
+def rollback_and_cleanup(db, converted_files) -> None:
+    """Roll back the database session and clean up any converted files."""
+    logger.debug("Attempting DB session rollback.")
+    rollback_error = None
+    if db and db.session:
+        try:
+            db.session.rollback()
+        except Exception as e:
+            logger.critical(f"Encountered error during session rollback: {e}")
+            logger.critical(
+                "Check the state of your rekordbox library and consider reverting to a backup database if something's not right"
+            )
+            rollback_error = e
+    else:
+        logger.debug("No DB session to rollback.")
+    if converted_files:
+        cleanup_converted_files(converted_files)
+    if rollback_error:
+        raise rollback_error
 
 
 def get_output_path(content, output_format) -> Tuple[str, str, str]:
@@ -326,18 +348,9 @@ def convert_command(
     db = None
     converted_files = []
 
-    def rollback_and_cleanup():
-        if db and db.session:
-            try:
-                db.session.rollback()
-            except Exception:
-                pass
-        if converted_files:
-            cleanup_converted_files(converted_files)
-
     def signal_handler(_signum, frame):
         logger.info("\nInterrupted. Rolling back...")
-        rollback_and_cleanup()
+        rollback_and_cleanup(db, converted_files)
         sys.exit(1)
 
     signal.signal(signal.SIGINT, signal_handler)
@@ -481,12 +494,12 @@ def convert_command(
                         continue
                 except UserQuit:
                     logger.info("User quit. Rolling back...")
-                    rollback_and_cleanup()
+                    rollback_and_cleanup(db, converted_files)
                     return
 
             if not os.path.exists(src_folder_path):
                 logger.error(f"  Source not found: {src_folder_path}")
-                rollback_and_cleanup()
+                rollback_and_cleanup(db, converted_files)
                 sys.exit(1)
 
             if os.path.exists(output_path) and not overwrite:
@@ -502,12 +515,12 @@ def convert_command(
 
             if not success:
                 logger.error("  Conversion failed. Aborting.")
-                rollback_and_cleanup()
+                rollback_and_cleanup(db, converted_files)
                 sys.exit(1)
 
             if not os.path.exists(output_path):
                 logger.error("  Output file not created. Aborting.")
-                rollback_and_cleanup()
+                rollback_and_cleanup(db, converted_files)
                 sys.exit(1)
 
             try:
@@ -523,7 +536,7 @@ def convert_command(
                 )
             except Exception as e:
                 logger.error(f"  Database update failed: {e}")
-                rollback_and_cleanup()
+                rollback_and_cleanup(db, converted_files)
                 sys.exit(1)
 
         # === COMMIT ===
@@ -538,7 +551,7 @@ def convert_command(
             )
         except Exception as e:
             logger.error(f"Commit failed: {e}")
-            rollback_and_cleanup()
+            rollback_and_cleanup(db, converted_files)
             sys.exit(1)
 
         # === OUTPUT ===
@@ -557,5 +570,5 @@ def convert_command(
             logger.info(f"Deleted {deleted_count} original files")
 
     except Exception as e:
-        rollback_and_cleanup()
+        rollback_and_cleanup(db, converted_files)
         raise e

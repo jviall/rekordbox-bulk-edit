@@ -13,9 +13,10 @@ from rekordbox_bulk_edit.commands.convert import (
     convert_to_lossless,
     convert_to_mp3,
     get_output_path,
+    rollback_and_cleanup,
     update_database_record,
 )
-from rekordbox_bulk_edit.utils import OutputFormats
+from rekordbox_bulk_edit.utils import OutputFormats, UserQuit
 
 
 @pytest.fixture(autouse=True)
@@ -153,6 +154,79 @@ class TestConvertToLossless:
         # Assert
         assert result is False
 
+    @patch("rekordbox_bulk_edit.utils.ffmpeg_in_path")
+    def test_convert_to_lossless_ffmpeg_not_found(self, mock_ffmpeg_in_path):
+        """Raises exception when FFmpeg is not in PATH."""
+        mock_ffmpeg_in_path.return_value = False
+
+        with pytest.raises(Exception, match="FFmpeg not found in PATH"):
+            convert_to_lossless("input.flac", "output.aiff", OutputFormats.AIFF)
+
+    @patch("rekordbox_bulk_edit.commands.convert.get_audio_info")
+    @patch("rekordbox_bulk_edit.utils.ffmpeg_in_path")
+    @patch("rekordbox_bulk_edit.commands.convert.ffmpeg")
+    def test_convert_to_lossless_unknown_bit_depth_falls_back(
+        self, mock_ffmpeg, mock_ffmpeg_in_path, mock_get_audio_info
+    ):
+        """When bit_depth is not in the codec map, falls back to first codec."""
+        mock_ffmpeg_in_path.return_value = True
+        mock_get_audio_info.return_value = {"bit_depth": 8}  # Not in {16, 24, 32}
+        mock_input = Mock()
+        mock_output = Mock()
+        mock_ffmpeg.input.return_value = mock_input
+        mock_input.output.return_value = mock_output
+        mock_output.overwrite_output.return_value = mock_output
+        mock_output.run.return_value = None
+
+        result = convert_to_lossless("input.flac", "output.aiff", OutputFormats.AIFF)
+
+        assert result is True
+        # Falls back to first codec in map: pcm_s16be for AIFF
+        mock_input.output.assert_called_once_with(
+            "output.aiff", acodec="pcm_s16be", map_metadata=0, write_id3v2=1
+        )
+
+    @patch("rekordbox_bulk_edit.commands.convert.get_audio_info")
+    @patch("rekordbox_bulk_edit.utils.ffmpeg_in_path")
+    @patch("rekordbox_bulk_edit.commands.convert.ffmpeg")
+    def test_convert_to_lossless_ffmpeg_error_no_stderr(
+        self, mock_ffmpeg, mock_ffmpeg_in_path, mock_get_audio_info
+    ):
+        """FfmpegError with no stderr skips the decode step and returns False."""
+        mock_ffmpeg_in_path.return_value = True
+        mock_get_audio_info.return_value = {"bit_depth": 16}
+        mock_input = Mock()
+        mock_output = Mock()
+        mock_ffmpeg.input.return_value = mock_input
+        mock_input.output.return_value = mock_output
+        mock_output.overwrite_output.return_value = mock_output
+
+        error = ffmpeg.Error("cmd", "stdout", None)  # no stderr
+        mock_output.run.side_effect = error
+
+        result = convert_to_lossless("input.flac", "output.aiff", OutputFormats.AIFF)
+
+        assert result is False
+
+    @patch("rekordbox_bulk_edit.commands.convert.get_audio_info")
+    @patch("rekordbox_bulk_edit.utils.ffmpeg_in_path")
+    @patch("rekordbox_bulk_edit.commands.convert.ffmpeg")
+    def test_convert_to_lossless_unexpected_exception_reraises(
+        self, mock_ffmpeg, mock_ffmpeg_in_path, mock_get_audio_info
+    ):
+        """Non-ffmpeg exceptions are re-raised after logging."""
+        mock_ffmpeg_in_path.return_value = True
+        mock_get_audio_info.return_value = {"bit_depth": 16}
+        mock_input = Mock()
+        mock_output = Mock()
+        mock_ffmpeg.input.return_value = mock_input
+        mock_input.output.return_value = mock_output
+        mock_output.overwrite_output.return_value = mock_output
+        mock_output.run.side_effect = RuntimeError("disk full")
+
+        with pytest.raises(RuntimeError, match="disk full"):
+            convert_to_lossless("input.flac", "output.aiff", OutputFormats.AIFF)
+
 
 class TestConvertToMp3:
     """Test convert_to_mp3 function."""
@@ -210,6 +284,51 @@ class TestConvertToMp3:
 
         # Assert
         assert result is False
+
+    @patch("rekordbox_bulk_edit.utils.ffmpeg_in_path")
+    def test_convert_to_mp3_ffmpeg_not_found(self, mock_ffmpeg_in_path):
+        """Raises exception when FFmpeg is not in PATH."""
+        mock_ffmpeg_in_path.return_value = False
+
+        with pytest.raises(Exception, match="FFmpeg not found in PATH"):
+            convert_to_mp3("input.flac", "output.mp3")
+
+    @patch("rekordbox_bulk_edit.utils.ffmpeg_in_path")
+    @patch("rekordbox_bulk_edit.commands.convert.ffmpeg")
+    def test_convert_to_mp3_ffmpeg_error_no_stderr(
+        self, mock_ffmpeg, mock_ffmpeg_in_path
+    ):
+        """FfmpegError with no stderr skips the decode step and returns False."""
+        mock_ffmpeg_in_path.return_value = True
+        mock_input = Mock()
+        mock_output = Mock()
+        mock_ffmpeg.input.return_value = mock_input
+        mock_input.output.return_value = mock_output
+        mock_output.overwrite_output.return_value = mock_output
+
+        error = ffmpeg.Error("cmd", "stdout", None)  # no stderr
+        mock_output.run.side_effect = error
+
+        result = convert_to_mp3("input.flac", "output.mp3")
+
+        assert result is False
+
+    @patch("rekordbox_bulk_edit.utils.ffmpeg_in_path")
+    @patch("rekordbox_bulk_edit.commands.convert.ffmpeg")
+    def test_convert_to_mp3_unexpected_exception_reraises(
+        self, mock_ffmpeg, mock_ffmpeg_in_path
+    ):
+        """Non-ffmpeg exceptions are re-raised after logging."""
+        mock_ffmpeg_in_path.return_value = True
+        mock_input = Mock()
+        mock_output = Mock()
+        mock_ffmpeg.input.return_value = mock_input
+        mock_input.output.return_value = mock_output
+        mock_output.overwrite_output.return_value = mock_output
+        mock_output.run.side_effect = RuntimeError("permission denied")
+
+        with pytest.raises(RuntimeError, match="permission denied"):
+            convert_to_mp3("input.flac", "output.mp3")
 
 
 class TestUpdateDatabaseRecord:
@@ -289,6 +408,43 @@ class TestUpdateDatabaseRecord:
         with pytest.raises(Exception, match="Bit depth mismatch"):
             update_database_record(mock_db, 123, "output.aiff", "/path/to", "AIFF")
 
+    @patch("rekordbox_bulk_edit.commands.convert.get_audio_info")
+    @patch("os.path.join")
+    def test_update_database_record_mp3_none_bitrate_uses_320(
+        self, mock_join, mock_get_audio_info, make_djmd_content_item
+    ):
+        """MP3 conversion with None bitrate from probe defaults to 320kbps."""
+        mock_db = Mock()
+        mock_content = make_djmd_content_item(ID=123)
+        mock_db.get_content().filter_by(ID=123).first.return_value = mock_content
+
+        mock_join.return_value = "/path/to/output.mp3"
+        mock_get_audio_info.return_value = {"bitrate": None, "bit_depth": 16}
+
+        update_database_record(mock_db, 123, "output.mp3", "/path/to", "MP3")
+
+        assert mock_content.BitRate == 320
+
+    @patch("rekordbox_bulk_edit.commands.convert.get_file_type_for_format")
+    @patch("rekordbox_bulk_edit.commands.convert.get_audio_info")
+    @patch("os.path.join")
+    def test_update_database_record_unsupported_format_raises(
+        self, mock_join, mock_get_audio_info, mock_get_file_type, make_djmd_content_item
+    ):
+        """Unsupported output format raises an exception (when get_file_type returns None)."""
+        mock_db = Mock()
+        mock_content = make_djmd_content_item(ID=123)
+        mock_db.get_content().filter_by(ID=123).first.return_value = mock_content
+
+        mock_join.return_value = "/path/to/output.xyz"
+        mock_get_audio_info.return_value = {"bitrate": 1000, "bit_depth": 16}
+        mock_get_file_type.return_value = (
+            None  # simulate unknown format slipping through
+        )
+
+        with pytest.raises(Exception, match="Unsupported output format"):
+            update_database_record(mock_db, 123, "output.xyz", "/path/to", "XYZ")
+
 
 class TestCleanupConvertedFiles:
     """Test cleanup_converted_files function."""
@@ -317,6 +473,49 @@ class TestCleanupConvertedFiles:
         cleanup_converted_files(converted_files)
 
         mock_remove.assert_called_once_with("/path/file1.aiff")
+
+
+class TestRollbackAndCleanup:
+    """Test rollback_and_cleanup function."""
+
+    def test_rolls_back_session(self, mock_db):
+        """Calls db.session.rollback() when db and session are present."""
+        rollback_and_cleanup(mock_db, [])
+        mock_db.session.rollback.assert_called_once()
+
+    def test_no_db_is_noop(self):
+        """Does nothing when db is None."""
+        rollback_and_cleanup(None, [])  # should not raise
+
+    def test_no_session_is_noop(self):
+        """Does nothing when db.session is None."""
+        db = Mock()
+        db.session = None
+        rollback_and_cleanup(db, [])  # should not raise
+
+    @patch("rekordbox_bulk_edit.commands.convert.cleanup_converted_files")
+    def test_cleans_up_converted_files(self, mock_cleanup, mock_db):
+        """Calls cleanup_converted_files when converted_files is non-empty."""
+        converted_files = [{"output_path": "/path/file.aiff"}]
+        rollback_and_cleanup(mock_db, converted_files)
+        mock_cleanup.assert_called_once_with(converted_files)
+
+    @patch("rekordbox_bulk_edit.commands.convert.cleanup_converted_files")
+    def test_skips_cleanup_when_no_converted_files(self, mock_cleanup, mock_db):
+        """Does not call cleanup_converted_files when converted_files is empty."""
+        rollback_and_cleanup(mock_db, [])
+        mock_cleanup.assert_not_called()
+
+    @patch("rekordbox_bulk_edit.commands.convert.logger")
+    def test_rollback_exception_logs_critical_and_reraises(self, mock_logger, mock_db):
+        """When rollback raises, logs critical messages and re-raises the exception."""
+        error = Exception("DB connection lost")
+        mock_db.session.rollback.side_effect = error
+
+        with pytest.raises(Exception, match="DB connection lost"):
+            rollback_and_cleanup(mock_db, [])
+
+        assert mock_logger.critical.call_count == 2
 
 
 class TestGetOutputPath:
@@ -1287,6 +1486,540 @@ class TestConvertCommand:
 
         assert result.exit_code == 0
         assert "XYZ789" in result.output
+
+
+class TestConvertCommandErrorPaths:
+    """Tests for convert_command error handling and edge case branches."""
+
+    @patch("rekordbox_bulk_edit.commands.convert.get_rekordbox_pid")
+    @patch("rekordbox_bulk_edit.commands.convert.Rekordbox6Database")
+    @patch("rekordbox_bulk_edit.utils.ffmpeg_in_path")
+    def test_convert_command_no_db_session_exits(
+        self,
+        mock_ffmpeg_in_path,
+        mock_db_class,
+        mock_get_rb_pid,
+        mock_db,
+    ):
+        """Raises and exits when the database has no session."""
+        mock_get_rb_pid.return_value = None
+        mock_ffmpeg_in_path.return_value = True
+        mock_db.session = None
+        mock_db_class.return_value = mock_db
+
+        from click.testing import CliRunner
+
+        result = CliRunner().invoke(convert_command, ["--dry-run"])
+
+        assert result.exit_code != 0
+
+    @patch("rekordbox_bulk_edit.commands.convert.get_rekordbox_pid")
+    @patch("rekordbox_bulk_edit.commands.convert.confirm")
+    def test_convert_command_rekordbox_running_user_quits(
+        self,
+        mock_confirm,
+        mock_get_rb_pid,
+    ):
+        """Returns cleanly when UserQuit is raised from the Rekordbox-running prompt."""
+        mock_get_rb_pid.return_value = 12345
+        mock_confirm.side_effect = UserQuit()
+
+        from click.testing import CliRunner
+
+        result = CliRunner().invoke(convert_command, ["--dry-run"])
+
+        assert result.exit_code == 0
+
+    @patch("rekordbox_bulk_edit.commands.convert.print_track_info")
+    @patch("rekordbox_bulk_edit.commands.convert.get_rekordbox_pid")
+    @patch("rekordbox_bulk_edit.commands.convert.get_filtered_content")
+    @patch("rekordbox_bulk_edit.commands.convert.Rekordbox6Database")
+    @patch("rekordbox_bulk_edit.utils.ffmpeg_in_path")
+    @patch("os.path.exists")
+    def test_convert_command_yes_partial_conflicts_continues(
+        self,
+        mock_exists,
+        mock_ffmpeg_in_path,
+        mock_db_class,
+        mock_get_filtered_content,
+        mock_get_rb_pid,
+        mock_print_track_info,
+        mock_logger,
+        make_djmd_content_item,
+        mock_db,
+    ):
+        """--yes with partial conflicts skips conflicting files and processes the rest."""
+        mock_get_rb_pid.return_value = None
+        mock_ffmpeg_in_path.return_value = True
+        mock_db_class.return_value = mock_db
+
+        content1 = make_djmd_content_item(
+            FileType=5, ID="AAA", FileNameL="song1.flac", FolderPath="/music/song1.flac"
+        )
+        content2 = make_djmd_content_item(
+            FileType=5, ID="BBB", FileNameL="song2.flac", FolderPath="/music/song2.flac"
+        )
+        mock_result = Mock()
+        mock_result.scalars().all.return_value = [content1, content2]
+        mock_get_filtered_content.return_value = mock_result
+
+        mock_exists.side_effect = lambda path: "song1.aiff" in path
+
+        from click.testing import CliRunner
+
+        result = CliRunner().invoke(convert_command, ["--yes", "--dry-run"])
+
+        assert result.exit_code == 0
+        mock_print_track_info.assert_called_once_with([content2])
+
+    @patch("rekordbox_bulk_edit.commands.convert.print_track_info")
+    @patch("rekordbox_bulk_edit.commands.convert.get_rekordbox_pid")
+    @patch("rekordbox_bulk_edit.commands.convert.get_filtered_content")
+    @patch("rekordbox_bulk_edit.commands.convert.Rekordbox6Database")
+    @patch("rekordbox_bulk_edit.utils.ffmpeg_in_path")
+    @patch("os.path.exists")
+    def test_convert_command_partial_conflicts_no_overwrite_continues(
+        self,
+        mock_exists,
+        mock_ffmpeg_in_path,
+        mock_db_class,
+        mock_get_filtered_content,
+        mock_get_rb_pid,
+        mock_print_track_info,
+        mock_logger,
+        make_djmd_content_item,
+        mock_db,
+    ):
+        """Without --overwrite, conflicting files are warned and skipped; others proceed."""
+        mock_get_rb_pid.return_value = None
+        mock_ffmpeg_in_path.return_value = True
+        mock_db_class.return_value = mock_db
+
+        content1 = make_djmd_content_item(
+            FileType=5, ID="AAA", FileNameL="song1.flac", FolderPath="/music/song1.flac"
+        )
+        content2 = make_djmd_content_item(
+            FileType=5, ID="BBB", FileNameL="song2.flac", FolderPath="/music/song2.flac"
+        )
+        mock_result = Mock()
+        mock_result.scalars().all.return_value = [content1, content2]
+        mock_get_filtered_content.return_value = mock_result
+
+        mock_exists.side_effect = lambda path: "song1.aiff" in path
+
+        from click.testing import CliRunner
+
+        result = CliRunner().invoke(convert_command, ["--dry-run"])
+
+        assert result.exit_code == 0
+        mock_logger.warning.assert_called()
+        mock_print_track_info.assert_called_once_with([content2])
+
+    @patch("rekordbox_bulk_edit.commands.convert.sys")
+    @patch("rekordbox_bulk_edit.commands.convert.confirm")
+    @patch("rekordbox_bulk_edit.commands.convert.get_rekordbox_pid")
+    @patch("rekordbox_bulk_edit.commands.convert.get_filtered_content")
+    @patch("rekordbox_bulk_edit.commands.convert.Rekordbox6Database")
+    @patch("rekordbox_bulk_edit.utils.ffmpeg_in_path")
+    @patch("os.path.exists")
+    def test_convert_command_user_declines_batch_confirmation(
+        self,
+        mock_exists,
+        mock_ffmpeg_in_path,
+        mock_db_class,
+        mock_get_filtered_content,
+        mock_get_rb_pid,
+        mock_confirm,
+        mock_sys,
+        mock_logger,
+        make_djmd_content_item,
+        mock_db,
+    ):
+        """Returns cleanly when user declines the batch conversion confirmation."""
+        mock_sys.stdin.isatty.return_value = True  # not piped — avoids UsageError
+        mock_sys.exit.side_effect = SystemExit
+        mock_get_rb_pid.return_value = None
+        mock_ffmpeg_in_path.return_value = True
+        mock_exists.return_value = False
+        mock_confirm.return_value = False
+        mock_db_class.return_value = mock_db
+
+        mock_result = Mock()
+        mock_result.scalars().all.return_value = [
+            make_djmd_content_item(
+                FileType=5,
+                ID="AAA",
+                FileNameL="song.flac",
+                FolderPath="/music/song.flac",
+            )
+        ]
+        mock_get_filtered_content.return_value = mock_result
+
+        from click.testing import CliRunner
+
+        result = CliRunner().invoke(convert_command, [])
+
+        assert result.exit_code == 0
+        mock_logger.info.assert_any_call("Cancelled.")
+
+    @patch("rekordbox_bulk_edit.commands.convert.sys")
+    @patch("rekordbox_bulk_edit.commands.convert.confirm")
+    @patch("rekordbox_bulk_edit.commands.convert.get_rekordbox_pid")
+    @patch("rekordbox_bulk_edit.commands.convert.get_filtered_content")
+    @patch("rekordbox_bulk_edit.commands.convert.Rekordbox6Database")
+    @patch("rekordbox_bulk_edit.utils.ffmpeg_in_path")
+    @patch("os.path.exists")
+    def test_convert_command_userquit_during_batch_confirmation(
+        self,
+        mock_exists,
+        mock_ffmpeg_in_path,
+        mock_db_class,
+        mock_get_filtered_content,
+        mock_get_rb_pid,
+        mock_confirm,
+        mock_sys,
+        mock_logger,
+        make_djmd_content_item,
+        mock_db,
+    ):
+        """Returns cleanly when UserQuit is raised during the batch confirmation."""
+        mock_sys.stdin.isatty.return_value = True  # not piped — avoids UsageError
+        mock_sys.exit.side_effect = SystemExit
+        mock_get_rb_pid.return_value = None
+        mock_ffmpeg_in_path.return_value = True
+        mock_exists.return_value = False
+        mock_confirm.side_effect = UserQuit()
+        mock_db_class.return_value = mock_db
+
+        mock_result = Mock()
+        mock_result.scalars().all.return_value = [
+            make_djmd_content_item(
+                FileType=5,
+                ID="AAA",
+                FileNameL="song.flac",
+                FolderPath="/music/song.flac",
+            )
+        ]
+        mock_get_filtered_content.return_value = mock_result
+
+        from click.testing import CliRunner
+
+        result = CliRunner().invoke(convert_command, [])
+
+        assert result.exit_code == 0
+
+    @patch("rekordbox_bulk_edit.commands.convert.confirm")
+    @patch("rekordbox_bulk_edit.commands.convert.get_rekordbox_pid")
+    @patch("rekordbox_bulk_edit.commands.convert.get_filtered_content")
+    @patch("rekordbox_bulk_edit.commands.convert.Rekordbox6Database")
+    @patch("rekordbox_bulk_edit.utils.ffmpeg_in_path")
+    @patch("os.path.exists")
+    def test_convert_command_interactive_user_skips_file(
+        self,
+        mock_exists,
+        mock_ffmpeg_in_path,
+        mock_db_class,
+        mock_get_filtered_content,
+        mock_get_rb_pid,
+        mock_confirm,
+        mock_logger,
+        make_djmd_content_item,
+        mock_db,
+    ):
+        """With --interactive, declining per-file confirmation skips that file."""
+        mock_get_rb_pid.return_value = None
+        mock_ffmpeg_in_path.return_value = True
+        mock_exists.return_value = False
+        mock_confirm.return_value = False
+        mock_db_class.return_value = mock_db
+
+        mock_result = Mock()
+        mock_result.scalars().all.return_value = [
+            make_djmd_content_item(
+                FileType=5,
+                ID="AAA",
+                FileNameL="song.flac",
+                FolderPath="/music/song.flac",
+            )
+        ]
+        mock_get_filtered_content.return_value = mock_result
+
+        from click.testing import CliRunner
+
+        # --yes skips the batch confirm and avoids the piped-stdin UsageError;
+        # --interactive still triggers per-file confirmation
+        result = CliRunner().invoke(convert_command, ["--interactive", "--yes"])
+
+        assert result.exit_code == 0
+        mock_logger.info.assert_any_call("No files were converted.")
+
+    @patch("rekordbox_bulk_edit.commands.convert.confirm")
+    @patch("rekordbox_bulk_edit.commands.convert.get_rekordbox_pid")
+    @patch("rekordbox_bulk_edit.commands.convert.get_filtered_content")
+    @patch("rekordbox_bulk_edit.commands.convert.Rekordbox6Database")
+    @patch("rekordbox_bulk_edit.utils.ffmpeg_in_path")
+    @patch("os.path.exists")
+    def test_convert_command_interactive_user_quits(
+        self,
+        mock_exists,
+        mock_ffmpeg_in_path,
+        mock_db_class,
+        mock_get_filtered_content,
+        mock_get_rb_pid,
+        mock_confirm,
+        mock_logger,
+        make_djmd_content_item,
+        mock_db,
+    ):
+        """With --interactive, UserQuit during per-file confirmation rolls back and exits."""
+        mock_get_rb_pid.return_value = None
+        mock_ffmpeg_in_path.return_value = True
+        mock_exists.return_value = False
+        mock_confirm.side_effect = UserQuit()
+        mock_db_class.return_value = mock_db
+
+        mock_result = Mock()
+        mock_result.scalars().all.return_value = [
+            make_djmd_content_item(
+                FileType=5,
+                ID="AAA",
+                FileNameL="song.flac",
+                FolderPath="/music/song.flac",
+            )
+        ]
+        mock_get_filtered_content.return_value = mock_result
+
+        from click.testing import CliRunner
+
+        result = CliRunner().invoke(convert_command, ["--interactive", "--yes"])
+
+        assert result.exit_code == 0
+        mock_logger.info.assert_any_call("User quit. Rolling back...")
+
+    @patch("rekordbox_bulk_edit.commands.convert.get_rekordbox_pid")
+    @patch("rekordbox_bulk_edit.commands.convert.get_filtered_content")
+    @patch("rekordbox_bulk_edit.commands.convert.Rekordbox6Database")
+    @patch("rekordbox_bulk_edit.utils.ffmpeg_in_path")
+    @patch("os.path.exists")
+    def test_convert_command_source_not_found_exits(
+        self,
+        mock_exists,
+        mock_ffmpeg_in_path,
+        mock_db_class,
+        mock_get_filtered_content,
+        mock_get_rb_pid,
+        mock_logger,
+        make_djmd_content_item,
+        mock_db,
+    ):
+        """Exits with error when the source file does not exist."""
+        mock_get_rb_pid.return_value = None
+        mock_ffmpeg_in_path.return_value = True
+        mock_exists.return_value = False
+        mock_db_class.return_value = mock_db
+
+        mock_result = Mock()
+        mock_result.scalars().all.return_value = [
+            make_djmd_content_item(
+                FileType=5,
+                ID="AAA",
+                FileNameL="song.flac",
+                FolderPath="/music/song.flac",
+            )
+        ]
+        mock_get_filtered_content.return_value = mock_result
+
+        from click.testing import CliRunner
+
+        result = CliRunner().invoke(convert_command, ["--yes"])
+
+        assert result.exit_code == 1
+        mock_logger.error.assert_any_call("  Source not found: /music/song.flac")
+
+    @patch("rekordbox_bulk_edit.commands.convert.convert_to_lossless")
+    @patch("rekordbox_bulk_edit.commands.convert.get_rekordbox_pid")
+    @patch("rekordbox_bulk_edit.commands.convert.get_filtered_content")
+    @patch("rekordbox_bulk_edit.commands.convert.Rekordbox6Database")
+    @patch("rekordbox_bulk_edit.utils.ffmpeg_in_path")
+    @patch("os.path.exists")
+    def test_convert_command_conversion_fails_exits(
+        self,
+        mock_exists,
+        mock_ffmpeg_in_path,
+        mock_db_class,
+        mock_get_filtered_content,
+        mock_get_rb_pid,
+        mock_convert,
+        mock_logger,
+        make_djmd_content_item,
+        mock_db,
+    ):
+        """Exits with error and rolls back when conversion fails."""
+        mock_get_rb_pid.return_value = None
+        mock_ffmpeg_in_path.return_value = True
+        mock_convert.return_value = False
+        mock_exists.side_effect = lambda path: "song.flac" in path
+        mock_db_class.return_value = mock_db
+
+        mock_result = Mock()
+        mock_result.scalars().all.return_value = [
+            make_djmd_content_item(
+                FileType=5,
+                ID="AAA",
+                FileNameL="song.flac",
+                FolderPath="/music/song.flac",
+            )
+        ]
+        mock_get_filtered_content.return_value = mock_result
+
+        from click.testing import CliRunner
+
+        result = CliRunner().invoke(convert_command, ["--yes"])
+
+        assert result.exit_code == 1
+        mock_logger.error.assert_any_call("  Conversion failed. Aborting.")
+
+    @patch("rekordbox_bulk_edit.commands.convert.convert_to_lossless")
+    @patch("rekordbox_bulk_edit.commands.convert.get_rekordbox_pid")
+    @patch("rekordbox_bulk_edit.commands.convert.get_filtered_content")
+    @patch("rekordbox_bulk_edit.commands.convert.Rekordbox6Database")
+    @patch("rekordbox_bulk_edit.utils.ffmpeg_in_path")
+    @patch("os.path.exists")
+    def test_convert_command_output_not_created_exits(
+        self,
+        mock_exists,
+        mock_ffmpeg_in_path,
+        mock_db_class,
+        mock_get_filtered_content,
+        mock_get_rb_pid,
+        mock_convert,
+        mock_logger,
+        make_djmd_content_item,
+        mock_db,
+    ):
+        """Exits with error when conversion succeeds but the output file is not created."""
+        mock_get_rb_pid.return_value = None
+        mock_ffmpeg_in_path.return_value = True
+        mock_convert.return_value = True
+        mock_exists.side_effect = lambda path: (
+            "song.flac" in path
+        )  # output never appears
+        mock_db_class.return_value = mock_db
+
+        mock_result = Mock()
+        mock_result.scalars().all.return_value = [
+            make_djmd_content_item(
+                FileType=5,
+                ID="AAA",
+                FileNameL="song.flac",
+                FolderPath="/music/song.flac",
+            )
+        ]
+        mock_get_filtered_content.return_value = mock_result
+
+        from click.testing import CliRunner
+
+        result = CliRunner().invoke(convert_command, ["--yes"])
+
+        assert result.exit_code == 1
+        mock_logger.error.assert_any_call("  Output file not created. Aborting.")
+
+    @patch("rekordbox_bulk_edit.commands.convert.update_database_record")
+    @patch("rekordbox_bulk_edit.commands.convert.convert_to_lossless")
+    @patch("rekordbox_bulk_edit.commands.convert.get_rekordbox_pid")
+    @patch("rekordbox_bulk_edit.commands.convert.get_filtered_content")
+    @patch("rekordbox_bulk_edit.commands.convert.Rekordbox6Database")
+    @patch("rekordbox_bulk_edit.utils.ffmpeg_in_path")
+    @patch("os.path.exists")
+    def test_convert_command_db_update_fails_exits(
+        self,
+        mock_exists,
+        mock_ffmpeg_in_path,
+        mock_db_class,
+        mock_get_filtered_content,
+        mock_get_rb_pid,
+        mock_convert,
+        mock_update_db,
+        mock_logger,
+        make_djmd_content_item,
+        mock_db,
+    ):
+        """Exits with error and rolls back when the database update fails."""
+        mock_get_rb_pid.return_value = None
+        mock_ffmpeg_in_path.return_value = True
+        mock_convert.return_value = True
+        mock_update_db.side_effect = Exception("DB write failed")
+        mock_exists.side_effect = lambda path: (
+            "song.flac" in path or (mock_convert.call_count > 0 and "song.aiff" in path)
+        )
+        mock_db_class.return_value = mock_db
+
+        mock_result = Mock()
+        mock_result.scalars().all.return_value = [
+            make_djmd_content_item(
+                FileType=5,
+                ID="AAA",
+                FileNameL="song.flac",
+                FolderPath="/music/song.flac",
+            )
+        ]
+        mock_get_filtered_content.return_value = mock_result
+
+        from click.testing import CliRunner
+
+        result = CliRunner().invoke(convert_command, ["--yes"])
+
+        assert result.exit_code == 1
+        mock_logger.error.assert_any_call("  Database update failed: DB write failed")
+
+    @patch("rekordbox_bulk_edit.commands.convert.update_database_record")
+    @patch("rekordbox_bulk_edit.commands.convert.convert_to_lossless")
+    @patch("rekordbox_bulk_edit.commands.convert.get_rekordbox_pid")
+    @patch("rekordbox_bulk_edit.commands.convert.get_filtered_content")
+    @patch("rekordbox_bulk_edit.commands.convert.Rekordbox6Database")
+    @patch("rekordbox_bulk_edit.utils.ffmpeg_in_path")
+    @patch("os.path.exists")
+    def test_convert_command_commit_fails_exits(
+        self,
+        mock_exists,
+        mock_ffmpeg_in_path,
+        mock_db_class,
+        mock_get_filtered_content,
+        mock_get_rb_pid,
+        mock_convert,
+        mock_update_db,
+        mock_logger,
+        make_djmd_content_item,
+        mock_db,
+    ):
+        """Exits with error when the database commit fails after successful conversion."""
+        mock_get_rb_pid.return_value = None
+        mock_ffmpeg_in_path.return_value = True
+        mock_convert.return_value = True
+        mock_update_db.return_value = None
+        mock_db.session.commit.side_effect = Exception("Commit failed")
+        mock_exists.side_effect = lambda path: (
+            "song.flac" in path or (mock_convert.call_count > 0 and "song.aiff" in path)
+        )
+        mock_db_class.return_value = mock_db
+
+        mock_result = Mock()
+        mock_result.scalars().all.return_value = [
+            make_djmd_content_item(
+                FileType=5,
+                ID="AAA",
+                FileNameL="song.flac",
+                FolderPath="/music/song.flac",
+            )
+        ]
+        mock_get_filtered_content.return_value = mock_result
+
+        from click.testing import CliRunner
+
+        result = CliRunner().invoke(convert_command, ["--yes"])
+
+        assert result.exit_code == 1
+        mock_logger.error.assert_any_call("Commit failed: Commit failed")
 
 
 class TestConvertStdinPiping:

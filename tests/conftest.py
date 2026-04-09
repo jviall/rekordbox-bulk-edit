@@ -5,6 +5,14 @@ import pytest
 from pyrekordbox.db6 import DjmdContent
 
 
+@pytest.fixture
+def mock_db():
+    """A mock Rekordbox6Database instance with an active session."""
+    db = MagicMock()
+    db.session = MagicMock()
+    return db
+
+
 @pytest.fixture()
 def make_djmd_content_item():
     """Create a factory that returns a single mock row of the DjmdContent table."""
