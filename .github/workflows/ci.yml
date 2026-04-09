@@ -8,29 +8,35 @@ on:
 
 jobs:
   code-change:
-    name: Skip Checks?
+    name: Detect Changes
     runs-on: ubuntu-latest
+    outputs:
+      should_skip: ${{ steps.skip_check.outputs.should_skip }}
+      code: ${{ steps.filter.outputs.code }}
     steps:
       - id: skip_check
         uses: fkirc/skip-duplicate-actions@master
+
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - uses: dorny/paths-filter@v3
+        id: filter
         with:
-          paths_ignore: '[
-            "docs/**",
-            ".github/**",
-            ".resources/**",
-            "logos/**",
-            "README.md",
-            "CHANGELOG.md",
-            "CONTRIBUTING.md",
-            ".pre-commit-config.yaml",
-            ".readthedocs.yaml"
-            ]'
-    outputs:
-      should_skip: ${{ steps.skip_check.outputs.should_skip }}
+          filters: |
+            code:
+              - '.github/actions/**'
+              - '.github/workflows/**'
+              - 'rekordbox_bulk_edit/**'
+              - 'tests/**'
+              - 'pyproject.toml'
+              - 'uv.lock'
+              - 'Makefile'
+              - 'ruff.toml'
 
   lint:
     name: 🧺 Lint
     runs-on: ubuntu-latest
+    if: ${{ needs.code-change.outputs.code == 'true' }}
     env:
       PYTHON: "3.13"
     steps:
@@ -43,7 +49,7 @@ jobs:
   unit-tests:
     name: 🧪 Tests
     needs: code-change
-    if: ${{ needs.code-change.outputs.should_skip != 'true'}}
+    if: ${{ needs.code-change.outputs.should_skip != 'true' && needs.code-change.outputs.code == 'true' }}
     strategy:
       fail-fast: false
       matrix:
@@ -72,5 +78,5 @@ jobs:
     steps:
       - uses: re-actors/alls-green@release/v1
         with:
-          allowed-skips: unit-tests
+          allowed-skips: unit-tests, lint
           jobs: ${{ toJSON(needs) }}

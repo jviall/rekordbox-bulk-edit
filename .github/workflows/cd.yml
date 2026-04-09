@@ -1,8 +1,18 @@
-name: Continuous Deployment of Canary Releases
+name: Canary Continuous Deployment
 
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - "docs/**"
+      - ".github/**"
+      - ".resources/**"
+      - "logos/**"
+      - "README.md"
+      - "CHANGELOG.md"
+      - "CONTRIBUTING.md"
+      - ".pre-commit-config.yaml"
+      - ".readthedocs.yaml"
   workflow_dispatch:
 
 jobs:
