@@ -22,3 +22,8 @@ runs:
       shell: bash
       run: |
         uv run ruff check --fix
+
+    - name: Run type checks
+      shell: bash
+      run: |
+        uv run ty check
