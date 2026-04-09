@@ -1,3 +1,43 @@
+## v0.3.0 (2026-04-09)
+
+
+- ci: add windows-latest + python 3.14 to CI matrix
+- ci: Add typechecking with astral/ty
+- ci: switch from poetry to uv cause I like shiny things
+- tests: cover more edge cases and error paths
+- fix: merge track_ids filter with other specified filters.
+- - Also adds missing test cases for CollectionQuery and
+  get_filtered_content
+- documents scripting examples and adds AI disclaimer
+- fix: improved debug logs
+- fix: require --dry-run or --yes when piping track_ids
+- feat: Add support for track_id arguments via STDIN for scripting
+- refactor: Drop custom logger class
+- feat: add debug as a PrintChoice option
+- fix: drop unreachable code
+- fix: match_all incorrectly set to method during query copy
+- fix: add debug log folder to help output
+- fix: normalize output paths
+- docs: update readme
+- feat(convert): add support for the print flag
+- feat: refactor convert command to not suck and use the query class
+- Big refactor. Huge. The convert command was some vibe-coded bs. Now it's
+some vibe-coded nice stuff. Logs are much better. Way less nested
+conditions, better inversion of control. Way less annoying UX.
+- fix: verbose log query filters
+- feat: create --print flag to specify program output preference
+- feat: Add rbe command alias, update readme, and update deps
+- feat: replace Read command with Search command using the CollectionQuery class
+- refactor: print_track_info and related funcs
+- refactor: pave new CollectionQuery class
+- intended to act as a universal query builder that enables a unified set
+of filters for all commands
+- fix(deps): upgrade and pin pyrekordbox to 0.4.4
+- fix: drop support for python 3.9
+- ci: fix mismatched version of checkout action
+- ci: continuously publish canary releases, selectivly publish stable releases
+- ci: cleanup unused action input
+
 ## v0.2.7 (2025-08-19)
 
 
