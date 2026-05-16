@@ -1,6 +1,6 @@
 # rekordbox-edit
 
-[![Tests](https://img.shields.io/github/actions/workflow/status/jviall/rekordbox-edit/ci.yml?branch=main&logo=github&style=flat)](https://github.com/jviall/rekordbox-edit/blob/main/.github/workflows/ci.yml)
+[![Build](https://img.shields.io/github/actions/workflow/status/jviall/rekordbox-edit/cd.yml?branch=main&logo=github&style=flat)](https://github.com/jviall/rekordbox-edit/blob/main/.github/workflows/cd.yml)
 [![Coverage](https://codecov.io/gh/jviall/rekordbox-edit/graph/badge.svg?token=ILZ1XHE61V)](https://codecov.io/gh/jviall/rekordbox-edit)
 [![Version](https://img.shields.io/pypi/v/rekordbox-edit?style=flat)](https://pypi.org/project/rekordbox-edit/)
 [![Platforms](https://img.shields.io/badge/platform-win%20%7C%20osx-blue?style=flat)](https://pypi.org/project/rekordbox-edit/)
