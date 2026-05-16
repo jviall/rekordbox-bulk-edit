@@ -295,6 +295,8 @@ def convert_command(
     exact_artist: List[str] | None,
     playlist: List[str] | None,
     exact_playlist: List[str] | None,
+    path: List[str] | None,
+    exact_path: List[str] | None,
     format: List[str] | None,
     match_all: bool,
     print_opt: PrintChoice | None,
@@ -395,6 +397,8 @@ def convert_command(
             exact_albums=exact_album,
             titles=title,
             exact_titles=exact_title,
+            paths=path,
+            exact_paths=exact_path,
             match_all=match_all,
         )
         filtered_content = result.scalars().all()

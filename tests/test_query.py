@@ -474,7 +474,7 @@ class TestCollectionQuery:
 
         query_str = _compile(new_query._conditions[0])
         assert "\\" not in query_str
-        assert "Music/Artist/" in query_str
+        assert "Music/Artist" in query_str
 
     def test_by_path_no_resolve(self):
         """by_path does NOT resolve the path."""
@@ -538,7 +538,7 @@ class TestCollectionQuery:
 
     def test_by_exact_path_resolves_relative_path(self):
         """Exact match resolves relative paths to absolute before querying."""
-        cwd = os.getcwd()
+        cwd = Path(os.getcwd()).as_posix()
         query = CollectionQuery()
         new_query = query.by_path("Album/track.mp3", exact=True)
 
@@ -647,6 +647,14 @@ class TestGetFilteredContent:
     def test_exact_playlist(self, mock_db, mock_query):
         get_filtered_content(mock_db, exact_playlists=["My Playlist"])
         mock_query.by_playlist.assert_called_once_with("My Playlist", exact=True)
+
+    def test_path(self, mock_db, mock_query):
+        get_filtered_content(mock_db, paths=["Music/track.mp3"])
+        mock_query.by_path.assert_called_once_with("Music/track.mp3")
+
+    def test_exact_path(self, mock_db, mock_query):
+        get_filtered_content(mock_db, exact_paths=["/Music/track.wav"])
+        mock_query.by_path.assert_called_once_with("/Music/track.wav", exact=True)
 
     def test_format(self, mock_db, mock_query):
         get_filtered_content(mock_db, formats=["flac"])

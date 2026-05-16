@@ -133,6 +133,8 @@ Both commands support all filters. Multiple values create an OR filter unless `-
 - `--playlist TEXT`: Playlist name contains TEXT
 - `--exact-playlist TEXT`: Playlist name exactly matches TEXT
 - `--format [mp3|flac|aiff|wav|m4a]`: File format matches
+- `--path TEXT`: File path contains TEXT (matched as a substring against the folder path, filename, or both)
+- `--exact-path TEXT`: File path exactly matches TEXT (resolved to an absolute path before matching)
 - `--match-all`: Use AND logic (all filters must match)
 - `ids` args: Specifying any other input to a command that is not a defined option is interpreted as one or more Track IDs. This is useful for scripting.
 
@@ -156,6 +158,14 @@ rbe search --playlist "house" --playlist "disco"
 
 # Find all the songs in my library that aren't in any playlist
 rbe search --playlist ""
+
+# Find tracks whose path contains a folder or filename substring
+rbe search --path "Favorites/" --path "track.wav"
+rbe search --path "Music/Artist/song.mp3"
+
+# Find a track at an exact location
+rbe search --exact-path "/Users/djmustard/Music/banger.mp3"
+rbe search --exact-path "../Artist/track.mp3"
 ```
 
 ## Output
