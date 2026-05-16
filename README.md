@@ -225,13 +225,9 @@ And generally limit the potential impact of a mistake by using filters to target
 
 ## AI Usage
 
-I believe it's important to be aware of and to disclose AI usage. AI usage seems to be forced upon us without us having much choice in the matter, and I like many others find this to be a gross and oppressive experience.
+I believe it's important to be aware of and to disclose AI usage. AI seems to be forced upon us without us having much choice in the matter, and I like many others find this to be a gross and oppressive experience. While it has lots of potential to benefit the common good, so far it has mostly furthered capitalist greed.
 
-I do also believe that it has its potential for good, and could be used for humanity's immense benefit if it weren't for capitalist greed.
-
-This isn't a soapbox, but I want to share my perspective and disclose the fact that I have used generative AI to help me build this tool. I could have built it without AI, but it's not usually my preference to spend my free time coding in front of a computer, and using it has drastically reduced the time it would have taken me to build this.
-
-I have nearly 10 years of professional experience as a Software Engineer, and while it will probably age poorly in the (hopefully far) future to say this, I don't think AI could have built this tool without me. You should of course validate the quality of this project yourself, as at the end of the day it's just code written by some stranger!
+This isn't a soapbox, but an attempt to thoughtfully disclose how generative AI has contributed to building this tool. I might have built it without AI, but it's not usually my preference to spend my free time coding in front of a computer, and using it has drastically reduced the time it would have taken. I have many years of professional experience as a Software Engineer, and while it will probably age poorly to say this in the (hopefully far) future, I don't think AI could have built this tool without me. Please validate the quality of this project yourself--at the end of the day it's just code written by some stranger!
 
 If it's any consolation, my main test subject has been my own 10,000+ track RekordBox library--a risk I do not take lightly!
 
