@@ -1,4 +1,5 @@
 import logging
+from pathlib import Path
 from typing import List, Tuple, Union
 
 from pyrekordbox import Rekordbox6Database
@@ -9,7 +10,7 @@ from pyrekordbox.db6.tables import (
     DjmdPlaylist,
     DjmdSongPlaylist,
 )
-from sqlalchemy import Result, and_, func, or_, select
+from sqlalchemy import ColumnElement, Result, and_, func, or_, select
 from sqlalchemy.orm import aliased
 
 logger = logging.getLogger(__name__)
@@ -18,7 +19,7 @@ logger = logging.getLogger(__name__)
 class CollectionQuery:
     def __init__(self, match_all=False):
         self._stmt = select(DjmdContent)
-        self._conditions = []
+        self._conditions: list[ColumnElement[bool]] = []
         self._limit_count = None
         self._match_all = match_all
 
@@ -141,6 +142,59 @@ class CollectionQuery:
             new_inst._conditions.append(condition)
         except ValueError:
             logger.warning(f"Invalid format: {format_name}")
+        return new_inst
+
+    def by_path(self, path_str: str, exact: bool = False) -> "CollectionQuery":
+        """Filter by file path, matching against FolderPath and/or FileNameL.
+
+        Paths get normalized to posix format.
+        --path args arg matched as substrings.
+        --exact-path argsl are resolved to absolute paths and must match exact.
+
+        Args with a trailing '/' only query against FolderPath.
+        Args with no parent folders in the path only query against FileNameL.
+        """
+        new_inst = self._copy()
+
+        is_dir_only = path_str.endswith("/") or path_str.endswith("\\")
+
+        if exact:
+            resolved = Path(path_str).resolve()
+            if is_dir_only:
+                folder_part = resolved.as_posix() + "/"
+                name_part = ""
+            elif "/" not in path_str and "\\" not in path_str:
+                folder_part = ""
+                name_part = resolved.name
+            else:
+                folder_part = resolved.parent.as_posix() + "/"
+                name_part = resolved.name
+        else:
+            normalized = Path(path_str)
+            if is_dir_only:
+                folder_part = normalized.as_posix()
+                name_part = ""
+            else:
+                parent_str = normalized.parent.as_posix()
+                folder_part = "" if parent_str == "." else parent_str
+                name_part = normalized.name
+
+        conditions: list[ColumnElement[bool]] = []
+        if folder_part:
+            if exact:
+                conditions.append(DjmdContent.FolderPath == folder_part)
+            else:
+                conditions.append(DjmdContent.FolderPath.ilike(f"%{folder_part}%"))
+        if name_part:
+            if exact:
+                conditions.append(DjmdContent.FileNameL == name_part)
+            else:
+                conditions.append(DjmdContent.FileNameL.ilike(f"%{name_part}%"))
+
+        if conditions:
+            combined = and_(*conditions) if len(conditions) > 1 else conditions[0]
+            new_inst._conditions.append(combined)
+
         return new_inst
 
     def limit(self, count: int) -> "CollectionQuery":
