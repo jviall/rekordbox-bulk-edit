@@ -76,6 +76,18 @@ global_click_filters = [
         help="Find tracks whose Album names are exactly this value",
     ),
     click.option(
+        "--path",
+        type=str,
+        multiple=True,
+        help="Find tracks whose file paths include this value",
+    ),
+    click.option(
+        "--exact-path",
+        type=str,
+        multiple=True,
+        help="Find tracks whose file paths are exactly this value",
+    ),
+    click.option(
         "--format",
         type=click.Choice(["mp3", "flac", "aiff", "wav", "m4a"], case_sensitive=False),
         multiple=True,

@@ -258,6 +258,8 @@ def get_filtered_content(
     exact_albums: List[str] | None = None,
     titles: List[str] | None = None,
     exact_titles: List[str] | None = None,
+    paths: List[str] | None = None,
+    exact_paths: List[str] | None = None,
     match_all: bool = False,
 ) -> Result[Tuple[DjmdContent]]:
     """Query the Rekordbox database with the provided filters."""
@@ -308,8 +310,16 @@ def get_filtered_content(
             query = query.by_title(title)
 
     if exact_titles:
-        for exact_title in exact_titles:
-            query = query.by_title(exact_title, exact=True)
+        for title in exact_titles:
+            query = query.by_title(title, exact=True)
+
+    if paths:
+        for path in paths:
+            query = query.by_path(path)
+
+    if exact_paths:
+        for exact_path in exact_paths:
+            query = query.by_path(exact_path, exact=True)
 
     if match_all:
         query = query.match_all()

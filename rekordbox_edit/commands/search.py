@@ -38,6 +38,8 @@ def search_command(
     exact_artist: List[str] | None,
     title: List[str] | None,
     exact_title: List[str] | None,
+    path: List[str] | None,
+    exact_path: List[str] | None,
     format: List[str] | None,
     match_all: bool,
     print_opt: PrintChoice | None,
@@ -75,6 +77,10 @@ def search_command(
         filters.append(f"playlist={playlist}")
     if exact_playlist:
         filters.append(f"exact_playlist={exact_playlist}")
+    if path:
+        filters.append(f"path={path}")
+    if exact_path:
+        filters.append(f"exact_path={exact_path}")
     if format:
         filters.append(f"format={format}")
     if match_all:
@@ -97,6 +103,8 @@ def search_command(
         exact_albums=exact_album,
         titles=title,
         exact_titles=exact_title,
+        paths=path,
+        exact_paths=exact_path,
         formats=format,
         match_all=match_all,
     )

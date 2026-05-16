@@ -137,12 +137,24 @@ class TestSearchCommand:
 
         CliRunner().invoke(
             search_command,
-            ["--artist", "Daft Punk", "--format", "flac", "--match-all"],
+            [
+                "--artist",
+                "Daft Punk",
+                "--format",
+                "flac",
+                "--path",
+                "song.mp3",
+                "--exact-path",
+                "/Music/album/track.wav",
+                "--match-all",
+            ],
         )
 
         call_kwargs = mock_get_filtered_content.call_args.kwargs
         assert call_kwargs["artists"] == ("Daft Punk",)
         assert call_kwargs["formats"] == ("flac",)
+        assert call_kwargs["paths"] == ("song.mp3",)
+        assert call_kwargs["exact_paths"] == ("/Music/album/track.wav",)
         assert call_kwargs["match_all"] is True
 
 
