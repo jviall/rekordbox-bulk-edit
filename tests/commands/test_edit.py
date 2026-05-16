@@ -246,3 +246,184 @@ class TestEditCommandPhase1:
 
         assert result.exit_code == 0
         assert "99999" in result.output
+
+
+class TestEditCommandPhase3:
+    """Phase 3: --match flag for literal find/replace within field value."""
+
+    @patch("rekordbox_edit.commands.edit.confirm")
+    @patch("rekordbox_edit.commands.edit.get_filtered_content")
+    @patch("rekordbox_edit.commands.edit.Rekordbox6Database")
+    def test_match_replaces_substring(
+        self, mock_db_class, mock_gfc, mock_confirm, make_djmd_content_item
+    ):
+        """--match substitutes the pattern within the current value."""
+        track = make_djmd_content_item(Title="Dark Matter (feat. Jane)")
+        mock_db, mock_result = _make_db_and_result([track])
+        mock_db_class.return_value = mock_db
+        mock_gfc.return_value = mock_result
+        mock_confirm.return_value = True
+
+        from click.testing import CliRunner
+        result = CliRunner().invoke(
+            edit_command,
+            ["Title", "--match", "feat.", "--replace", "ft."],
+        )
+
+        assert result.exit_code == 0
+        assert track.Title == "Dark Matter (ft. Jane)"
+        mock_db.session.commit.assert_called_once()
+
+    @patch("rekordbox_edit.commands.edit.get_filtered_content")
+    @patch("rekordbox_edit.commands.edit.Rekordbox6Database")
+    def test_match_no_match_is_noop(
+        self, mock_db_class, mock_gfc, make_djmd_content_item
+    ):
+        """When --match pattern is not found in current value, track is a no-op."""
+        track = make_djmd_content_item(Title="Dark Matter")
+        mock_db, mock_result = _make_db_and_result([track])
+        mock_db_class.return_value = mock_db
+        mock_gfc.return_value = mock_result
+
+        from click.testing import CliRunner
+        result = CliRunner().invoke(
+            edit_command,
+            ["Title", "--match", "feat.", "--replace", "ft.", "--yes"],
+        )
+
+        assert result.exit_code == 0
+        mock_db.session.commit.assert_not_called()
+
+    @patch("rekordbox_edit.commands.edit.get_filtered_content")
+    @patch("rekordbox_edit.commands.edit.Rekordbox6Database")
+    def test_match_with_none_current_value_is_noop(
+        self, mock_db_class, mock_gfc, make_djmd_content_item
+    ):
+        """--match on a track where the field is None is silently skipped."""
+        track = make_djmd_content_item(Title=None)
+        mock_db, mock_result = _make_db_and_result([track])
+        mock_db_class.return_value = mock_db
+        mock_gfc.return_value = mock_result
+
+        from click.testing import CliRunner
+        result = CliRunner().invoke(
+            edit_command,
+            ["Title", "--match", "feat.", "--replace", "ft.", "--yes"],
+        )
+
+        assert result.exit_code == 0
+        mock_db.session.commit.assert_not_called()
+
+    @patch("rekordbox_edit.commands.edit.get_filtered_content")
+    @patch("rekordbox_edit.commands.edit.Rekordbox6Database")
+    def test_match_treats_pattern_as_literal(
+        self, mock_db_class, mock_gfc, make_djmd_content_item
+    ):
+        """--match treats the pattern as a literal string, not a regex."""
+        # "1.0" as a regex would also match "1X0"; as a literal it should not
+        track = make_djmd_content_item(Title="Version 1X0")
+        mock_db, mock_result = _make_db_and_result([track])
+        mock_db_class.return_value = mock_db
+        mock_gfc.return_value = mock_result
+
+        from click.testing import CliRunner
+        result = CliRunner().invoke(
+            edit_command,
+            ["Title", "--match", "1.0", "--replace", "2.0", "--yes"],
+        )
+
+        assert result.exit_code == 0
+        mock_db.session.commit.assert_not_called()
+
+
+class TestEditCommandUnicode:
+    """Unicode and multibyte character handling in edit command fields."""
+
+    @patch("rekordbox_edit.commands.edit.confirm")
+    @patch("rekordbox_edit.commands.edit.get_filtered_content")
+    @patch("rekordbox_edit.commands.edit.Rekordbox6Database")
+    def test_wholesale_replace_with_unicode_value(
+        self, mock_db_class, mock_gfc, mock_confirm, make_djmd_content_item
+    ):
+        """--replace accepts and writes multibyte unicode titles correctly."""
+        track = make_djmd_content_item(Title="Original Title")
+        mock_db, mock_result = _make_db_and_result([track])
+        mock_db_class.return_value = mock_db
+        mock_gfc.return_value = mock_result
+        mock_confirm.return_value = True
+
+        from click.testing import CliRunner
+        result = CliRunner().invoke(
+            edit_command,
+            ["Title", "--replace", "日本語タイトル"],
+        )
+
+        assert result.exit_code == 0
+        assert track.Title == "日本語タイトル"
+        mock_db.session.commit.assert_called_once()
+
+    @patch("rekordbox_edit.commands.edit.confirm")
+    @patch("rekordbox_edit.commands.edit.get_filtered_content")
+    @patch("rekordbox_edit.commands.edit.Rekordbox6Database")
+    def test_wholesale_replace_of_unicode_current_value(
+        self, mock_db_class, mock_gfc, mock_confirm, make_djmd_content_item
+    ):
+        """A track with a unicode title can be replaced wholesale."""
+        track = make_djmd_content_item(Title="Ü-Bahn Nights (feat. Ångström)")
+        mock_db, mock_result = _make_db_and_result([track])
+        mock_db_class.return_value = mock_db
+        mock_gfc.return_value = mock_result
+        mock_confirm.return_value = True
+
+        from click.testing import CliRunner
+        result = CliRunner().invoke(
+            edit_command,
+            ["Title", "--replace", "U-Bahn Nights (feat. Angstrom)"],
+        )
+
+        assert result.exit_code == 0
+        assert track.Title == "U-Bahn Nights (feat. Angstrom)"
+        mock_db.session.commit.assert_called_once()
+
+    @patch("rekordbox_edit.commands.edit.confirm")
+    @patch("rekordbox_edit.commands.edit.get_filtered_content")
+    @patch("rekordbox_edit.commands.edit.Rekordbox6Database")
+    def test_match_replace_within_unicode_title(
+        self, mock_db_class, mock_gfc, mock_confirm, make_djmd_content_item
+    ):
+        """--match correctly finds and replaces a substring within a unicode title."""
+        track = make_djmd_content_item(Title="夜 feat. 山田太郎")
+        mock_db, mock_result = _make_db_and_result([track])
+        mock_db_class.return_value = mock_db
+        mock_gfc.return_value = mock_result
+        mock_confirm.return_value = True
+
+        from click.testing import CliRunner
+        result = CliRunner().invoke(
+            edit_command,
+            ["Title", "--match", "feat.", "--replace", "ft."],
+        )
+
+        assert result.exit_code == 0
+        assert track.Title == "夜 ft. 山田太郎"
+        mock_db.session.commit.assert_called_once()
+
+    @patch("rekordbox_edit.commands.edit.get_filtered_content")
+    @patch("rekordbox_edit.commands.edit.Rekordbox6Database")
+    def test_noop_when_unicode_values_are_equal(
+        self, mock_db_class, mock_gfc, make_djmd_content_item
+    ):
+        """No edit is made when the current unicode value already equals --replace."""
+        track = make_djmd_content_item(Title="Ø (Disambiguation)")
+        mock_db, mock_result = _make_db_and_result([track])
+        mock_db_class.return_value = mock_db
+        mock_gfc.return_value = mock_result
+
+        from click.testing import CliRunner
+        result = CliRunner().invoke(
+            edit_command,
+            ["Title", "--replace", "Ø (Disambiguation)", "--yes"],
+        )
+
+        assert result.exit_code == 0
+        mock_db.session.commit.assert_not_called()
