@@ -7,12 +7,12 @@ on:
       - "docs/**"
       - ".github/**"
       - ".resources/**"
+      - ".agent-style"
       - "logos/**"
-      - "README.md"
-      - "CHANGELOG.md"
-      - "CONTRIBUTING.md"
+      - "**/*.md"
       - ".pre-commit-config.yaml"
       - ".readthedocs.yaml"
+      - "renovate.json5"
   workflow_dispatch:
 
 jobs:
