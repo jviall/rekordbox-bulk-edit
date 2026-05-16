@@ -60,10 +60,22 @@ Full directive text, BAD/GOOD example pairs, and rationale per rule: see `.agent
 ## Code style
 
 - Only comment non-obvious code — hidden constraints, subtle invariants, workarounds. If a future reader would not be confused by the comment's absence, leave it out.
-- Do not record conversation history, decisions, or task context in comments. That belongs in the commit message or PR description.
+- Do not record conversation history, decisions, or task context in comments.
 - Keep function and class header comments terse. No more than a paragraph.
 - Name identifiers so the code explains itself; rename rather than annotate.
+- Follow the "Rule of Three" as a guidepost for factoring out shared logic.
+- Break out long functions in to multiple smaller testable units once they exceed a few hundred lines of code. Command entry points can be a bit longer than other functions.
 - Emphasis on consistency of patterns across the codebase, except where clarity for other devs would be improved by diverging from a pattern.
+
+### Logging and Exceptions
+
+Every module should get and use its own `logger` for all logging purposes and follow semantic best practices of log levels:
+
+- `debug` logs should be used to record relevant application state at significant logic branches and points of execution. These are not printed to the user unless the `--print debug` option is provided.
+- `info` logs are the primary means of showing output to the user, and should be used sparingly/as necessary.
+- `warning` logs communicate potential issues with application state or dangerous/unexpected circumstances that do not prevent execution from continuing.
+- `error` logs communicate that invalid application or system state was encountered and needs attention, or invalid input was given, and execution cannot continue.
+- `critical` logs communicate that an unexpected/unstable state was reached and execution was interrupted.
 
 ## Testing
 
@@ -76,7 +88,9 @@ Full directive text, BAD/GOOD example pairs, and rationale per rule: see `.agent
 
 - Implement the smallest functional slice first, then layer features in follow-up commits. Each commit should be "green" and independently deployable.
 - Follow Conventional Commits (see `CONTRIBUTING.md` and the schema in `pyproject.toml`). No `Co-Authored-By` trailer.
-- Claude commits. The user pushes, opens PRs, and rebases after merges.
+- Commit descriptions should be terse and use active tenses (e.g. "add feature")
+- Commit bodies should describe changes, but should not include agent conversation context, decisions, or plan notes.
+- The agent may commit. But the user always handles pushes, PR creation, and rebases after merges.
 - Do not commit spec, brainstorming, or design documents (e.g. anything under `docs/superpowers/specs/`).
 
 ## Tooling
