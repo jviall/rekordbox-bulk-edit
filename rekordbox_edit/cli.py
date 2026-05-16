@@ -7,6 +7,7 @@ import sys
 import click
 
 from rekordbox_edit.commands.convert import convert_command
+from rekordbox_edit.commands.edit import edit_command
 from rekordbox_edit.commands.search import search_command
 from rekordbox_edit.logger import get_debug_file_path, setup_logging
 
@@ -23,9 +24,8 @@ def cli():
 
 
 cli.add_command(search_command)
-cli.add_command(
-    convert_command,
-)
+cli.add_command(convert_command)
+cli.add_command(edit_command)
 
 
 def main():
