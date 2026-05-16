@@ -44,9 +44,10 @@ select = [
   "E7",
   "E9",
   "F",
-  "W" ,
-  # "C901"
+  "W",
+  "C90",
 ]
+
 ignore = []
 
 # Allow fix for all enabled rules (when `--fix`) is provided.
@@ -55,6 +56,9 @@ unfixable = []
 
 # Allow unused variables when underscore-prefixed.
 dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+[lint.mccabe]
+max-complexity = 50
 
 [format]
 # Like Black, use double quotes for strings.
