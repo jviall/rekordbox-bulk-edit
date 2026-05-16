@@ -26,6 +26,18 @@ FIELD_COLUMNS = {
 }
 
 
+def _compute_new_value(
+    current: str | int | None,
+    match_pattern: str | None,
+    replace_value: str | int,
+) -> str | int | None:
+    """Derive the new field value."""
+    if current is None:
+        return None
+    if match_pattern is not None:
+        return str(current).replace(match_pattern, str(replace_value))
+    return replace_value
+
 
 @click.command(
     epilog=f"Debug logs for each run can be found at:\n{get_debug_file_path().parent}"
@@ -54,6 +66,13 @@ FIELD_COLUMNS = {
     required=True,
     help="The new value to write to the field",
 )
+@click.option(
+    "--match",
+    "match_pattern",
+    default=None,
+    metavar="PATTERN",
+    help="Find this literal string within the field value and replace only that portion",
+)
 @track_ids_argument
 @click.argument(
     "field",
@@ -62,10 +81,11 @@ FIELD_COLUMNS = {
 def edit_command(
     field: str,
     replace_value: str,
+    match_pattern: str | None,
     dry_run: bool,
     yes: bool,
     interactive: bool,
-    track_ids: tuple,
+    track_ids: List[str] | None,
     track_id: List[str] | None,
     playlist: List[str] | None,
     exact_playlist: List[str] | None,
@@ -99,9 +119,7 @@ def edit_command(
         )
 
     if piped_stdin and not (dry_run or yes):
-        raise click.UsageError(
-            "Piping track IDs into edit requires --dry-run or --yes"
-        )
+        raise click.UsageError("Piping track IDs into edit requires --dry-run or --yes")
 
     db = Rekordbox6Database()
     if not db.session:
@@ -127,11 +145,13 @@ def edit_command(
     tracks = result.scalars().all()
 
     col_name = FIELD_COLUMNS[field]
-    edits = [
-        (track, replace_value)
-        for track in tracks
-        if getattr(track, col_name) != replace_value
-    ]
+    edits = []
+    for track in tracks:
+        current = getattr(track, col_name)
+        new_value = _compute_new_value(current, match_pattern, replace_value)
+        if new_value is None or new_value == current:
+            continue
+        edits.append((track, new_value))
 
     if not edits:
         logger.info("No changes to make.")
