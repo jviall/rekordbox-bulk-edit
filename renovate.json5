@@ -1,0 +1,40 @@
+{
+  $schema: "https://docs.renovatebot.com/renovate-schema.json",
+  extends: [
+    "config:recommended",
+    ":semanticCommitType(chore)",
+    ":semanticCommitScope(deps)",
+    ":label(dependencies)",
+    ":enablePreCommit",
+    ":automergePr",
+    "schedule:daily",
+    "schedule:automergeDaily",
+  ],
+
+  branchPrefix: "chore/deps/",
+  commitMessageAction: "update",
+  minimumReleaseAge: "3 days",
+
+  packageRules: [
+    {
+      description: "GitHub Actions: maintain digest pins, auto-merge minor/patch/digest",
+      matchManagers: ["github-actions"],
+      pinDigests: true,
+      matchUpdateTypes: ["minor", "patch", "digest"],
+      automerge: true,
+    },
+    {
+      description: "Python deps: auto-merge minor/patch for uv-managed packages",
+      matchManagers: ["uv"],
+      matchUpdateTypes: ["minor", "patch"],
+      automerge: true,
+    },
+    {
+      description: "pre-commit hooks: group and auto-merge minor/patch",
+      matchManagers: ["pre-commit"],
+      groupName: "pre-commit hooks",
+      matchUpdateTypes: ["minor", "patch"],
+      automerge: true,
+    },
+  ],
+}

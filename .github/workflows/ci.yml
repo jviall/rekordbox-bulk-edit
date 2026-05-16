@@ -24,8 +24,6 @@ jobs:
         with:
           filters: |
             code:
-              - '.github/actions/**'
-              - '.github/workflows/**'
               - 'rekordbox_edit/**'
               - 'tests/**'
               - 'pyproject.toml'
