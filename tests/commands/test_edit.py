@@ -207,6 +207,28 @@ class TestEditCommandPhase1:
     @patch("rekordbox_edit.commands.edit.confirm")
     @patch("rekordbox_edit.commands.edit.get_filtered_content")
     @patch("rekordbox_edit.commands.edit.Rekordbox6Database")
+    def test_interactive_and_yes_skips_all_confirms(
+        self, mock_db_class, mock_gfc, mock_confirm, make_djmd_content_item
+    ):
+        """--interactive + --yes skips both batch and per-track confirms."""
+        track = make_djmd_content_item(Title="Old Title")
+        mock_db, mock_result = _make_db_and_result([track])
+        mock_db_class.return_value = mock_db
+        mock_gfc.return_value = mock_result
+
+        from click.testing import CliRunner
+        result = CliRunner().invoke(
+            edit_command,
+            ["Title", "--replace", "New Title", "--interactive", "--yes"],
+        )
+
+        assert result.exit_code == 0
+        mock_confirm.assert_not_called()
+        mock_db.session.commit.assert_called_once()
+
+    @patch("rekordbox_edit.commands.edit.confirm")
+    @patch("rekordbox_edit.commands.edit.get_filtered_content")
+    @patch("rekordbox_edit.commands.edit.Rekordbox6Database")
     def test_print_ids_outputs_edited_track_ids(
         self, mock_db_class, mock_gfc, mock_confirm, make_djmd_content_item
     ):
