@@ -427,3 +427,104 @@ class TestEditCommandUnicode:
 
         assert result.exit_code == 0
         mock_db.session.commit.assert_not_called()
+
+
+class TestEditCommandPhase4:
+    """Phase 4: --multi flag to allow batch edits past the single-track guard."""
+
+    @patch("rekordbox_edit.commands.edit.confirm")
+    @patch("rekordbox_edit.commands.edit.get_filtered_content")
+    @patch("rekordbox_edit.commands.edit.Rekordbox6Database")
+    def test_multi_allows_editing_multiple_tracks(
+        self, mock_db_class, mock_gfc, mock_confirm, make_djmd_content_item
+    ):
+        """--multi bypasses the single-track guard and edits all matched tracks."""
+        tracks = [
+            make_djmd_content_item(Title="Track A (feat. X)"),
+            make_djmd_content_item(Title="Track B (feat. Y)"),
+        ]
+        mock_db, mock_result = _make_db_and_result(tracks)
+        mock_db_class.return_value = mock_db
+        mock_gfc.return_value = mock_result
+        mock_confirm.return_value = True
+
+        from click.testing import CliRunner
+        result = CliRunner().invoke(
+            edit_command,
+            ["Title", "--match", "feat.", "--replace", "ft.", "--multi"],
+        )
+
+        assert result.exit_code == 0
+        assert tracks[0].Title == "Track A (ft. X)"
+        assert tracks[1].Title == "Track B (ft. Y)"
+        mock_db.session.commit.assert_called_once()
+
+    @patch("rekordbox_edit.commands.edit.get_filtered_content")
+    @patch("rekordbox_edit.commands.edit.Rekordbox6Database")
+    def test_without_multi_still_aborts_on_multiple(
+        self, mock_db_class, mock_gfc, make_djmd_content_item
+    ):
+        """Without --multi, the single-track guard still aborts on multiple matches."""
+        tracks = [
+            make_djmd_content_item(Title="Track A"),
+            make_djmd_content_item(Title="Track B"),
+        ]
+        mock_db, mock_result = _make_db_and_result(tracks)
+        mock_db_class.return_value = mock_db
+        mock_gfc.return_value = mock_result
+
+        from click.testing import CliRunner
+        result = CliRunner().invoke(
+            edit_command, ["Title", "--replace", "New", "--yes"]
+        )
+
+        assert result.exit_code != 0
+        mock_db.session.commit.assert_not_called()
+
+    @patch("rekordbox_edit.commands.edit.confirm")
+    @patch("rekordbox_edit.commands.edit.get_filtered_content")
+    @patch("rekordbox_edit.commands.edit.Rekordbox6Database")
+    def test_multi_with_yes_skips_confirm(
+        self, mock_db_class, mock_gfc, mock_confirm, make_djmd_content_item
+    ):
+        """--multi --yes edits multiple tracks without prompting."""
+        tracks = [
+            make_djmd_content_item(Title="Track A"),
+            make_djmd_content_item(Title="Track B"),
+        ]
+        mock_db, mock_result = _make_db_and_result(tracks)
+        mock_db_class.return_value = mock_db
+        mock_gfc.return_value = mock_result
+
+        from click.testing import CliRunner
+        result = CliRunner().invoke(
+            edit_command,
+            ["Title", "--replace", "New", "--multi", "--yes"],
+        )
+
+        assert result.exit_code == 0
+        mock_confirm.assert_not_called()
+        mock_db.session.commit.assert_called_once()
+
+    @patch("rekordbox_edit.commands.edit.confirm")
+    @patch("rekordbox_edit.commands.edit.get_filtered_content")
+    @patch("rekordbox_edit.commands.edit.Rekordbox6Database")
+    def test_multi_single_track_still_works(
+        self, mock_db_class, mock_gfc, mock_confirm, make_djmd_content_item
+    ):
+        """--multi with only one matching track works fine (guard is not inverted)."""
+        track = make_djmd_content_item(Title="Only Track")
+        mock_db, mock_result = _make_db_and_result([track])
+        mock_db_class.return_value = mock_db
+        mock_gfc.return_value = mock_result
+        mock_confirm.return_value = True
+
+        from click.testing import CliRunner
+        result = CliRunner().invoke(
+            edit_command,
+            ["Title", "--replace", "New Title", "--multi"],
+        )
+
+        assert result.exit_code == 0
+        assert track.Title == "New Title"
+        mock_db.session.commit.assert_called_once()

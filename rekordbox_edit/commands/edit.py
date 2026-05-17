@@ -73,6 +73,11 @@ def _compute_new_value(
     metavar="PATTERN",
     help="Find this literal string within the field value and replace only that portion",
 )
+@click.option(
+    "--multi",
+    is_flag=True,
+    help="Allow editing more than one track (required when filters match multiple tracks)",
+)
 @track_ids_argument
 @click.argument(
     "field",
@@ -82,6 +87,7 @@ def edit_command(
     field: str,
     replace_value: str,
     match_pattern: str | None,
+    multi: bool,
     dry_run: bool,
     yes: bool,
     interactive: bool,
@@ -157,10 +163,10 @@ def edit_command(
         logger.info("No changes to make.")
         return
 
-    if len(edits) > 1:
+    if len(edits) > 1 and not multi:
         raise click.UsageError(
             f"Found {len(edits)} tracks that would be edited. "
-            "Refine your filters, or use --dry-run to inspect."
+            "Refine your filters, use --dry-run to inspect, or pass --multi to edit all."
         )
 
     print_track_info([t for t, _ in edits])
