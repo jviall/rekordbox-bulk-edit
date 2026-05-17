@@ -14,7 +14,9 @@ from enum import Enum
 from typing import Dict, Sequence
 
 from pyrekordbox.db6 import DjmdContent
+from rich import box
 from rich.console import Console
+from rich.table import Table
 
 from rekordbox_edit.utils import get_file_type_name
 
@@ -52,18 +54,18 @@ PRINT_WIDTHS: Dict[PrintableField, int] = {
     PrintableField.FolderPath: 80,
 }
 
-# Print header
+# Column headers shown in the rendered table
 PRINT_HEADERS: Dict[PrintableField, str] = {
-    PrintableField.ID: f"{'ID':<{PRINT_WIDTHS[PrintableField.ID]}}",
-    PrintableField.FileNameL: f"{'File':<{PRINT_WIDTHS[PrintableField.FileNameL]}}",
-    PrintableField.Title: f"{'Title':<{PRINT_WIDTHS[PrintableField.Title]}}",
-    PrintableField.ArtistName: f"{'Artist':<{PRINT_WIDTHS[PrintableField.ArtistName]}}",
-    PrintableField.AlbumName: f"{'Album':<{PRINT_WIDTHS[PrintableField.AlbumName]}}",
-    PrintableField.FileType: f"{'Type':<{PRINT_WIDTHS[PrintableField.FileType]}}",
-    PrintableField.SampleRate: f"{'SampleRt':<{PRINT_WIDTHS[PrintableField.SampleRate]}}",
-    PrintableField.BitRate: f"{'BitRt':<{PRINT_WIDTHS[PrintableField.BitRate]}}",
-    PrintableField.BitDepth: f"{'BitDp':<{PRINT_WIDTHS[PrintableField.BitDepth]}}",
-    PrintableField.FolderPath: f"{'FolderPath':<{PRINT_WIDTHS[PrintableField.FolderPath]}}",
+    PrintableField.ID: "ID",
+    PrintableField.FileNameL: "File",
+    PrintableField.Title: "Title",
+    PrintableField.ArtistName: "Artist",
+    PrintableField.AlbumName: "Album",
+    PrintableField.FileType: "Type",
+    PrintableField.SampleRate: "SampleRt",
+    PrintableField.BitRate: "BitRt",
+    PrintableField.BitDepth: "BitDp",
+    PrintableField.FolderPath: "FolderPath",
 }
 
 
@@ -76,6 +78,17 @@ def truncate_field(field: PrintableField, value: str | None):
     start_chars = available // 5 * 2
     end_chars = available - start_chars
     return f"{value[:start_chars]}...{value[-end_chars:]}"
+
+
+def _cell_value(content: DjmdContent, column: PrintableField) -> str:
+    """Render a single DjmdContent field as a string for a table cell."""
+    if column is PrintableField.ID:
+        return str(content.ID)
+    if column is PrintableField.FileType:
+        return get_file_type_name(content.FileType)
+    if column in (PrintableField.SampleRate, PrintableField.BitRate, PrintableField.BitDepth):
+        return str(getattr(content, column.value))
+    return truncate_field(column, getattr(content, column.value))
 
 
 def print_track_info(
@@ -95,31 +108,13 @@ def print_track_info(
         PrintableField.FolderPath,
     ]
 
-    # Calculate width for position column: 2 spaces + digits needed for max position
-    pos_width = 2 + len(str(len(content_list)))
-    header = f"{'#':<{pos_width}}" + "  ".join(
-        map(lambda col: PRINT_HEADERS[col], print_columns)
-    )
-    logger.info(header)
-    logger.info("-" * len(header))
+    table = Table(show_header=True, box=box.SIMPLE)
+    table.add_column("#", justify="right")
+    for column in print_columns:
+        table.add_column(PRINT_HEADERS[column])
 
-    # Print each track
     for i, content in enumerate(content_list, 1):
-        # Print row
-        rows = {
-            PrintableField.ID: f"{content.ID:<{PRINT_WIDTHS[PrintableField.ID]}}",
-            PrintableField.FileNameL: f"{truncate_field(PrintableField.FileNameL, content.FileNameL):<{PRINT_WIDTHS[PrintableField.FileNameL]}}",
-            PrintableField.Title: f"{truncate_field(PrintableField.Title, content.Title):<{PRINT_WIDTHS[PrintableField.Title]}}",
-            PrintableField.AlbumName: f"{truncate_field(PrintableField.AlbumName, content.AlbumName):<{PRINT_WIDTHS[PrintableField.AlbumName]}}",
-            PrintableField.ArtistName: f"{truncate_field(PrintableField.ArtistName, content.ArtistName):<{PRINT_WIDTHS[PrintableField.ArtistName]}}",
-            PrintableField.FileType: f"{get_file_type_name(content.FileType):<{PRINT_WIDTHS[PrintableField.FileType]}}",
-            PrintableField.SampleRate: f"{content.SampleRate:<{PRINT_WIDTHS[PrintableField.SampleRate]}}",
-            PrintableField.BitRate: f"{content.BitRate:<{PRINT_WIDTHS[PrintableField.BitRate]}}",
-            PrintableField.BitDepth: f"{content.BitDepth:<{PRINT_WIDTHS[PrintableField.BitDepth]}}",
-            PrintableField.FolderPath: f"{truncate_field(PrintableField.FolderPath, content.FolderPath):<{PRINT_WIDTHS[PrintableField.FolderPath]}}",
-        }
+        table.add_row(str(i), *(_cell_value(content, col) for col in print_columns))
 
-        row = f"{i:<{pos_width}}" + "  ".join(map(lambda col: rows[col], print_columns))
-
-        logger.info(row)
-    logger.info("")
+    console.print(table)
+    logger.debug(console.export_text(clear=True))

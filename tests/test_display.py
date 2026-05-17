@@ -2,8 +2,11 @@
 
 from typing import Callable
 
+import pytest
 from pyrekordbox.db6 import DjmdContent
+from rich.console import Console
 
+from rekordbox_edit import display
 from rekordbox_edit.display import (
     PRINT_WIDTHS,
     PrintableField,
@@ -11,6 +14,16 @@ from rekordbox_edit.display import (
     truncate_field,
 )
 from rekordbox_edit.utils import get_file_type_name
+
+
+@pytest.fixture
+def wide_console(monkeypatch):
+    """Swap the module console for one wide enough to render without truncation.
+
+    Rich's default non-TTY width is 80 cols, which truncates long values
+    (e.g. FolderPath) with an ellipsis and makes substring assertions flaky.
+    """
+    monkeypatch.setattr(display, "console", Console(record=True, width=400))
 
 
 class TestTruncateField:
@@ -81,7 +94,10 @@ class TestPrintTrackInfo:
         assert captured.out == ""
 
     def test_default_columns(
-        self, capsys, make_djmd_content_item: Callable[[], DjmdContent]
+        self,
+        capsys,
+        wide_console,
+        make_djmd_content_item: Callable[[], DjmdContent],
     ):
         """Test printing a single track with the default print_columns.
 
@@ -103,7 +119,7 @@ class TestPrintTrackInfo:
         # The default test path is 66 chars, column width is 80, so no truncation
         assert "test_track.wav" in captured.out
 
-    def test_track_with_zero_values(self, capsys, make_djmd_content_item):
+    def test_track_with_zero_values(self, capsys, wide_console, make_djmd_content_item):
         """Test printing track with zero values."""
         # Setup mock content with zero values
         mock_content = make_djmd_content_item(
@@ -120,7 +136,7 @@ class TestPrintTrackInfo:
         data_line = [line for line in lines if "test" in line][0]
         assert data_line.count("0") == 3
 
-    def test_multiple_tracks(self, capsys, make_djmd_content_item):
+    def test_multiple_tracks(self, capsys, wide_console, make_djmd_content_item):
         """Test printing multiple tracks."""
         mock_content1 = make_djmd_content_item(
             ID=123,
