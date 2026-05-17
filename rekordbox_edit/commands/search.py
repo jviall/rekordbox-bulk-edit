@@ -16,9 +16,7 @@ from rekordbox_edit._click import (
 )
 from rekordbox_edit.logger import get_debug_file_path, set_level
 from rekordbox_edit.query import get_filtered_content
-from rekordbox_edit.utils import (
-    print_track_info,
-)
+from rekordbox_edit.display import print_track_info
 
 logger = logging.getLogger(__name__)
 
