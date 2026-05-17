@@ -16,6 +16,7 @@ from rekordbox_edit.commands.convert import (
     rollback_and_cleanup,
     update_database_record,
 )
+from rekordbox_edit.display import PrintableField
 from rekordbox_edit.utils import OutputFormats, UserQuit
 
 
@@ -671,7 +672,11 @@ class TestConvertCommand:
         result = CliRunner().invoke(convert_command, ["--dry-run"])
 
         assert result.exit_code == 0
-        mock_print_track_info.assert_called_once_with([mock_content])
+        mock_print_track_info.assert_called_once_with(
+            [mock_content],
+            changed_field=PrintableField.FileType,
+            new_values=["AIFF"],
+        )
         mock_db.session.commit.assert_not_called()
 
     @patch("rekordbox_edit.commands.convert.get_rekordbox_pid")
@@ -804,7 +809,11 @@ class TestConvertCommand:
         result = runner.invoke(convert_command, ["--dry-run"])
 
         assert result.exit_code == 0
-        mock_print_track_info.assert_called_once_with([mock_flac_content])
+        mock_print_track_info.assert_called_once_with(
+            [mock_flac_content],
+            changed_field=PrintableField.FileType,
+            new_values=["AIFF"],
+        )
 
     @patch("rekordbox_edit.commands.convert.get_rekordbox_pid")
     @patch("rekordbox_edit.commands.convert.get_filtered_content")
@@ -1570,7 +1579,11 @@ class TestConvertCommandErrorPaths:
         result = CliRunner().invoke(convert_command, ["--yes", "--dry-run"])
 
         assert result.exit_code == 0
-        mock_print_track_info.assert_called_once_with([content2])
+        mock_print_track_info.assert_called_once_with(
+            [content2],
+            changed_field=PrintableField.FileType,
+            new_values=["AIFF"],
+        )
 
     @patch("rekordbox_edit.commands.convert.print_track_info")
     @patch("rekordbox_edit.commands.convert.get_rekordbox_pid")
@@ -1613,7 +1626,11 @@ class TestConvertCommandErrorPaths:
 
         assert result.exit_code == 0
         mock_logger.warning.assert_called()
-        mock_print_track_info.assert_called_once_with([content2])
+        mock_print_track_info.assert_called_once_with(
+            [content2],
+            changed_field=PrintableField.FileType,
+            new_values=["AIFF"],
+        )
 
     @patch("rekordbox_edit.commands.convert.sys")
     @patch("rekordbox_edit.commands.convert.confirm")

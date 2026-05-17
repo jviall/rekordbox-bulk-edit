@@ -136,6 +136,46 @@ class TestPrintTrackInfo:
         data_line = [line for line in lines if "test" in line][0]
         assert data_line.count("0") == 3
 
+    def test_change_preview_renders_old_struck_through_with_new(
+        self, capsys, wide_console, make_djmd_content_item
+    ):
+        """When changed_field + new_values are provided, both old and new appear in the cell."""
+        mock_content = make_djmd_content_item(Title="Old Name")
+
+        print_track_info(
+            [mock_content],
+            print_columns=[PrintableField.Title],
+            changed_field=PrintableField.Title,
+            new_values=["New Name"],
+        )
+
+        captured = capsys.readouterr()
+        assert "Old Name" in captured.out
+        assert "New Name" in captured.out
+
+    def test_change_preview_requires_both_args(self, make_djmd_content_item):
+        """Providing only one of changed_field/new_values raises ValueError."""
+        mock_content = make_djmd_content_item()
+
+        with pytest.raises(ValueError, match="must be provided together"):
+            print_track_info(
+                [mock_content], changed_field=PrintableField.Title
+            )
+
+        with pytest.raises(ValueError, match="must be provided together"):
+            print_track_info([mock_content], new_values=["x"])
+
+    def test_change_preview_length_mismatch_raises(self, make_djmd_content_item):
+        """new_values length must match content_list length."""
+        mock_content = make_djmd_content_item()
+
+        with pytest.raises(ValueError, match="length"):
+            print_track_info(
+                [mock_content],
+                changed_field=PrintableField.Title,
+                new_values=["a", "b"],
+            )
+
     def test_multiple_tracks(self, capsys, wide_console, make_djmd_content_item):
         """Test printing multiple tracks."""
         mock_content1 = make_djmd_content_item(
