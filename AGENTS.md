@@ -89,7 +89,7 @@ Every module should get and use its own `logger` for all logging purposes and fo
 - Implement the smallest functional slice first, then layer features in follow-up commits. Each commit should be "green" and independently deployable.
 - Follow Conventional Commits (see `CONTRIBUTING.md` and the schema in `pyproject.toml`). No `Co-Authored-By` trailer.
 - Commit descriptions should be terse and use active tenses (e.g. "add feature")
-- Commit bodies should describe changes, but should not include agent conversation context, decisions, or plan notes.
+- Commit bodies are completely optional, and should be used to describe changes when they aren't easily inferred by the main message, they should not include agent conversation context, decisions, or plan notes.
 - The agent may commit. But the user always handles pushes, PR creation, and rebases after merges.
 - Do not commit spec, brainstorming, or design documents (e.g. anything under `docs/superpowers/specs/`).
 
