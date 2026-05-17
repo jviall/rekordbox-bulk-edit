@@ -22,6 +22,7 @@ from rekordbox_edit._click import (
 )
 from rekordbox_edit.logger import get_debug_file_path, set_level
 from rekordbox_edit.query import get_filtered_content
+from rekordbox_edit.display import print_track_info
 from rekordbox_edit.utils import (
     OutputFormats,
     UserQuit,
@@ -30,7 +31,6 @@ from rekordbox_edit.utils import (
     get_extension_for_format,
     get_file_type_for_format,
     get_file_type_name,
-    print_track_info,
 )
 
 logger = logging.getLogger(__name__)
