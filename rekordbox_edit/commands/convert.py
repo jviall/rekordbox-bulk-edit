@@ -22,7 +22,7 @@ from rekordbox_edit._click import (
 )
 from rekordbox_edit.logger import get_debug_file_path, set_level
 from rekordbox_edit.query import get_filtered_content
-from rekordbox_edit.display import print_track_info
+from rekordbox_edit.display import PrintableField, print_track_info
 from rekordbox_edit.utils import (
     OutputFormats,
     UserQuit,
@@ -456,7 +456,11 @@ def convert_command(
         logger.info(
             f"Found {len(files_to_process)} files to convert to {format_out.upper()}"
         )
-        print_track_info(files_to_process)
+        print_track_info(
+            files_to_process,
+            changed_field=PrintableField.FileType,
+            new_values=[format_out.upper()] * len(files_to_process),
+        )
 
         if dry_run:
             if print_opt is PrintChoice.IDS:

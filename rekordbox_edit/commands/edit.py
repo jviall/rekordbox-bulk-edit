@@ -16,7 +16,7 @@ from rekordbox_edit._click import (
 )
 from rekordbox_edit.logger import get_debug_file_path, set_level
 from rekordbox_edit.query import get_filtered_content
-from rekordbox_edit.display import print_track_info
+from rekordbox_edit.display import PrintableField, print_track_info
 from rekordbox_edit.utils import UserQuit, confirm
 
 logger = logging.getLogger(__name__)
@@ -170,7 +170,11 @@ def edit_command(
             "Refine your filters, use --dry-run to inspect, or pass --multi to edit all."
         )
 
-    print_track_info([t for t, _ in edits])
+    print_track_info(
+        [t for t, _ in edits],
+        changed_field=PrintableField[field],
+        new_values=[str(v) for _, v in edits],
+    )
 
     if dry_run:
         if print_opt is PrintChoice.IDS:

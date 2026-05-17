@@ -94,8 +94,24 @@ def _cell_value(content: DjmdContent, column: PrintableField) -> str:
 def print_track_info(
     content_list: Sequence[DjmdContent],
     print_columns: Sequence[PrintableField] | None = None,
+    changed_field: PrintableField | None = None,
+    new_values: Sequence[str] | None = None,
 ):
-    """Print formatted track information"""
+    """Print formatted track information.
+
+    When ``changed_field`` and ``new_values`` are both provided, the matching
+    column renders each row as a before/after preview: the old value is
+    struck through and the new value is appended.
+    """
+    if (changed_field is None) != (new_values is None):
+        raise ValueError(
+            "changed_field and new_values must be provided together"
+        )
+    if new_values is not None and len(new_values) != len(content_list):
+        raise ValueError(
+            f"new_values length ({len(new_values)}) must match content_list length ({len(content_list)})"
+        )
+
     if not content_list:
         return
 
@@ -114,7 +130,14 @@ def print_track_info(
         table.add_column(PRINT_HEADERS[column])
 
     for i, content in enumerate(content_list, 1):
-        table.add_row(str(i), *(_cell_value(content, col) for col in print_columns))
+        cells = []
+        for col in print_columns:
+            old = _cell_value(content, col)
+            if col is changed_field and new_values is not None:
+                cells.append(f"[strike]{old}[/strike] [bold]{new_values[i - 1]}[/bold]")
+            else:
+                cells.append(old)
+        table.add_row(str(i), *cells)
 
     console.print(table)
     logger.debug(console.export_text(clear=True))
