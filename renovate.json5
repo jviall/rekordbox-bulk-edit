@@ -7,6 +7,7 @@
     ":label(dependencies)",
     ":enablePreCommit",
     ":automergePr",
+    "helpers:pinGitHubActionDigests",
     "schedule:daily",
     "schedule:automergeDaily",
   ],
@@ -14,18 +15,19 @@
   branchPrefix: "chore/deps/",
   commitMessageAction: "update",
   minimumReleaseAge: "3 days",
+  // Keep version ranges; bump uv.lock to the newest in-range version.
+  rangeStrategy: "update-lockfile",
 
   packageRules: [
     {
-      description: "GitHub Actions: maintain digest pins, auto-merge minor/patch/digest",
+      description: "GitHub Actions: auto-merge digest pins and minor/patch",
       matchManagers: ["github-actions"],
-      pinDigests: true,
-      matchUpdateTypes: ["minor", "patch", "digest"],
+      matchUpdateTypes: ["minor", "patch", "digest", "pinDigest"],
       automerge: true,
     },
     {
       description: "Python deps: auto-merge minor/patch for uv-managed packages",
-      matchManagers: ["uv"],
+      matchManagers: ["pep621"],
       matchUpdateTypes: ["minor", "patch"],
       automerge: true,
     },
