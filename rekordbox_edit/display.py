@@ -10,6 +10,7 @@ Plain text output should continue to use ``logger.info()``.
 """
 
 import logging
+import os
 from enum import Enum
 from typing import Dict, Sequence
 
@@ -40,20 +41,6 @@ class PrintableField(Enum):
     Title = "Title"
 
 
-# Column widths (total ≈ 240 chars with spacing)
-PRINT_WIDTHS: Dict[PrintableField, int] = {
-    PrintableField.ID: 10,
-    PrintableField.FileNameL: 25,
-    PrintableField.Title: 25,
-    PrintableField.ArtistName: 20,
-    PrintableField.AlbumName: 20,
-    PrintableField.FileType: 4,
-    PrintableField.SampleRate: 8,
-    PrintableField.BitRate: 5,
-    PrintableField.BitDepth: 5,
-    PrintableField.FolderPath: 80,
-}
-
 # Column headers shown in the rendered table
 PRINT_HEADERS: Dict[PrintableField, str] = {
     PrintableField.ID: "ID",
@@ -65,19 +52,8 @@ PRINT_HEADERS: Dict[PrintableField, str] = {
     PrintableField.SampleRate: "SampleRt",
     PrintableField.BitRate: "BitRt",
     PrintableField.BitDepth: "BitDp",
-    PrintableField.FolderPath: "FolderPath",
+    PrintableField.FolderPath: "Folder",
 }
-
-
-def truncate_field(field: PrintableField, value: str | None):
-    if value is None:
-        return ""
-    if len(value) <= PRINT_WIDTHS[field]:
-        return value
-    available = PRINT_WIDTHS[field] - 3  # Reserve 3 chars for "..."
-    start_chars = available // 5 * 2
-    end_chars = available - start_chars
-    return f"{value[:start_chars]}...{value[-end_chars:]}"
 
 
 def _cell_value(content: DjmdContent, column: PrintableField) -> str:
@@ -86,9 +62,10 @@ def _cell_value(content: DjmdContent, column: PrintableField) -> str:
         return str(content.ID)
     if column is PrintableField.FileType:
         return get_file_type_name(content.FileType)
-    if column in (PrintableField.SampleRate, PrintableField.BitRate, PrintableField.BitDepth):
-        return str(getattr(content, column.value))
-    return truncate_field(column, getattr(content, column.value))
+    if column is PrintableField.FolderPath:
+        return os.path.dirname(content.FolderPath or "")
+    value = getattr(content, column.value)
+    return "" if value is None else str(value)
 
 
 def print_track_info(
@@ -104,9 +81,7 @@ def print_track_info(
     struck through and the new value is appended.
     """
     if (changed_field is None) != (new_values is None):
-        raise ValueError(
-            "changed_field and new_values must be provided together"
-        )
+        raise ValueError("changed_field and new_values must be provided together")
     if new_values is not None and len(new_values) != len(content_list):
         raise ValueError(
             f"new_values length ({len(new_values)}) must match content_list length ({len(content_list)})"
@@ -122,12 +97,13 @@ def print_track_info(
         PrintableField.SampleRate,
         PrintableField.BitDepth,
         PrintableField.FolderPath,
+        PrintableField.FileNameL,
     ]
 
     table = Table(show_header=True, box=box.SIMPLE)
     table.add_column("#", justify="right")
     for column in print_columns:
-        table.add_column(PRINT_HEADERS[column])
+        table.add_column(PRINT_HEADERS[column], no_wrap=True, overflow="ellipsis")
 
     for i, content in enumerate(content_list, 1):
         cells = []
