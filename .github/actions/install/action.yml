@@ -5,12 +5,12 @@ runs:
   using: "composite"
   steps:
     - name: Install UV
-      uses: astral-sh/setup-uv@v4
+      uses: astral-sh/setup-uv@38f3f104447c67c051c4a08e39b64a148898af3a # v4
       with:
         enable-cache: true
 
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@7f4fc3e22c37d6ff65e88745f38bd3157c663f7c # v4
       with:
         python-version: ${{ env.PYTHON }}
 
