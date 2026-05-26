@@ -20,23 +20,34 @@
 
   packageRules: [
     {
-      description: "GitHub Actions: auto-merge digest pins and minor/patch",
       matchManagers: ["github-actions"],
+      groupName: "github actions",
       matchUpdateTypes: ["minor", "patch", "digest", "pinDigest"],
       automerge: true,
     },
     {
-      description: "Python deps: auto-merge minor/patch for uv-managed packages",
+      matchManagers: ["pre-commit"],
+      groupName: "pre-commit hooks",
+      matchUpdateTypes: ["minor", "patch"],
+      automerge: true,
+    },
+
+    {
       matchManagers: ["pep621"],
       matchUpdateTypes: ["minor", "patch"],
       automerge: true,
     },
     {
-      description: "pre-commit hooks: group and auto-merge minor/patch",
-      matchManagers: ["pre-commit"],
-      groupName: "pre-commit hooks",
-      matchUpdateTypes: ["minor", "patch"],
-      automerge: true,
+      matchPackageNames: ["ruff", "ty"],
+      groupName: "linters",
+    },
+    {
+      matchPackageNames: ["commitizen", "pre-commit"],
+      groupName: "commit tooling",
+    },
+    {
+      matchPackageNames: ["pytest", "pytest-*", "callee"],
+      groupName: "testing",
     },
   ],
 }
