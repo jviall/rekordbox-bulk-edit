@@ -8,33 +8,34 @@ on:
 
 jobs:
   code-change:
-    name: Detect Changes
-    runs-on: ubuntu-latest
+    name: Skip Checks?
+    runs-on: ubuntu-slim
     outputs:
       should_skip: ${{ steps.skip_check.outputs.should_skip }}
-      code: ${{ steps.filter.outputs.code }}
+      paths_result: ${{ steps.skip_check.outputs.paths_result }}
     steps:
       - id: skip_check
         uses: fkirc/skip-duplicate-actions@04a1aebece824b56e6ad6a401d015479cd1c50b3 # master
-
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-
-      - uses: dorny/paths-filter@d1c1ffe0248fe513906c8e24db8ea791d46f8590 # v3
-        id: filter
         with:
-          filters: |
+          cancel_others: true
+          concurrent_skipping: same_content_newer
+          paths_filter: |
             code:
-              - 'rekordbox_edit/**'
-              - 'tests/**'
-              - 'pyproject.toml'
-              - 'uv.lock'
-              - 'Makefile'
-              - 'ruff.toml'
+              paths:
+                - 'rekordbox_edit/**'
+                - 'tests/**'
+                - 'pyproject.toml'
+                - 'uv.lock'
+                - 'Makefile'
+                - 'ruff.toml'
+              paths_ignore:
+                - '**/*.md'
 
   lint:
     name: 🧺 Lint
     runs-on: ubuntu-latest
-    if: ${{ needs.code-change.outputs.code == 'true' }}
+    needs: code-change
+    if: ${{ needs.code-change.outputs.should_skip != 'true' && !fromJSON(needs.code-change.outputs.paths_result || '{}').code.should_skip }}
     env:
       PYTHON: "3.13"
     steps:
@@ -47,7 +48,7 @@ jobs:
   unit-tests:
     name: 🧪 Tests
     needs: code-change
-    if: ${{ needs.code-change.outputs.should_skip != 'true' && needs.code-change.outputs.code == 'true' }}
+    if: ${{ needs.code-change.outputs.should_skip != 'true' && !fromJSON(needs.code-change.outputs.paths_result || '{}').code.should_skip }}
     strategy:
       fail-fast: false
       matrix:
