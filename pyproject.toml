@@ -41,6 +41,10 @@ Issues = "https://github.com/jviall/rekordbox-edit/issues"
 rekordbox-edit = "rekordbox_edit.cli:main"
 rbe = "rekordbox_edit.cli:main"
 
+[tool.uv]
+# Mirror Renovate's minimumReleaseAge
+exclude-newer = "3 days"
+
 [tool.coverage.run]
 branch = true
 data_file = ".coverage/coverage.db"
