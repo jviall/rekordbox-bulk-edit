@@ -106,9 +106,7 @@ class TestPrintTrackInfo:
         mock_content = make_djmd_content_item()
 
         with pytest.raises(ValueError, match="must be provided together"):
-            print_track_info(
-                [mock_content], changed_field=PrintableField.Title
-            )
+            print_track_info([mock_content], changed_field=PrintableField.Title)
 
         with pytest.raises(ValueError, match="must be provided together"):
             print_track_info([mock_content], new_values=["x"])
@@ -147,3 +145,18 @@ class TestPrintTrackInfo:
         assert "track2.mp3" in captured.out
         assert "FLAC" in captured.out
         assert "MP3" in captured.out
+
+    def test_track_with_unknown_file_type(
+        self, capsys, wide_console, make_djmd_content_item
+    ):
+        """Test printing track with unknown file type."""
+        # Setup mock content with zero values
+        mock_content = make_djmd_content_item(
+            ID=123,
+            FileType=6,
+        )
+
+        print_track_info([mock_content], self.TEST_PRINT_COLUMNS)
+
+        captured = capsys.readouterr()
+        assert "UNKNOWN" in captured.out
