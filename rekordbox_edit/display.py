@@ -61,7 +61,13 @@ def _cell_value(content: DjmdContent, column: PrintableField) -> str:
     if column is PrintableField.ID:
         return str(content.ID)
     if column is PrintableField.FileType:
-        return get_file_type_name(content.FileType)
+        try:
+            return get_file_type_name(content.FileType)
+        except ValueError:
+            logger.warning(
+                f"Unexpected FileType [{content.FileType}] for track ID [{content.ID}]"
+            )
+            return "UNKNOWN"
     if column is PrintableField.FolderPath:
         return os.path.dirname(content.FolderPath or "")
     value = getattr(content, column.value)
