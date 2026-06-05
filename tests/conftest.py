@@ -4,6 +4,8 @@ from unittest.mock import MagicMock
 import pytest
 from pyrekordbox.db6 import DjmdContent
 
+from rekordbox_edit.args import Track
+
 
 @pytest.fixture
 def mock_db():
@@ -43,3 +45,27 @@ def make_djmd_content_item():
         return item
 
     yield factory
+
+
+@pytest.fixture()
+def make_track():
+    """Factory that returns a Track with sensible defaults."""
+
+    def factory(**kwargs) -> Track:
+        return Track(
+            ID=kwargs.get("ID", "0"),
+            Title=kwargs.get("Title", "Test Song"),
+            ArtistName=kwargs.get("ArtistName", "Test Artist"),
+            AlbumName=kwargs.get("AlbumName", "Test Album"),
+            FileNameL=kwargs.get("FileNameL", "test-song.wav"),
+            FolderPath=kwargs.get(
+                "FolderPath",
+                "/super/very/extra/unnecessarily/long/path/to/music/test_track.wav",
+            ),
+            SampleRate=kwargs.get("SampleRate", 41000),
+            BitDepth=kwargs.get("BitDepth", 16),
+            BitRate=kwargs.get("BitRate", 2113),
+            FileType=kwargs.get("FileType", 11),
+        )
+
+    return factory
