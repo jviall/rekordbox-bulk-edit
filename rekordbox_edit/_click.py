@@ -142,6 +142,25 @@ edit_click_options = [
     ),
 ]
 
+convert_click_options = [
+    click.option(
+        "--delete/--keep",
+        default=None,
+        help="Delete or keep original files after conversion (default: delete for lossless, keep for MP3)",
+    ),
+    click.option(
+        "--overwrite",
+        is_flag=True,
+        help="Overwrite existing output files instead of skipping them",
+    ),
+    click.option(
+        "--format-out",
+        type=click.Choice(["aiff", "flac", "wav", "alac", "mp3"], case_sensitive=False),
+        default="aiff",
+        help="Output format (default: aiff)",
+    ),
+]
+
 
 def add_click_options(options):
     def _add_options(func):
