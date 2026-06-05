@@ -75,3 +75,51 @@ def confirmation_args_from_kwargs(**kwargs) -> ConfirmationArgs:
         yes=bool(kwargs.get("yes", False)),
         interactive=bool(kwargs.get("interactive", False)),
     )
+
+
+@dataclass
+class EditArgs:
+    """Edit-command inputs that describe what to change.
+
+    `field` names a column from `FIELD_COLUMNS` in `commands/edit.py`.
+    `match_pattern` is the optional substring to find within the current value;
+    when omitted, the whole value is replaced. `multi` allows the edit to
+    apply to more than one matched track.
+    """
+
+    field: str
+    replace_value: str
+    match_pattern: str | None = None
+    multi: bool = False
+
+
+def edit_args_from_kwargs(**kwargs) -> EditArgs:
+    """Pack the flat Click kwargs for the `edit_click_options` group plus `field` into an EditArgs."""
+    return EditArgs(
+        field=kwargs["field"],
+        replace_value=kwargs["replace_value"],
+        match_pattern=kwargs.get("match_pattern"),
+        multi=bool(kwargs.get("multi", False)),
+    )
+
+
+@dataclass
+class ConvertArgs:
+    """Convert-command inputs that describe the output and conflict policy.
+
+    `delete` is tri-state: `None` defers to a per-format default in
+    `_convert`, while `True` / `False` are explicit.
+    """
+
+    format_out: str
+    delete: bool | None = None
+    overwrite: bool = False
+
+
+def convert_args_from_kwargs(**kwargs) -> ConvertArgs:
+    """Pack the flat Click kwargs for the `convert_click_options` group into a ConvertArgs."""
+    return ConvertArgs(
+        format_out=kwargs["format_out"],
+        delete=kwargs.get("delete"),
+        overwrite=bool(kwargs.get("overwrite", False)),
+    )

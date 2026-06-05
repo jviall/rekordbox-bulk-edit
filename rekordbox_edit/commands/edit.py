@@ -18,8 +18,10 @@ from rekordbox_edit._click import (
 )
 from rekordbox_edit.args import (
     ConfirmationArgs,
+    EditArgs,
     FilterArgs,
     confirmation_args_from_kwargs,
+    edit_args_from_kwargs,
     filter_args_from_kwargs,
 )
 from rekordbox_edit.logger import get_debug_file_path, set_level
@@ -108,16 +110,19 @@ def edit_command(
     confirmation = confirmation_args_from_kwargs(
         dry_run=dry_run, yes=yes, interactive=interactive
     )
-    _edit(filters, confirmation, field, replace_value, match_pattern, multi, print_opt)
+    edit_args = edit_args_from_kwargs(
+        field=field,
+        replace_value=replace_value,
+        match_pattern=match_pattern,
+        multi=multi,
+    )
+    _edit(filters, confirmation, edit_args, print_opt)
 
 
 def _edit(
     filters: FilterArgs,
     confirmation: ConfirmationArgs,
-    field: str,
-    replace_value: str,
-    match_pattern: str | None,
-    multi: bool,
+    edit_args: EditArgs,
     print_opt: PrintChoice | None,
 ) -> None:
     """Apply a field edit to tracks matching `filters`."""
@@ -125,6 +130,12 @@ def _edit(
         confirmation.dry_run,
         confirmation.yes,
         confirmation.interactive,
+    )
+    field, replace_value, match_pattern, multi = (
+        edit_args.field,
+        edit_args.replace_value,
+        edit_args.match_pattern,
+        edit_args.multi,
     )
     set_level(print_opt)
 
