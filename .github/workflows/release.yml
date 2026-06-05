@@ -32,6 +32,9 @@ jobs:
           git_tag_gpgsign: true
           git_push_gpgsign: false
 
+      - name: Remove canary dev tags
+        run: git tag -l '*dev*' | xargs --no-run-if-empty git tag -d
+
       - name: Create bump and changelog
         uses: ./.github/actions/commitizen-bump
         with:

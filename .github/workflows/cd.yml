@@ -16,14 +16,29 @@ on:
   workflow_dispatch:
 
 jobs:
+  pre_job:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    outputs:
+      should_skip: ${{ steps.skip_check.outputs.should_skip }}
+    steps:
+      - id: skip_check
+        uses: fkirc/skip-duplicate-actions@v5
+        with:
+          concurrent_skipping: "same_content_newer"
+          cancel_others: "true"
+
   ci:
+    needs: pre_job
+    if: needs.pre_job.outputs.should_skip != 'true'
     uses: ./.github/workflows/ci.yml
     secrets: inherit
 
   canary-release:
     name: 📦 Canary Release
-    needs: ci
-    if: "!startsWith(github.event.head_commit.message, 'bump:')"
+    needs: [pre_job, ci]
+    if: "needs.pre_job.outputs.should_skip != 'true' && !startsWith(github.event.head_commit.message, 'bump:')"
     runs-on: ubuntu-latest
     environment: canary-publish
     permissions:
@@ -41,11 +56,24 @@ jobs:
       - name: Setup UV
         uses: ./.github/actions/install
 
+      - name: Find last stable release
+        id: last_stable
+        run: |
+          echo "tag=$(gh release list --exclude-pre-releases --limit 1 --json tagName -q '.[0].tagName')" >> $GITHUB_OUTPUT
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Compute canary increment
+        id: canary_increment
+        run: |
+          count=$(git tag -l "canary-${{ steps.last_stable.outputs.tag }}-dev*" | wc -l | tr -d '[:space:]')
+          echo "increment=$((count + 1))" >> $GITHUB_OUTPUT
+
       - name: Bump to dev version
         id: bump
         uses: ./.github/actions/commitizen-bump
         with:
-          devrelease: ${{ github.run_number }}
+          devrelease: ${{ steps.canary_increment.outputs.increment }}
           commit: false
           push: false
           changelog: false
@@ -60,33 +88,26 @@ jobs:
 
       - name: Create and push tag
         run: |
-          git tag v${{ steps.version.outputs.version }}
-          git push origin v${{ steps.version.outputs.version }}
+          git tag canary-${{ steps.last_stable.outputs.tag }}-dev${{ steps.canary_increment.outputs.increment }}
+          git push origin canary-${{ steps.last_stable.outputs.tag }}-dev${{ steps.canary_increment.outputs.increment }}
 
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b # release/v1
         with:
           skip-existing: true
 
-      - name: Find last stable release
-        id: last_stable
-        run: |
-          echo "tag=$(gh release list --exclude-pre-releases --limit 1 --json tagName -q '.[0].tagName')" >> $GITHUB_OUTPUT
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Build release notes
         uses: ./.github/actions/build-release-notes
         with:
           from_tag: ${{ steps.last_stable.outputs.tag }}
-          to_tag: v${{ steps.version.outputs.version }}
+          to_tag: canary-${{ steps.last_stable.outputs.tag }}-dev${{ steps.canary_increment.outputs.increment }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create GitHub Pre-Release
         uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda # v3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          tag_name: v${{ steps.version.outputs.version }}
+          tag_name: canary-${{ steps.last_stable.outputs.tag }}-dev${{ steps.canary_increment.outputs.increment }}
           name: v${{ steps.version.outputs.version }}
           prerelease: true
           body_path: release-notes.md
