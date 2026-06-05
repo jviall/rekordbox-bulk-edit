@@ -5,7 +5,7 @@ import os
 import signal
 import sys
 from pathlib import Path
-from typing import List, Tuple
+from typing import Tuple
 
 import click
 import ffmpeg
@@ -22,14 +22,7 @@ from rekordbox_edit._click import (
     print_option,
     track_ids_argument,
 )
-from rekordbox_edit.args import (
-    ConfirmationArgs,
-    ConvertArgs,
-    FilterArgs,
-    confirmation_args_from_kwargs,
-    convert_args_from_kwargs,
-    filter_args_from_kwargs,
-)
+from rekordbox_edit.args import ConvertCommandArgs
 from rekordbox_edit.logger import get_debug_file_path, set_level
 from rekordbox_edit.query import get_filtered_content
 from rekordbox_edit.display import PrintableField, print_track_info
@@ -263,29 +256,7 @@ def get_output_path(content, output_format) -> Tuple[str, str, str]:
         track_ids_argument,
     ]
 )
-def convert_command(
-    dry_run,
-    yes,
-    delete,
-    overwrite,
-    interactive,
-    format_out,
-    track_id: List[str] | None,
-    track_ids: List[str] | None,
-    title: List[str] | None,
-    exact_title: List[str] | None,
-    album: List[str] | None,
-    exact_album: List[str] | None,
-    artist: List[str] | None,
-    exact_artist: List[str] | None,
-    playlist: List[str] | None,
-    exact_playlist: List[str] | None,
-    path: List[str] | None,
-    exact_path: List[str] | None,
-    format: List[str] | None,
-    match_all: bool,
-    print_opt: PrintChoice | None,
-):
+def convert_command(**kwargs):
     """Convert lossless audio files between formats and update RekordBox database.
 
     Supports conversion from any lossless format (FLAC, AIFF, WAV) to:
@@ -293,57 +264,23 @@ def convert_command(
 
     Skips lossy formats and files already in the target format.
     """
-    filters = filter_args_from_kwargs(
-        track_id=track_id,
-        track_ids=track_ids,
-        playlist=playlist,
-        exact_playlist=exact_playlist,
-        album=album,
-        exact_album=exact_album,
-        artist=artist,
-        exact_artist=exact_artist,
-        title=title,
-        exact_title=exact_title,
-        path=path,
-        exact_path=exact_path,
-        format=format,
-        match_all=match_all,
-    )
-    confirmation = confirmation_args_from_kwargs(
-        dry_run=dry_run, yes=yes, interactive=interactive
-    )
-    convert_args = convert_args_from_kwargs(
-        format_out=format_out, delete=delete, overwrite=overwrite
-    )
-    _convert(filters, confirmation, convert_args, print_opt)
+    _convert(ConvertCommandArgs(**kwargs))
 
 
-def _convert(
-    filters: FilterArgs,
-    confirmation: ConfirmationArgs,
-    convert_args: ConvertArgs,
-    print_opt: PrintChoice | None,
-) -> None:
-    """Convert audio files for tracks matching `filters`."""
+def _convert(args: ConvertCommandArgs) -> None:
+    """Convert audio files for tracks matching `args`."""
     from rekordbox_edit.utils import ffmpeg_in_path, get_ffmpeg_directions
 
-    dry_run, yes, interactive = (
-        confirmation.dry_run,
-        confirmation.yes,
-        confirmation.interactive,
-    )
-    format_out, delete, overwrite = (
-        convert_args.format_out,
-        convert_args.delete,
-        convert_args.overwrite,
-    )
+    dry_run, yes, interactive = args.dry_run, args.yes, args.interactive
+    format_out, delete, overwrite = args.format_out, args.delete, args.overwrite
+    print_opt = args.print_opt
     set_level(print_opt)
 
     piped_stdin = not sys.stdin.isatty()
     if piped_stdin:
         stdin_data = sys.stdin.read().strip()
         if stdin_data:
-            filters.track_ids = list(filters.track_ids) + stdin_data.split()
+            args.track_ids = list(args.track_ids) + stdin_data.split()
 
     # Validate --print option requirements
     scripting_mode = print_opt in (PrintChoice.IDS, PrintChoice.SILENT)
@@ -411,7 +348,7 @@ def _convert(
         logger.debug("Database connection established")
 
         # === QUERY & FILTER ===
-        result = get_filtered_content(db, filters)
+        result = get_filtered_content(db, args)
         filtered_content = result.scalars().all()
         logger.debug(f"Query returned {len(filtered_content)} tracks")
 

@@ -1,12 +1,25 @@
 """Pydantic models for CLI argument groups.
 
-These types are the public API of the functional layer below the CLI: callers
-of `get_filtered_content` and the private command helpers receive them in lieu
-of long flat parameter lists. Each `*_from_kwargs` factory packs the matching
-Click parameters into its model.
+Two layers:
+
+- **Component models** (`FilterArgs`, `ConfirmationArgs`, `EditArgs`,
+  `ConvertArgs`) declare cohesive subsets of inputs. Each is the typed object
+  consumed by a narrow internal helper — most notably `FilterArgs` →
+  `get_filtered_content`.
+- **Command models** (`EditCommandArgs`, `ConvertCommandArgs`) compose the
+  components via model inheritance, producing a flat shape with every field
+  the corresponding command needs. The private `_edit` / `_convert` helpers
+  accept exactly one command model.
+
+A caller can construct either form via kwargs or `model_validate({...})`:
+
+    _edit(EditCommandArgs(field="Title", replace_value="X", artist=["Y"]))
+    _edit(EditCommandArgs.model_validate(config_dict))
 """
 
 from pydantic import BaseModel, ConfigDict
+
+from rekordbox_edit._click import PrintChoice
 
 
 class FilterArgs(BaseModel):
@@ -35,17 +48,6 @@ class FilterArgs(BaseModel):
     match_all: bool = False
 
 
-def filter_args_from_kwargs(**kwargs) -> FilterArgs:
-    """Pack the flat Click kwargs for the `global_click_filters` group into a FilterArgs."""
-    return FilterArgs(
-        **{
-            k: v
-            for k, v in kwargs.items()
-            if k in FilterArgs.model_fields and v is not None
-        }
-    )
-
-
 class ConfirmationArgs(BaseModel):
     """How the user gates a side effect before it lands.
 
@@ -59,17 +61,6 @@ class ConfirmationArgs(BaseModel):
     dry_run: bool = False
     yes: bool = False
     interactive: bool = False
-
-
-def confirmation_args_from_kwargs(**kwargs) -> ConfirmationArgs:
-    """Pack the flat Click kwargs for the `global_click_confirmations` group into a ConfirmationArgs."""
-    return ConfirmationArgs(
-        **{
-            k: v
-            for k, v in kwargs.items()
-            if k in ConfirmationArgs.model_fields and v is not None
-        }
-    )
 
 
 class EditArgs(BaseModel):
@@ -89,11 +80,6 @@ class EditArgs(BaseModel):
     multi: bool = False
 
 
-def edit_args_from_kwargs(**kwargs) -> EditArgs:
-    """Pack the flat Click kwargs for the `edit_click_options` group plus `field` into an EditArgs."""
-    return EditArgs(**{k: v for k, v in kwargs.items() if k in EditArgs.model_fields})
-
-
 class ConvertArgs(BaseModel):
     """Convert-command inputs that describe the output and conflict policy.
 
@@ -103,13 +89,32 @@ class ConvertArgs(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    format_out: str
+    format_out: str = "aiff"
     delete: bool | None = None
     overwrite: bool = False
 
 
-def convert_args_from_kwargs(**kwargs) -> ConvertArgs:
-    """Pack the flat Click kwargs for the `convert_click_options` group into a ConvertArgs."""
-    return ConvertArgs(
-        **{k: v for k, v in kwargs.items() if k in ConvertArgs.model_fields}
-    )
+class SearchCommandArgs(FilterArgs):
+    """All inputs `_search` accepts. Search is a read-only command, so it
+    inherits only the filter group and adds `print_opt`.
+    """
+
+    print_opt: PrintChoice | None = None
+
+
+class EditCommandArgs(FilterArgs, ConfirmationArgs, EditArgs):
+    """All inputs `_edit` accepts, composed from the three component groups.
+
+    Inherits via Pydantic model inheritance: every field of every parent
+    appears flat in this model. Liskov also holds, so an `EditCommandArgs`
+    can be passed anywhere a `FilterArgs`/`ConfirmationArgs`/`EditArgs` is
+    expected (e.g. `get_filtered_content(db, args)`).
+    """
+
+    print_opt: PrintChoice | None = None
+
+
+class ConvertCommandArgs(FilterArgs, ConfirmationArgs, ConvertArgs):
+    """All inputs `_convert` accepts, composed from the three component groups."""
+
+    print_opt: PrintChoice | None = None

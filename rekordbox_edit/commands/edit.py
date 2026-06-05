@@ -2,7 +2,6 @@
 
 import logging
 import sys
-from typing import List
 
 import click
 from pyrekordbox import Rekordbox6Database
@@ -16,14 +15,7 @@ from rekordbox_edit._click import (
     print_option,
     track_ids_argument,
 )
-from rekordbox_edit.args import (
-    ConfirmationArgs,
-    EditArgs,
-    FilterArgs,
-    confirmation_args_from_kwargs,
-    edit_args_from_kwargs,
-    filter_args_from_kwargs,
-)
+from rekordbox_edit.args import EditCommandArgs
 from rekordbox_edit.logger import get_debug_file_path, set_level
 from rekordbox_edit.query import get_filtered_content
 from rekordbox_edit.display import PrintableField, print_track_info
@@ -66,77 +58,21 @@ def _compute_new_value(
     "field",
     type=click.Choice(list(FIELD_COLUMNS.keys()), case_sensitive=False),
 )
-def edit_command(
-    field: str,
-    replace_value: str,
-    match_pattern: str | None,
-    multi: bool,
-    dry_run: bool,
-    yes: bool,
-    interactive: bool,
-    track_ids: List[str] | None,
-    track_id: List[str] | None,
-    playlist: List[str] | None,
-    exact_playlist: List[str] | None,
-    album: List[str] | None,
-    exact_album: List[str] | None,
-    artist: List[str] | None,
-    exact_artist: List[str] | None,
-    title: List[str] | None,
-    exact_title: List[str] | None,
-    path: List[str] | None,
-    exact_path: List[str] | None,
-    format: List[str] | None,
-    match_all: bool,
-    print_opt: PrintChoice | None,
-):
+def edit_command(**kwargs):
     """Edit a metadata field on tracks in the RekordBox database."""
-    filters = filter_args_from_kwargs(
-        track_id=track_id,
-        track_ids=track_ids,
-        playlist=playlist,
-        exact_playlist=exact_playlist,
-        album=album,
-        exact_album=exact_album,
-        artist=artist,
-        exact_artist=exact_artist,
-        title=title,
-        exact_title=exact_title,
-        path=path,
-        exact_path=exact_path,
-        format=format,
-        match_all=match_all,
-    )
-    confirmation = confirmation_args_from_kwargs(
-        dry_run=dry_run, yes=yes, interactive=interactive
-    )
-    edit_args = edit_args_from_kwargs(
-        field=field,
-        replace_value=replace_value,
-        match_pattern=match_pattern,
-        multi=multi,
-    )
-    _edit(filters, confirmation, edit_args, print_opt)
+    _edit(EditCommandArgs(**kwargs))
 
 
-def _edit(
-    filters: FilterArgs,
-    confirmation: ConfirmationArgs,
-    edit_args: EditArgs,
-    print_opt: PrintChoice | None,
-) -> None:
-    """Apply a field edit to tracks matching `filters`."""
-    dry_run, yes, interactive = (
-        confirmation.dry_run,
-        confirmation.yes,
-        confirmation.interactive,
-    )
+def _edit(args: EditCommandArgs) -> None:
+    """Apply a field edit to tracks matching `args`."""
+    dry_run, yes, interactive = args.dry_run, args.yes, args.interactive
     field, replace_value, match_pattern, multi = (
-        edit_args.field,
-        edit_args.replace_value,
-        edit_args.match_pattern,
-        edit_args.multi,
+        args.field,
+        args.replace_value,
+        args.match_pattern,
+        args.multi,
     )
+    print_opt = args.print_opt
     set_level(print_opt)
 
     piped_stdin = False
@@ -144,7 +80,7 @@ def _edit(
         stdin_data = sys.stdin.read().strip()
         if stdin_data:
             piped_stdin = True
-            filters.track_ids = list(filters.track_ids) + stdin_data.split()
+            args.track_ids = list(args.track_ids) + stdin_data.split()
 
     scripting_mode = print_opt in (PrintChoice.IDS, PrintChoice.SILENT)
     if scripting_mode and not (dry_run or yes):
@@ -159,7 +95,7 @@ def _edit(
     if not db.session:
         raise RuntimeError("Failed to connect to Rekordbox Database: No Session.")
 
-    result = get_filtered_content(db, filters)
+    result = get_filtered_content(db, args)
     tracks = result.scalars().all()
 
     col_name = FIELD_COLUMNS[field]
