@@ -48,10 +48,10 @@ class TestPrintTrackInfo:
         self,
         capsys,
         wide_console,
-        make_djmd_content_item,
+        make_track,
     ):
         """Default columns include ID, Title, FileType, SampleRate, BitDepth, FileNameL, FolderPath."""
-        mock_content = make_djmd_content_item(
+        mock_content = make_track(
             FileNameL="my-song.flac",
             FolderPath="/music/library/my-song.flac",
         )
@@ -67,11 +67,10 @@ class TestPrintTrackInfo:
         # FolderPath renders the directory portion, not the full path
         assert "/music/library" in captured.out
 
-    def test_track_with_zero_values(self, capsys, wide_console, make_djmd_content_item):
+    def test_track_with_zero_values(self, capsys, wide_console, make_track):
         """Test printing track with zero values."""
-        # Setup mock content with zero values
-        mock_content = make_djmd_content_item(
-            ID=123,
+        mock_content = make_track(
+            ID="123",
             SampleRate=0,
             BitRate=0,
             BitDepth=0,
@@ -85,10 +84,10 @@ class TestPrintTrackInfo:
         assert data_line.count("0") == 3
 
     def test_change_preview_renders_old_struck_through_with_new(
-        self, capsys, wide_console, make_djmd_content_item
+        self, capsys, wide_console, make_track
     ):
         """When changed_field + new_values are provided, both old and new appear in the cell."""
-        mock_content = make_djmd_content_item(Title="Old Name")
+        mock_content = make_track(Title="Old Name")
 
         print_track_info(
             [mock_content],
@@ -101,9 +100,9 @@ class TestPrintTrackInfo:
         assert "Old Name" in captured.out
         assert "New Name" in captured.out
 
-    def test_change_preview_requires_both_args(self, make_djmd_content_item):
+    def test_change_preview_requires_both_args(self, make_track):
         """Providing only one of changed_field/new_values raises ValueError."""
-        mock_content = make_djmd_content_item()
+        mock_content = make_track()
 
         with pytest.raises(ValueError, match="must be provided together"):
             print_track_info([mock_content], changed_field=PrintableField.Title)
@@ -111,9 +110,9 @@ class TestPrintTrackInfo:
         with pytest.raises(ValueError, match="must be provided together"):
             print_track_info([mock_content], new_values=["x"])
 
-    def test_change_preview_length_mismatch_raises(self, make_djmd_content_item):
+    def test_change_preview_length_mismatch_raises(self, make_track):
         """new_values length must match content_list length."""
-        mock_content = make_djmd_content_item()
+        mock_content = make_track()
 
         with pytest.raises(ValueError, match="length"):
             print_track_info(
@@ -122,17 +121,17 @@ class TestPrintTrackInfo:
                 new_values=["a", "b"],
             )
 
-    def test_multiple_tracks(self, capsys, wide_console, make_djmd_content_item):
+    def test_multiple_tracks(self, capsys, wide_console, make_track):
         """Test printing multiple tracks."""
-        mock_content1 = make_djmd_content_item(
-            ID=123,
+        mock_content1 = make_track(
+            ID="123",
             FileNameL="track1.flac",
             FileType=5,
             FolderPath="/path/track1.flac",
         )
 
-        mock_content2 = make_djmd_content_item(
-            ID=456,
+        mock_content2 = make_track(
+            ID="456",
             FileNameL="track2.mp3",
             FileType=1,
             FolderPath="/path/track2.mp3",
@@ -147,12 +146,11 @@ class TestPrintTrackInfo:
         assert "MP3" in captured.out
 
     def test_track_with_unknown_file_type(
-        self, capsys, wide_console, make_djmd_content_item
+        self, capsys, wide_console, make_track
     ):
         """Test printing track with unknown file type."""
-        # Setup mock content with zero values
-        mock_content = make_djmd_content_item(
-            ID=123,
+        mock_content = make_track(
+            ID="123",
             FileType=6,
         )
 

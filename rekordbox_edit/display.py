@@ -14,11 +14,11 @@ import os
 from enum import Enum
 from typing import Dict, Sequence
 
-from pyrekordbox.db6 import DjmdContent
 from rich import box
 from rich.console import Console
 from rich.table import Table
 
+from rekordbox_edit.args import Track
 from rekordbox_edit.utils import get_file_type_name
 
 logger = logging.getLogger(__name__)
@@ -27,7 +27,7 @@ console = Console(record=True)
 
 
 class PrintableField(Enum):
-    """Columns of DjmdContent that you can print"""
+    """Track fields that can be printed in a table"""
 
     ID = "ID"
     FileNameL = "FileNameL"
@@ -71,26 +71,28 @@ _COLUMN_CONFIG: Dict[PrintableField, dict] = {
 }
 
 
-def _cell_value(content: DjmdContent, column: PrintableField) -> str:
-    """Render a single DjmdContent field as a string for a table cell."""
+def _cell_value(track: Track, column: PrintableField) -> str:
+    """Render a single Track field as a string for a table cell."""
     if column is PrintableField.ID:
-        return str(content.ID)
+        return str(track.ID)
     if column is PrintableField.FileType:
+        if track.FileType is None:
+            return ""
         try:
-            return get_file_type_name(content.FileType)
+            return get_file_type_name(track.FileType)
         except ValueError:
             logger.warning(
-                f"Unexpected FileType [{content.FileType}] for track ID [{content.ID}]"
+                f"Unexpected FileType [{track.FileType}] for track ID [{track.ID}]"
             )
             return "UNKNOWN"
     if column is PrintableField.FolderPath:
-        return os.path.dirname(content.FolderPath or "")
-    value = getattr(content, column.value)
+        return os.path.dirname(track.FolderPath or "")
+    value = getattr(track, column.value, None)
     return "" if value is None else str(value)
 
 
 def print_track_info(
-    content_list: Sequence[DjmdContent],
+    content_list: Sequence[Track],
     print_columns: Sequence[PrintableField] | None = None,
     changed_field: PrintableField | None = None,
     new_values: Sequence[str] | None = None,
@@ -129,10 +131,10 @@ def print_track_info(
             PRINT_HEADERS[column], no_wrap=True, overflow="ellipsis", **cfg
         )
 
-    for i, content in enumerate(content_list, 1):
+    for i, track in enumerate(content_list, 1):
         cells = []
         for col in print_columns:
-            old = _cell_value(content, col)
+            old = _cell_value(track, col)
             if col is changed_field and new_values is not None:
                 cells.append(f"[strike]{old}[/strike] [bold]{new_values[i - 1]}[/bold]")
             else:
