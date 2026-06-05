@@ -225,9 +225,9 @@ And generally limit the potential impact of a mistake by using filters to target
 
 ## AI Usage
 
-I believe it's important to be aware of and to disclose AI usage. AI seems to be forced upon us without us having much choice in the matter, and I like many others find this to be a gross and oppressive experience. While it has lots of potential to benefit the common good, so far it has mostly furthered capitalist greed.
+I believe it's important to be aware of and to disclose AI usage. In many ways it's being forced upon us without us having much choice in the matter, and it's a gross and oppressive experience. While it has lots of potential to benefit the common good, mostly it's only furthered capitalist greed.
 
-This isn't a soapbox, but an attempt to thoughtfully disclose how generative AI has contributed to building this tool. I might have built it without AI, but it's not usually my preference to spend my free time coding in front of a computer, and using it has drastically reduced the time it would have taken. I have many years of professional experience as a Software Engineer, and while it will probably age poorly to say this in the (hopefully far) future, I don't think AI could have built this tool without me. Please validate the quality of this project yourself--at the end of the day it's just code written by some stranger!
+I'm mostly attempting to thoughtfully disclose that generative AI _has_ been a significant tool in building out this project. I don't personally enjoy too much coding in my personal time, but I feel passionate about making `rekordbox-edit`--AI has admittedly helped me bridge that gap between my capacity and my vision. I'm a career professional software engineer who takes pride in their work, and I don't want to produce a vibe coded mess any more than you want to experience it. Please validate the quality of this project yourself--at the end of the day it's just code written by some stranger.
 
 If it's any consolation, my main test subject has been my own 10,000+ track RekordBox library--a risk I do not take lightly!
 
@@ -235,7 +235,7 @@ If it's any consolation, my main test subject has been my own 10,000+ track Reko
 
 This project exists thanks to [@dylanjones](https://github.com/dylanjones), the creator of [pyrekordbox](https://github.com/dylanljones/pyrekordbox), which provides the Python API for Rekordbox databases.
 
-I built this tool to help correct my own bad habits and misteps in managing and organizing my rekordbox library. If it helps you too, great! If you find issues or have ideas, contributions are welcome.
+I built this tool to help correct my own bad habits and missteps in managing and organizing my rekordbox library. If it helps you too, great! If you find issues or have ideas, contributions are welcome.
 
 ## Contributing
 
