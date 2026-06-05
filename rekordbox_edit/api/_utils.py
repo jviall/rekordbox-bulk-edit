@@ -1,6 +1,6 @@
 from pyrekordbox.db6 import DjmdContent
 
-from rekordbox_edit.args import Track
+from rekordbox_edit.models import Track
 
 
 def _track_from_content(content: DjmdContent) -> Track:

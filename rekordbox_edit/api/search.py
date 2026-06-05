@@ -1,7 +1,7 @@
 from pyrekordbox import Rekordbox6Database
 
 from rekordbox_edit.api._utils import _track_from_content
-from rekordbox_edit.args import FilterArgs, Track
+from rekordbox_edit.models import FilterArgs, Track
 from rekordbox_edit.query import get_filtered_content
 
 

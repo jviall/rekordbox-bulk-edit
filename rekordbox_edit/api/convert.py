@@ -13,7 +13,7 @@ from pyrekordbox.db6 import DjmdContent
 from sqlalchemy import select
 
 from rekordbox_edit.api._utils import _track_from_content
-from rekordbox_edit.args import ConvertPlanArgs, Track
+from rekordbox_edit.models import ConvertPlanArgs, Track
 from rekordbox_edit.query import get_filtered_content
 from rekordbox_edit.utils import (
     OutputFormats,

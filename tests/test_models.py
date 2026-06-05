@@ -1,9 +1,9 @@
-"""Tests for args.py models."""
+"""Tests for models.py."""
 
 import pytest
 from pydantic import ValidationError
 
-from rekordbox_edit.args import (
+from rekordbox_edit.models import (
     ConfirmationArgs,
     ConvertArgs,
     ConvertCommandArgs,

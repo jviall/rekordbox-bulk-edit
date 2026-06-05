@@ -6,7 +6,7 @@ import pytest
 from click.testing import CliRunner
 
 from rekordbox_edit.api.edit import EditPlan
-from rekordbox_edit.args import Track
+from rekordbox_edit.models import Track
 from rekordbox_edit.cli.edit import edit_command
 
 

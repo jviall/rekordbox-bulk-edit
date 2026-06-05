@@ -9,7 +9,7 @@ from unittest.mock import MagicMock
 import pytest
 from sqlalchemy import ColumnElement
 
-from rekordbox_edit.args import FilterArgs
+from rekordbox_edit.models import FilterArgs
 from rekordbox_edit.query import CollectionQuery, get_filtered_content
 
 
