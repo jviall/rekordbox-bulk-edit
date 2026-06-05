@@ -101,6 +101,26 @@ global_click_filters = [
     ),
 ]
 
+global_click_confirmations = [
+    click.option(
+        "--dry-run",
+        is_flag=True,
+        help="Show what would change without writing to the database or filesystem",
+    ),
+    click.option(
+        "--yes",
+        "-y",
+        is_flag=True,
+        help="Skip confirmation prompt",
+    ),
+    click.option(
+        "--interactive",
+        "-i",
+        is_flag=True,
+        help="Confirm each item individually before applying changes",
+    ),
+]
+
 
 def add_click_options(options):
     def _add_options(func):

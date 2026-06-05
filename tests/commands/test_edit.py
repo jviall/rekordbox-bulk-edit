@@ -39,6 +39,7 @@ class TestEditCommandPhase1:
         mock_confirm.return_value = True
 
         from click.testing import CliRunner
+
         result = CliRunner().invoke(edit_command, ["Title", "--replace", "New Title"])
 
         assert result.exit_code == 0
@@ -57,7 +58,10 @@ class TestEditCommandPhase1:
         mock_gfc.return_value = mock_result
 
         from click.testing import CliRunner
-        result = CliRunner().invoke(edit_command, ["Title", "--replace", "Same Title", "--yes"])
+
+        result = CliRunner().invoke(
+            edit_command, ["Title", "--replace", "Same Title", "--yes"]
+        )
 
         assert result.exit_code == 0
         mock_db.session.commit.assert_not_called()
@@ -77,7 +81,10 @@ class TestEditCommandPhase1:
         mock_gfc.return_value = mock_result
 
         from click.testing import CliRunner
-        result = CliRunner().invoke(edit_command, ["Title", "--replace", "New", "--yes"])
+
+        result = CliRunner().invoke(
+            edit_command, ["Title", "--replace", "New", "--yes"]
+        )
 
         assert result.exit_code != 0
         mock_db.session.commit.assert_not_called()
@@ -95,7 +102,10 @@ class TestEditCommandPhase1:
         mock_gfc.return_value = mock_result
 
         from click.testing import CliRunner
-        result = CliRunner().invoke(edit_command, ["Title", "--replace", "New Title", "--dry-run"])
+
+        result = CliRunner().invoke(
+            edit_command, ["Title", "--replace", "New Title", "--dry-run"]
+        )
 
         assert result.exit_code == 0
         mock_db.session.commit.assert_not_called()
@@ -114,7 +124,10 @@ class TestEditCommandPhase1:
         mock_gfc.return_value = mock_result
 
         from click.testing import CliRunner
-        result = CliRunner().invoke(edit_command, ["Title", "--replace", "New Title", "--yes"])
+
+        result = CliRunner().invoke(
+            edit_command, ["Title", "--replace", "New Title", "--yes"]
+        )
 
         assert result.exit_code == 0
         mock_confirm.assert_not_called()
@@ -134,6 +147,7 @@ class TestEditCommandPhase1:
         mock_confirm.return_value = True
 
         from click.testing import CliRunner
+
         result = CliRunner().invoke(
             edit_command, ["Title", "--replace", "New Title", "--interactive"]
         )
@@ -151,6 +165,7 @@ class TestEditCommandPhase1:
         mock_db_class.return_value = mock_db
 
         from click.testing import CliRunner
+
         result = CliRunner().invoke(
             edit_command, ["Title", "--replace", "New Title"], input="12345"
         )
@@ -166,6 +181,7 @@ class TestEditCommandPhase1:
         mock_db_class.return_value = mock_db
 
         from click.testing import CliRunner
+
         result = CliRunner().invoke(
             edit_command, ["Title", "--replace", "New Title", "--print", "ids"]
         )
@@ -187,13 +203,17 @@ class TestEditCommandPhase1:
         mock_gfc.return_value = mock_result
 
         from click.testing import CliRunner
+
         CliRunner().invoke(
             edit_command,
             [
                 "Title",
-                "--replace", "New Title",
-                "--artist", "Bicep",
-                "--format", "flac",
+                "--replace",
+                "New Title",
+                "--artist",
+                "Bicep",
+                "--format",
+                "flac",
                 "--match-all",
                 "--yes",
             ],
@@ -217,6 +237,7 @@ class TestEditCommandPhase1:
         mock_gfc.return_value = mock_result
 
         from click.testing import CliRunner
+
         result = CliRunner().invoke(
             edit_command,
             ["Title", "--replace", "New Title", "--interactive", "--yes"],
@@ -239,6 +260,7 @@ class TestEditCommandPhase1:
         mock_gfc.return_value = mock_result
 
         from click.testing import CliRunner
+
         result = CliRunner().invoke(
             edit_command,
             ["Title", "--replace", "New Title", "--print", "ids", "--yes"],
@@ -265,6 +287,7 @@ class TestEditCommandPhase3:
         mock_confirm.return_value = True
 
         from click.testing import CliRunner
+
         result = CliRunner().invoke(
             edit_command,
             ["Title", "--match", "feat.", "--replace", "ft."],
@@ -286,6 +309,7 @@ class TestEditCommandPhase3:
         mock_gfc.return_value = mock_result
 
         from click.testing import CliRunner
+
         result = CliRunner().invoke(
             edit_command,
             ["Title", "--match", "feat.", "--replace", "ft.", "--yes"],
@@ -306,6 +330,7 @@ class TestEditCommandPhase3:
         mock_gfc.return_value = mock_result
 
         from click.testing import CliRunner
+
         result = CliRunner().invoke(
             edit_command,
             ["Title", "--match", "feat.", "--replace", "ft.", "--yes"],
@@ -327,6 +352,7 @@ class TestEditCommandPhase3:
         mock_gfc.return_value = mock_result
 
         from click.testing import CliRunner
+
         result = CliRunner().invoke(
             edit_command,
             ["Title", "--match", "1.0", "--replace", "2.0", "--yes"],
@@ -353,6 +379,7 @@ class TestEditCommandUnicode:
         mock_confirm.return_value = True
 
         from click.testing import CliRunner
+
         result = CliRunner().invoke(
             edit_command,
             ["Title", "--replace", "日本語タイトル"],
@@ -376,6 +403,7 @@ class TestEditCommandUnicode:
         mock_confirm.return_value = True
 
         from click.testing import CliRunner
+
         result = CliRunner().invoke(
             edit_command,
             ["Title", "--replace", "U-Bahn Nights (feat. Angstrom)"],
@@ -399,6 +427,7 @@ class TestEditCommandUnicode:
         mock_confirm.return_value = True
 
         from click.testing import CliRunner
+
         result = CliRunner().invoke(
             edit_command,
             ["Title", "--match", "feat.", "--replace", "ft."],
@@ -420,6 +449,7 @@ class TestEditCommandUnicode:
         mock_gfc.return_value = mock_result
 
         from click.testing import CliRunner
+
         result = CliRunner().invoke(
             edit_command,
             ["Title", "--replace", "Ø (Disambiguation)", "--yes"],
@@ -449,6 +479,7 @@ class TestEditCommandPhase4:
         mock_confirm.return_value = True
 
         from click.testing import CliRunner
+
         result = CliRunner().invoke(
             edit_command,
             ["Title", "--match", "feat.", "--replace", "ft.", "--multi"],
@@ -474,6 +505,7 @@ class TestEditCommandPhase4:
         mock_gfc.return_value = mock_result
 
         from click.testing import CliRunner
+
         result = CliRunner().invoke(
             edit_command, ["Title", "--replace", "New", "--yes"]
         )
@@ -497,6 +529,7 @@ class TestEditCommandPhase4:
         mock_gfc.return_value = mock_result
 
         from click.testing import CliRunner
+
         result = CliRunner().invoke(
             edit_command,
             ["Title", "--replace", "New", "--multi", "--yes"],
@@ -520,6 +553,7 @@ class TestEditCommandPhase4:
         mock_confirm.return_value = True
 
         from click.testing import CliRunner
+
         result = CliRunner().invoke(
             edit_command,
             ["Title", "--replace", "New Title", "--multi"],

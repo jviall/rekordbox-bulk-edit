@@ -16,6 +16,7 @@ from pyrekordbox.utils import get_rekordbox_pid
 from rekordbox_edit._click import (
     PrintChoice,
     add_click_options,
+    global_click_confirmations,
     global_click_filters,
     print_option,
     track_ids_argument,
@@ -245,17 +246,6 @@ def get_output_path(content, output_format) -> Tuple[str, str, str]:
     epilog=f"Debug logs for each run can be found at:\n{get_debug_file_path().parent}"
 )
 @click.option(
-    "--dry-run",
-    is_flag=True,
-    help="Show what would be converted without making changes",
-)
-@click.option(
-    "--yes",
-    "-y",
-    is_flag=True,
-    help="Auto-confirm the batch conversion (skip confirmation prompt)",
-)
-@click.option(
     "--delete/--keep",
     default=None,
     help="Delete or keep original files after conversion (default: delete for lossless, keep for MP3)",
@@ -266,18 +256,19 @@ def get_output_path(content, output_format) -> Tuple[str, str, str]:
     help="Overwrite existing output files instead of skipping them",
 )
 @click.option(
-    "--interactive",
-    "-i",
-    is_flag=True,
-    help="Confirm each file individually before converting",
-)
-@click.option(
     "--format-out",
     type=click.Choice(["aiff", "flac", "wav", "alac", "mp3"], case_sensitive=False),
     default="aiff",
     help="Output format (default: aiff)",
 )
-@add_click_options([*global_click_filters, print_option, track_ids_argument])
+@add_click_options(
+    [
+        *global_click_filters,
+        *global_click_confirmations,
+        print_option,
+        track_ids_argument,
+    ]
+)
 def convert_command(
     dry_run,
     yes,
