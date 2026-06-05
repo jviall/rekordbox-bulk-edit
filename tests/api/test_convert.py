@@ -1,7 +1,7 @@
 from unittest.mock import Mock, patch
 
 from rekordbox_edit.api.convert import plan_convert
-from rekordbox_edit.args import ConvertPlanArgs
+from rekordbox_edit.models import ConvertPlanArgs
 
 
 class TestPlanConvert:

@@ -12,7 +12,7 @@ from rekordbox_edit._click import (
     track_ids_argument,
 )
 from rekordbox_edit.api.edit import FIELD_COLUMNS, edit, plan_edit
-from rekordbox_edit.args import EditCommandArgs
+from rekordbox_edit.models import EditCommandArgs
 from rekordbox_edit.cli._utils import (
     _confirm_edits,
     _handle_stdin,

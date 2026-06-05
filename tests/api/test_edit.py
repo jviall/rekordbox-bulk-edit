@@ -2,7 +2,7 @@ import pytest
 from unittest.mock import Mock, patch
 
 from rekordbox_edit.api.edit import EditPlan, EditResult, edit, plan_edit
-from rekordbox_edit.args import EditPlanArgs, Track
+from rekordbox_edit.models import EditPlanArgs, Track
 
 
 class TestPlanEdit:

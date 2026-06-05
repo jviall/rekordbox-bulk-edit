@@ -17,7 +17,7 @@ from rekordbox_edit._click import (
     track_ids_argument,
 )
 from rekordbox_edit.api.convert import convert, plan_convert
-from rekordbox_edit.args import ConvertCommandArgs
+from rekordbox_edit.models import ConvertCommandArgs
 from rekordbox_edit.cli._utils import (
     _confirm_converts,
     _handle_stdin,

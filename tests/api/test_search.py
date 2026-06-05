@@ -1,7 +1,7 @@
 from unittest.mock import Mock, patch
 
 from rekordbox_edit.api.search import search
-from rekordbox_edit.args import FilterArgs, Track
+from rekordbox_edit.models import FilterArgs, Track
 
 
 class TestSearch:

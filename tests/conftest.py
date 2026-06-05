@@ -4,7 +4,7 @@ from unittest.mock import MagicMock
 import pytest
 from pyrekordbox.db6 import DjmdContent
 
-from rekordbox_edit.args import Track
+from rekordbox_edit.models import Track
 
 
 @pytest.fixture

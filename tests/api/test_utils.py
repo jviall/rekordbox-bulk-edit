@@ -1,7 +1,7 @@
 """Tests for api/_utils.py."""
 
 from rekordbox_edit.api._utils import _track_from_content
-from rekordbox_edit.args import Track
+from rekordbox_edit.models import Track
 
 
 class TestTrackFromContent:

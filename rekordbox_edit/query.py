@@ -13,7 +13,7 @@ from pyrekordbox.db6.tables import (
 from sqlalchemy import ColumnElement, Result, and_, func, or_, select
 from sqlalchemy.orm import aliased
 
-from rekordbox_edit.args import FilterArgs
+from rekordbox_edit.models import FilterArgs
 
 logger = logging.getLogger(__name__)
 

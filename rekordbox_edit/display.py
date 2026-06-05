@@ -18,7 +18,7 @@ from rich import box
 from rich.console import Console
 from rich.table import Table
 
-from rekordbox_edit.args import Track
+from rekordbox_edit.models import Track
 from rekordbox_edit.utils import get_file_type_name
 
 logger = logging.getLogger(__name__)

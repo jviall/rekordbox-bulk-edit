@@ -8,7 +8,7 @@ import click
 from rekordbox_edit._click import PrintChoice
 from rekordbox_edit.api.convert import ConvertPlan
 from rekordbox_edit.api.edit import EditPlan
-from rekordbox_edit.args import ConvertCommandArgs, EditCommandArgs
+from rekordbox_edit.models import ConvertCommandArgs, EditCommandArgs
 from rekordbox_edit.utils import UserQuit, confirm
 
 logger = logging.getLogger(__name__)
