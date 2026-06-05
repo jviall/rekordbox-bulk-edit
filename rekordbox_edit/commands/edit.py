@@ -10,6 +10,7 @@ from pyrekordbox import Rekordbox6Database
 from rekordbox_edit._click import (
     PrintChoice,
     add_click_options,
+    global_click_confirmations,
     global_click_filters,
     print_option,
     track_ids_argument,
@@ -43,24 +44,7 @@ def _compute_new_value(
 @click.command(
     epilog=f"Debug logs for each run can be found at:\n{get_debug_file_path().parent}"
 )
-@add_click_options([*global_click_filters, print_option])
-@click.option(
-    "--interactive",
-    "-i",
-    is_flag=True,
-    help="Confirm each track individually before editing",
-)
-@click.option(
-    "--yes",
-    "-y",
-    is_flag=True,
-    help="Skip confirmation prompt",
-)
-@click.option(
-    "--dry-run",
-    is_flag=True,
-    help="Show what would change without writing to the database",
-)
+@add_click_options([*global_click_filters, *global_click_confirmations, print_option])
 @click.option(
     "--replace",
     "replace_value",
