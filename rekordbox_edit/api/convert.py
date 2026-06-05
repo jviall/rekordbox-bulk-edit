@@ -2,6 +2,7 @@
 
 import logging
 import os
+import posixpath
 from pathlib import Path
 from typing import Tuple
 
@@ -25,7 +26,8 @@ from rekordbox_edit.utils import (
 logger = logging.getLogger(__name__)
 
 
-# ── Helpers (moved from commands/convert.py) ──────────────────────────────
+# ── Helpers  ──────────────────────────────────────────────────────────────
+
 
 def convert_to_lossless(input_path, output_path, output_format):
     """Convert lossless file to another lossless format, preserving bit depth."""
@@ -129,7 +131,7 @@ def update_database_record(
     if not content:
         raise Exception(f"Content record with ID {content_id} not found")
 
-    converted_full_path = os.path.join(new_folder, new_filename)
+    converted_full_path = posixpath.join(new_folder, new_filename)
     converted_audio_info = get_audio_info(converted_full_path)
     converted_bitrate = converted_audio_info["bitrate"]
 
@@ -220,6 +222,7 @@ def get_output_path(content, output_format) -> Tuple[str, str, str]:
 
 # ── Result types ──────────────────────────────────────────────────────────
 
+
 class ConvertPlan(BaseModel):
     files: list[Track]
     skipped: list[Track]  # files skipped due to existing output (no overwrite)
@@ -234,9 +237,12 @@ class ConvertResult(BaseModel):
 
 # ── API functions ─────────────────────────────────────────────────────────
 
+
 def plan_convert(db: Rekordbox6Database, args: ConvertPlanArgs) -> ConvertPlan:
     """Determine which tracks need conversion and resolve delete behaviour."""
-    should_delete = args.delete if args.delete is not None else args.format_out.upper() != "MP3"
+    should_delete = (
+        args.delete if args.delete is not None else args.format_out.upper() != "MP3"
+    )
 
     result = get_filtered_content(db, args)
     filtered_content = result.scalars().all()
@@ -246,7 +252,8 @@ def plan_convert(db: Rekordbox6Database, args: ConvertPlanArgs) -> ConvertPlan:
     m4a_type = get_file_type_for_format("M4A")
 
     needs_conversion = [
-        c for c in filtered_content
+        c
+        for c in filtered_content
         if c.FileType != target_file_type
         and c.FileType != mp3_type
         and c.FileType != m4a_type
@@ -264,7 +271,9 @@ def plan_convert(db: Rekordbox6Database, args: ConvertPlanArgs) -> ConvertPlan:
             else:
                 files.append(content)
 
-    logger.debug(f"plan_convert: {len(files)} to convert, {len(skipped)} skipped (conflict)")
+    logger.debug(
+        f"plan_convert: {len(files)} to convert, {len(skipped)} skipped (conflict)"
+    )
 
     return ConvertPlan(
         files=[_track_from_content(c) for c in files],
@@ -286,7 +295,9 @@ def convert(db: Rekordbox6Database, plan: ConvertPlan) -> ConvertResult:
         return ConvertResult(converted=[], deleted=0)
 
     if not ffmpeg_in_path():
-        raise RuntimeError(f"FFmpeg is required but not found in PATH.{get_ffmpeg_directions()}")
+        raise RuntimeError(
+            f"FFmpeg is required but not found in PATH.{get_ffmpeg_directions()}"
+        )
 
     assert db.session is not None
 
@@ -303,7 +314,9 @@ def convert(db: Rekordbox6Database, plan: ConvertPlan) -> ConvertResult:
         for i, track in enumerate(plan.files, 1):
             content = content_map[track.ID]
             src_folder_path = content.FolderPath or ""
-            output_path, output_filename, src_dirname = get_output_path(content, plan.format_out)
+            output_path, output_filename, src_dirname = get_output_path(
+                content, plan.format_out
+            )
 
             logger.info(f"[{i}/{len(plan.files)}] {content.FileNameL}")
 
@@ -326,14 +339,18 @@ def convert(db: Rekordbox6Database, plan: ConvertPlan) -> ConvertResult:
             update_database_record(
                 db, content.ID, output_filename, src_dirname, plan.format_out.upper()
             )
-            converted_files.append({
-                "source_path": src_folder_path,
-                "output_path": output_path,
-                "content_id": content.ID,
-            })
+            converted_files.append(
+                {
+                    "source_path": src_folder_path,
+                    "output_path": output_path,
+                    "content_id": content.ID,
+                }
+            )
 
         db.session.commit()
-        logger.info(f"\nConverted {len(converted_files)} files to {plan.format_out.upper()}")
+        logger.info(
+            f"\nConverted {len(converted_files)} files to {plan.format_out.upper()}"
+        )
 
         deleted = 0
         if plan.should_delete:
