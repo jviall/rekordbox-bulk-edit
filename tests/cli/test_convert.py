@@ -37,9 +37,7 @@ class TestConvertCommand:
         mock_plan.return_value = _make_plan()
         mock_convert.return_value = Mock(converted=[{"content_id": "1"}], deleted=0)
 
-        result = CliRunner().invoke(
-            convert_command, ["--format-out", "aiff", "--yes"]
-        )
+        result = CliRunner().invoke(convert_command, ["--format-out", "aiff", "--yes"])
 
         assert result.exit_code == 0
         mock_convert.assert_called_once()
@@ -62,7 +60,9 @@ class TestConvertCommand:
     @patch("rekordbox_edit.cli.convert.plan_convert")
     @patch("rekordbox_edit.cli.convert.Rekordbox6Database")
     @patch("rekordbox_edit.cli.convert.get_rekordbox_pid", return_value=None)
-    def test_warns_about_skipped_files(self, mock_pid, mock_db_class, mock_plan, mock_logger):
+    def test_warns_about_skipped_files(
+        self, mock_pid, mock_db_class, mock_plan, mock_logger
+    ):
         mock_db_class.return_value = Mock(session=Mock())
         skipped = [Track(ID="2", FileNameL="conflict.wav")]
         mock_plan.return_value = _make_plan(skipped=skipped)
@@ -83,10 +83,77 @@ class TestConvertCommand:
         )
 
         with patch("rekordbox_edit.cli.convert.convert") as mock_convert:
-            result = CliRunner().invoke(convert_command, ["--format-out", "aiff", "--yes"])
+            result = CliRunner().invoke(
+                convert_command, ["--format-out", "aiff", "--yes"]
+            )
 
         assert result.exit_code == 0
         mock_convert.assert_not_called()
+
+    @patch("rekordbox_edit.cli.convert._handle_stdin", return_value=False)
+    @patch("rekordbox_edit.cli.convert._confirm_converts")
+    @patch("rekordbox_edit.cli.convert.plan_convert")
+    @patch("rekordbox_edit.cli.convert.Rekordbox6Database")
+    @patch("rekordbox_edit.cli.convert.get_rekordbox_pid", return_value=None)
+    def test_cancellation_skips_convert(
+        self, mock_pid, mock_db_class, mock_plan, mock_confirm, _
+    ):
+        mock_db_class.return_value = Mock(session=Mock())
+        mock_plan.return_value = _make_plan()
+        mock_confirm.return_value = None
+
+        with patch("rekordbox_edit.cli.convert.convert") as mock_convert:
+            result = CliRunner().invoke(convert_command, ["--format-out", "aiff"])
+
+        assert result.exit_code == 0
+        mock_convert.assert_not_called()
+
+    @patch("rekordbox_edit.cli.convert.convert")
+    @patch("rekordbox_edit.cli.convert.plan_convert")
+    @patch("rekordbox_edit.cli.convert.Rekordbox6Database")
+    @patch("rekordbox_edit.cli.convert.get_rekordbox_pid", return_value=None)
+    def test_logs_deleted_count(
+        self, mock_pid, mock_db_class, mock_plan, mock_convert, mock_logger
+    ):
+        mock_db_class.return_value = Mock(session=Mock())
+        mock_plan.return_value = _make_plan()
+        mock_convert.return_value = Mock(converted=[{"content_id": "1"}], deleted=2)
+
+        CliRunner().invoke(convert_command, ["--format-out", "aiff", "--yes"])
+
+        mock_logger.info.assert_any_call("Deleted 2 original file(s)")
+
+    @patch("rekordbox_edit.cli.convert.convert")
+    @patch("rekordbox_edit.cli.convert.plan_convert")
+    @patch("rekordbox_edit.cli.convert.Rekordbox6Database")
+    @patch("rekordbox_edit.cli.convert.confirm")
+    @patch("rekordbox_edit.cli.convert.get_rekordbox_pid", return_value=12345)
+    def test_rekordbox_running_user_accepts_continues(
+        self, mock_pid, mock_confirm, mock_db_class, mock_plan, mock_convert
+    ):
+        mock_confirm.return_value = True
+        mock_db_class.return_value = Mock(session=Mock())
+        mock_plan.return_value = _make_plan()
+        mock_convert.return_value = Mock(converted=[], deleted=0)
+
+        result = CliRunner().invoke(convert_command, ["--format-out", "aiff", "--yes"])
+
+        assert result.exit_code == 0
+        mock_db_class.assert_called_once()
+
+    @patch("rekordbox_edit.cli.convert._handle_stdin", return_value=False)
+    @patch("rekordbox_edit.cli.convert.confirm")
+    @patch("rekordbox_edit.cli.convert.get_rekordbox_pid", return_value=12345)
+    def test_rekordbox_running_user_declines_returns_early(
+        self, mock_pid, mock_confirm, _
+    ):
+        mock_confirm.return_value = False
+
+        with patch("rekordbox_edit.cli.convert.Rekordbox6Database") as mock_db_class:
+            result = CliRunner().invoke(convert_command, ["--format-out", "aiff"])
+
+        assert result.exit_code == 0
+        mock_db_class.assert_not_called()
 
     @patch("rekordbox_edit.cli.convert.plan_convert")
     @patch("rekordbox_edit.cli.convert.Rekordbox6Database")
