@@ -1,3 +1,107 @@
+## v0.4.0 (2026-06-05)
+
+
+- chore(deps): update crazy-max/ghaction-import-gpg action to v7
+- chore(deps): update github artifact actions
+- chore(deps): update softprops/action-gh-release action to v3
+- chore(deps): update testing
+- fix(deps): update dependency rich to v15
+- fix(display): Add min-width to print columns
+- refactor(args): compose command args via Pydantic model   inheritance
+- refactor(args): adopt Pydantic for component arg types
+- refactor(commands): group command-specific args into EditArgs and ConvertArgs dataclasses
+- refactor(commands): group confirmation flags into ConfirmationArgs dataclass
+- docs: update README.md
+- refactor(query): group filter args into FilterArgs dataclass
+- refactor(cli): extract convert-specific options into convert_click_options
+- refactor(cli): extract edit-specific options into edit_click_options
+- refactor(cli): extract shared confirmation flags into global_click_confirmations
+- chore(deps): update linters to v0.0.42 (#58)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+- fix(display): Don't crash on unknown file type during print_track_info
+- chore(deps): update commit tooling to v4.16.3 (#54)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+- chore(deps): update pre-commit hooks to v4.16.3 (#55)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+- chore(deps): update dependency platformdirs to v4.10.0 (#53)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+- chore(deps): update dependency ruff to v0.15.15 (#50)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+- chore(deps): update pre-commit hook astral-sh/ruff-pre-commit to v0.15.15 (#51)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+- chore(deps): update dependency ty to v0.0.40 (#49)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+- chore(deps): update astral-sh/setup-uv action to v8
+- chore(deps): update actions/setup-python action to v6
+- ci: clean up job skipping
+- chore: add more groups to renovate config
+- chore: exclude-newer for uv resolution to match renovate minimum age
+- chore(deps): update dependency pre-commit to v4.6.0 (#39)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+- chore(deps): update dependency commitizen to v4.16.2 (#38)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+- chore(deps): update pre-commit hook astral-sh/ruff-pre-commit to v0.15.14 (#37)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+- chore(deps): update dependency click to v8.4.0 (#36)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+- chore(deps): update dependency ty to v0.0.38 (#35)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+- chore(deps): update dependency ruff to v0.15.13 (#34)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+- chore(deps): pin dependencies (#33)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+- chore: correct renovate config
+- fix(display): split up the unified Location column into FolderPath and FileName
+- docs: update AGENTS.md
+- feat(display): add before/after change preview to print_track_info
+- refactor(display): render print_track_info with rich.table.Table
+- Replace the fixed-width f-string loop with a rich Table so column widths
+adapt to content and embedded ANSI sequences no longer skew alignment.
+PRINT_HEADERS becomes plain column labels (rich handles padding). Drain
+the recorded output to the debug log after each render.
+- refactor(display): extract print_track_info into display module
+- Add rich dependency and move PrintableField, PRINT_WIDTHS, PRINT_HEADERS,
+truncate_field, and print_track_info from utils to a new display module
+with a module-level Console for upcoming rich-based rendering. Update
+edit, convert, and search command imports. Move associated tests from
+test_utils.py to test_display.py. Pure move; no behavior change.
+- chore(deps): update pre-commit hooks (#29)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+- feat(edit): add --multi to allow batch edits past single-track guard
+- feat(edit): add --match for literal find/replace within field value
+- Introduces a _compute_new_value helper and --match option so that
+rbe edit can replace a substring of the current field value instead of
+performing a wholesale replacement; None current values and non-matching
+patterns are treated as no-ops.
+- chore: add max-complexity lint rule
+- docs: update AGENTS.md
+- test: add coverage for --interactive + --yes skipping all confirms
+- feat: adds edit command
+- Adds an `edit` subcommand to the CLI with:
+- Title field support via a required FIELD argument and --replace option
+- Single-track safety guard that aborts when >1 track would be modified
+- --dry-run mode that previews changes without writing to the database
+- --yes flag to skip confirmation, --interactive to confirm per-track
+- Scripting mode (--print=ids) requiring --yes or --dry-run
+- Piped stdin rejection without --yes or --dry-run
+- All global filter flags forwarded to get_filtered_content
+- docs: add AGENTS.md with project conventions and CLAUDE.md symlink
+- chore: add renovate config
+- feat: Add --path and --exact-path search filters
+- chore: add pytest-watcher and watch task in Make
+- feat(CollectionQuery): add by_path query filter
+
+## v0.3.1 (2026-04-17)
+
+
+- chore: version bump 0.3.1
+- ci: allow dispatching of publish workflow
+- chore: big 'ol project rename cause it was too long
+- docs: update readme and contributing
+- chore: change commitizen config and providers to work with uv
+- ci: skip CI and CD when no code-impacting changes have occurred
+- docs: update readme
+
 ## v0.3.0 (2026-04-09)
 
 
