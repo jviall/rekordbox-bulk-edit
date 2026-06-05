@@ -219,10 +219,10 @@ class TestEditCommandPhase1:
             ],
         )
 
-        kwargs = mock_gfc.call_args.kwargs
-        assert kwargs["artists"] == ("Bicep",)
-        assert kwargs["formats"] == ("flac",)
-        assert kwargs["match_all"] is True
+        filters = mock_gfc.call_args.args[1]
+        assert filters.artist == ["Bicep"]
+        assert filters.format == ["flac"]
+        assert filters.match_all is True
 
     @patch("rekordbox_edit.commands.edit.confirm")
     @patch("rekordbox_edit.commands.edit.get_filtered_content")

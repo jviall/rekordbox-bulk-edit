@@ -22,6 +22,7 @@ from rekordbox_edit._click import (
     print_option,
     track_ids_argument,
 )
+from rekordbox_edit.args import filter_args_from_kwargs
 from rekordbox_edit.logger import get_debug_file_path, set_level
 from rekordbox_edit.query import get_filtered_content
 from rekordbox_edit.display import PrintableField, print_track_info
@@ -361,23 +362,23 @@ def convert_command(
         logger.debug("Database connection established")
 
         # === QUERY & FILTER ===
-        result = get_filtered_content(
-            db,
-            track_id_args=track_ids,
-            track_ids=track_id,
-            formats=format,
-            playlists=playlist,
-            exact_playlists=exact_playlist,
-            artists=artist,
-            exact_artists=exact_artist,
-            albums=album,
-            exact_albums=exact_album,
-            titles=title,
-            exact_titles=exact_title,
-            paths=path,
-            exact_paths=exact_path,
+        filters = filter_args_from_kwargs(
+            track_id=track_id,
+            track_ids=track_ids,
+            playlist=playlist,
+            exact_playlist=exact_playlist,
+            album=album,
+            exact_album=exact_album,
+            artist=artist,
+            exact_artist=exact_artist,
+            title=title,
+            exact_title=exact_title,
+            path=path,
+            exact_path=exact_path,
+            format=format,
             match_all=match_all,
         )
+        result = get_filtered_content(db, filters)
         filtered_content = result.scalars().all()
         logger.debug(f"Query returned {len(filtered_content)} tracks")
 

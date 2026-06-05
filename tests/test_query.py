@@ -9,6 +9,7 @@ from unittest.mock import MagicMock
 import pytest
 from sqlalchemy import ColumnElement
 
+from rekordbox_edit.args import FilterArgs
 from rekordbox_edit.query import CollectionQuery, get_filtered_content
 
 
@@ -590,7 +591,7 @@ class TestGetFilteredContent:
     """Tests for the get_filtered_content function."""
 
     def test_no_filters(self, mock_db, mock_query):
-        get_filtered_content(mock_db)
+        get_filtered_content(mock_db, FilterArgs())
         mock_query.by_track_ids.assert_not_called()
         mock_query.by_artist.assert_not_called()
         mock_query.by_title.assert_not_called()
@@ -601,83 +602,84 @@ class TestGetFilteredContent:
         mock_query.execute.assert_called_once_with(mock_db)
 
     def test_track_id_args(self, mock_db, mock_query):
-        get_filtered_content(mock_db, track_id_args=["123", "456"])
+        get_filtered_content(mock_db, FilterArgs(track_ids=["123", "456"]))
         mock_query.by_track_ids.assert_called_once_with(track_ids=["123", "456"])
 
     def test_track_ids(self, mock_db, mock_query):
-        get_filtered_content(mock_db, track_ids=["123", "456"])
+        get_filtered_content(mock_db, FilterArgs(track_id=["123", "456"]))
         assert mock_query.by_track_ids.call_count == 2
         mock_query.by_track_ids.assert_any_call("123")
         mock_query.by_track_ids.assert_any_call("456")
 
     def test_artist(self, mock_db, mock_query):
-        get_filtered_content(mock_db, artists=["Daft Punk"])
+        get_filtered_content(mock_db, FilterArgs(artist=["Daft Punk"]))
         mock_query.by_artist.assert_called_once_with("Daft Punk")
 
     def test_multiple_artists(self, mock_db, mock_query):
-        get_filtered_content(mock_db, artists=["Daft Punk", "Justice"])
+        get_filtered_content(mock_db, FilterArgs(artist=["Daft Punk", "Justice"]))
         assert mock_query.by_artist.call_count == 2
         mock_query.by_artist.assert_any_call("Daft Punk")
         mock_query.by_artist.assert_any_call("Justice")
 
     def test_exact_artist(self, mock_db, mock_query):
-        get_filtered_content(mock_db, exact_artists=["Daft Punk"])
+        get_filtered_content(mock_db, FilterArgs(exact_artist=["Daft Punk"]))
         mock_query.by_artist.assert_called_once_with("Daft Punk", exact=True)
 
     def test_title(self, mock_db, mock_query):
-        get_filtered_content(mock_db, titles=["One More Time"])
+        get_filtered_content(mock_db, FilterArgs(title=["One More Time"]))
         mock_query.by_title.assert_called_once_with("One More Time")
 
     def test_exact_title(self, mock_db, mock_query):
-        get_filtered_content(mock_db, exact_titles=["One More Time"])
+        get_filtered_content(mock_db, FilterArgs(exact_title=["One More Time"]))
         mock_query.by_title.assert_called_once_with("One More Time", exact=True)
 
     def test_album(self, mock_db, mock_query):
-        get_filtered_content(mock_db, albums=["Discovery"])
+        get_filtered_content(mock_db, FilterArgs(album=["Discovery"]))
         mock_query.by_album.assert_called_once_with("Discovery")
 
     def test_exact_album(self, mock_db, mock_query):
-        get_filtered_content(mock_db, exact_albums=["Discovery"])
+        get_filtered_content(mock_db, FilterArgs(exact_album=["Discovery"]))
         mock_query.by_album.assert_called_once_with("Discovery", exact=True)
 
     def test_playlist(self, mock_db, mock_query):
-        get_filtered_content(mock_db, playlists=["My Playlist"])
+        get_filtered_content(mock_db, FilterArgs(playlist=["My Playlist"]))
         mock_query.by_playlist.assert_called_once_with("My Playlist")
 
     def test_exact_playlist(self, mock_db, mock_query):
-        get_filtered_content(mock_db, exact_playlists=["My Playlist"])
+        get_filtered_content(mock_db, FilterArgs(exact_playlist=["My Playlist"]))
         mock_query.by_playlist.assert_called_once_with("My Playlist", exact=True)
 
     def test_path(self, mock_db, mock_query):
-        get_filtered_content(mock_db, paths=["Music/track.mp3"])
+        get_filtered_content(mock_db, FilterArgs(path=["Music/track.mp3"]))
         mock_query.by_path.assert_called_once_with("Music/track.mp3")
 
     def test_exact_path(self, mock_db, mock_query):
-        get_filtered_content(mock_db, exact_paths=["/Music/track.wav"])
+        get_filtered_content(mock_db, FilterArgs(exact_path=["/Music/track.wav"]))
         mock_query.by_path.assert_called_once_with("/Music/track.wav", exact=True)
 
     def test_format(self, mock_db, mock_query):
-        get_filtered_content(mock_db, formats=["flac"])
+        get_filtered_content(mock_db, FilterArgs(format=["flac"]))
         mock_query.by_format.assert_called_once_with("flac")
 
     def test_multiple_formats(self, mock_db, mock_query):
-        get_filtered_content(mock_db, formats=["flac", "aiff"])
+        get_filtered_content(mock_db, FilterArgs(format=["flac", "aiff"]))
         assert mock_query.by_format.call_count == 2
         mock_query.by_format.assert_any_call("flac")
         mock_query.by_format.assert_any_call("aiff")
 
     def test_match_all(self, mock_db, mock_query):
-        get_filtered_content(mock_db, artists=["Daft Punk"], match_all=True)
+        get_filtered_content(mock_db, FilterArgs(artist=["Daft Punk"], match_all=True))
         mock_query.match_all.assert_called_once()
 
     def test_default_no_match_all(self, mock_db, mock_query):
-        get_filtered_content(mock_db, artists=["Daft Punk"])
+        get_filtered_content(mock_db, FilterArgs(artist=["Daft Punk"]))
         mock_query.match_all.assert_not_called()
 
     def test_track_id_args_combined_with_format(self, mock_db, mock_query):
-        """track_id_args should combine with other filters, not override them."""
+        """Positional track IDs should combine with other filters, not override them."""
         get_filtered_content(
-            mock_db, track_id_args=["123"], formats=["flac"], match_all=True
+            mock_db,
+            FilterArgs(track_ids=["123"], format=["flac"], match_all=True),
         )
         mock_query.by_track_ids.assert_called_once_with(track_ids=["123"])
         mock_query.by_format.assert_called_once_with("flac")
@@ -686,7 +688,8 @@ class TestGetFilteredContent:
     def test_track_id_args_combined_with_artist(self, mock_db, mock_query):
         """Piped IDs + artist filter with match_all narrows to artist within that ID set."""
         get_filtered_content(
-            mock_db, track_id_args=["123", "456"], artists=["Justice"], match_all=True
+            mock_db,
+            FilterArgs(track_ids=["123", "456"], artist=["Justice"], match_all=True),
         )
         mock_query.by_track_ids.assert_called_once_with(track_ids=["123", "456"])
         mock_query.by_artist.assert_called_once_with("Justice")
@@ -694,7 +697,7 @@ class TestGetFilteredContent:
 
     def test_track_id_args_or_with_artist(self, mock_db, mock_query):
         """Piped IDs OR'd with artist expands the result set."""
-        get_filtered_content(mock_db, track_id_args=["123"], artists=["Justice"])
+        get_filtered_content(mock_db, FilterArgs(track_ids=["123"], artist=["Justice"]))
         mock_query.by_track_ids.assert_called_once_with(track_ids=["123"])
         mock_query.by_artist.assert_called_once_with("Justice")
         mock_query.match_all.assert_not_called()
@@ -704,7 +707,7 @@ class TestGetFilteredContent:
         mock_db.session = None
 
         with pytest.raises(RuntimeError, match="No Session"):
-            get_filtered_content(mock_db)
+            get_filtered_content(mock_db, FilterArgs())
 
 
 class TestCollectionQueryExecution:

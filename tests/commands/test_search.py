@@ -150,12 +150,12 @@ class TestSearchCommand:
             ],
         )
 
-        call_kwargs = mock_get_filtered_content.call_args.kwargs
-        assert call_kwargs["artists"] == ("Daft Punk",)
-        assert call_kwargs["formats"] == ("flac",)
-        assert call_kwargs["paths"] == ("song.mp3",)
-        assert call_kwargs["exact_paths"] == ("/Music/album/track.wav",)
-        assert call_kwargs["match_all"] is True
+        filters = mock_get_filtered_content.call_args.args[1]
+        assert filters.artist == ["Daft Punk"]
+        assert filters.format == ["flac"]
+        assert filters.path == ["song.mp3"]
+        assert filters.exact_path == ["/Music/album/track.wav"]
+        assert filters.match_all is True
 
 
 class TestSearchStdinPiping:
@@ -184,8 +184,8 @@ class TestSearchStdinPiping:
         runner = CliRunner()
         runner.invoke(search_command, [], input="190993005 108916663 59476253")
 
-        call_kwargs = mock_get_filtered_content.call_args.kwargs
-        assert call_kwargs["track_id_args"] == ["190993005", "108916663", "59476253"]
+        filters = mock_get_filtered_content.call_args.args[1]
+        assert filters.track_ids == ["190993005", "108916663", "59476253"]
 
     @patch("rekordbox_edit.commands.search.print_track_info")
     @patch("rekordbox_edit.commands.search.get_filtered_content")
@@ -214,8 +214,8 @@ class TestSearchStdinPiping:
             input="59476253 113475696",
         )
 
-        call_kwargs = mock_get_filtered_content.call_args.kwargs
-        assert call_kwargs["track_id_args"] == [
+        filters = mock_get_filtered_content.call_args.args[1]
+        assert filters.track_ids == [
             "190993005",
             "108916663",
             "59476253",
@@ -245,5 +245,5 @@ class TestSearchStdinPiping:
         runner = CliRunner()
         runner.invoke(search_command, [], input="   ")
 
-        call_kwargs = mock_get_filtered_content.call_args.kwargs
-        assert not call_kwargs["track_id_args"]
+        filters = mock_get_filtered_content.call_args.args[1]
+        assert not filters.track_ids
