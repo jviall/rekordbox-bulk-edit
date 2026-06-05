@@ -40,7 +40,7 @@ jobs:
           gpg_sign: true
 
       - name: Release
-        uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365aca7b0e5f844 # v1
+        uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda # v3
         with:
           body_path: "body.md"
           tag_name: ${{ env.REVISION }}
