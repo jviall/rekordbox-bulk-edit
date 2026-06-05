@@ -30,7 +30,9 @@ class TestEditCommand:
         mock_plan_edit.return_value = _make_plan()
         mock_edit.return_value = Mock(applied=1)
 
-        result = CliRunner().invoke(edit_command, ["Title", "--replace", "New", "--yes"])
+        result = CliRunner().invoke(
+            edit_command, ["Title", "--replace", "New", "--yes"]
+        )
 
         assert result.exit_code == 0
         mock_edit.assert_called_once()
@@ -56,7 +58,9 @@ class TestEditCommand:
         mock_plan_edit.return_value = EditPlan(field="Title", edits=[])
 
         with patch("rekordbox_edit.cli.edit.edit") as mock_edit:
-            result = CliRunner().invoke(edit_command, ["Title", "--replace", "New", "--yes"])
+            result = CliRunner().invoke(
+                edit_command, ["Title", "--replace", "New", "--yes"]
+            )
 
         assert result.exit_code == 0
         mock_edit.assert_not_called()
@@ -72,10 +76,29 @@ class TestEditCommand:
         assert result.exit_code != 0
         assert "Error" in result.output
 
+    @patch("rekordbox_edit.cli.edit._handle_stdin", return_value=False)
+    @patch("rekordbox_edit.cli.edit._confirm_edits")
+    @patch("rekordbox_edit.cli.edit.plan_edit")
+    @patch("rekordbox_edit.cli.edit.Rekordbox6Database")
+    def test_cancellation_skips_edit(
+        self, mock_db_class, mock_plan_edit, mock_confirm, _
+    ):
+        mock_db_class.return_value = Mock(session=Mock())
+        mock_plan_edit.return_value = _make_plan()
+        mock_confirm.return_value = None
+
+        with patch("rekordbox_edit.cli.edit.edit") as mock_edit:
+            result = CliRunner().invoke(edit_command, ["Title", "--replace", "New"])
+
+        assert result.exit_code == 0
+        mock_edit.assert_not_called()
+
     @patch("rekordbox_edit.cli.edit.edit")
     @patch("rekordbox_edit.cli.edit.plan_edit")
     @patch("rekordbox_edit.cli.edit.Rekordbox6Database")
-    def test_print_ids_outputs_applied_ids(self, mock_db_class, mock_plan_edit, mock_edit):
+    def test_print_ids_outputs_applied_ids(
+        self, mock_db_class, mock_plan_edit, mock_edit
+    ):
         mock_db_class.return_value = Mock(session=Mock())
         mock_plan_edit.return_value = _make_plan(edits=[(Track(ID="AAA"), "New")])
         mock_edit.return_value = Mock(applied=1)

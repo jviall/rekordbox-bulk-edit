@@ -6,14 +6,17 @@ import pytest
 
 from rekordbox_edit.api.convert import (
     cleanup_converted_files,
+    convert,
     convert_to_lossless,
     convert_to_mp3,
     get_output_path,
     plan_convert,
     rollback_and_cleanup,
     update_database_record,
+    ConvertPlan,
+    ConvertResult,
 )
-from rekordbox_edit.models import ConvertPlanArgs
+from rekordbox_edit.models import ConvertPlanArgs, Track
 from rekordbox_edit.utils import OutputFormats
 
 
@@ -23,7 +26,9 @@ class TestPlanConvert:
     def test_filters_already_converted_tracks(
         self, mock_get_type, mock_gfc, mock_db, make_djmd_content_item
     ):
-        mock_get_type.side_effect = lambda fmt: {"AIFF": 1, "MP3": 5, "M4A": 6}.get(fmt.upper(), 99)
+        mock_get_type.side_effect = lambda fmt: {"AIFF": 1, "MP3": 5, "M4A": 6}.get(
+            fmt.upper(), 99
+        )
         content = make_djmd_content_item(FileType=1)  # already AIFF
         mock_result = Mock()
         mock_result.scalars.return_value.all.return_value = [content]
@@ -38,7 +43,9 @@ class TestPlanConvert:
     def test_skips_lossy_formats(
         self, mock_get_type, mock_gfc, mock_db, make_djmd_content_item
     ):
-        mock_get_type.side_effect = lambda fmt: {"AIFF": 1, "MP3": 5, "M4A": 6}.get(fmt.upper(), 99)
+        mock_get_type.side_effect = lambda fmt: {"AIFF": 1, "MP3": 5, "M4A": 6}.get(
+            fmt.upper(), 99
+        )
         mp3_content = make_djmd_content_item(FileType=5)  # MP3 — skip
         mock_result = Mock()
         mock_result.scalars.return_value.all.return_value = [mp3_content]
@@ -53,10 +60,17 @@ class TestPlanConvert:
     @patch("rekordbox_edit.api.convert.get_filtered_content")
     @patch("rekordbox_edit.api.convert.get_file_type_for_format")
     def test_skips_conflicts_when_no_overwrite(
-        self, mock_get_type, mock_gfc, mock_get_output, mock_exists,
-        mock_db, make_djmd_content_item
+        self,
+        mock_get_type,
+        mock_gfc,
+        mock_get_output,
+        mock_exists,
+        mock_db,
+        make_djmd_content_item,
     ):
-        mock_get_type.side_effect = lambda fmt: {"AIFF": 1, "MP3": 5, "M4A": 6}.get(fmt.upper(), 99)
+        mock_get_type.side_effect = lambda fmt: {"AIFF": 1, "MP3": 5, "M4A": 6}.get(
+            fmt.upper(), 99
+        )
         content = make_djmd_content_item(FileType=11)  # WAV → convert to AIFF
         mock_result = Mock()
         mock_result.scalars.return_value.all.return_value = [content]
@@ -64,7 +78,9 @@ class TestPlanConvert:
         mock_get_output.return_value = ("/path/output.aif", "output.aif", "/path")
         mock_exists.return_value = True  # output already exists
 
-        plan = plan_convert(mock_db, ConvertPlanArgs(format_out="aiff", overwrite=False))
+        plan = plan_convert(
+            mock_db, ConvertPlanArgs(format_out="aiff", overwrite=False)
+        )
 
         assert plan.files == []
         assert len(plan.skipped) == 1
@@ -313,7 +329,9 @@ class TestConvertToMp3:
 
     @patch("rekordbox_edit.utils.ffmpeg_in_path")
     @patch("rekordbox_edit.api.convert.ffmpeg")
-    def test_ffmpeg_error_no_stderr_returns_false(self, mock_ffmpeg, mock_ffmpeg_in_path):
+    def test_ffmpeg_error_no_stderr_returns_false(
+        self, mock_ffmpeg, mock_ffmpeg_in_path
+    ):
         mock_ffmpeg_in_path.return_value = True
         mock_input = Mock()
         mock_output = Mock()
@@ -357,7 +375,9 @@ class TestUpdateDatabaseRecord:
         assert mock_content.BitRate == 0
 
     @patch("rekordbox_edit.api.convert.get_audio_info")
-    def test_mp3_sets_bitrate_from_probe(self, mock_get_audio_info, make_djmd_content_item):
+    def test_mp3_sets_bitrate_from_probe(
+        self, mock_get_audio_info, make_djmd_content_item
+    ):
         mock_db = Mock()
         mock_content = make_djmd_content_item(ID=123)
         mock_db.get_content().filter_by(ID=123).first.return_value = mock_content
@@ -378,7 +398,9 @@ class TestUpdateDatabaseRecord:
             update_database_record(mock_db, 123, "output.flac", "/path/to", "FLAC")
 
     @patch("rekordbox_edit.api.convert.get_audio_info")
-    def test_bit_depth_mismatch_raises(self, mock_get_audio_info, make_djmd_content_item):
+    def test_bit_depth_mismatch_raises(
+        self, mock_get_audio_info, make_djmd_content_item
+    ):
         mock_db = Mock()
         mock_content = make_djmd_content_item(ID=123, BitDepth=16)
         mock_db.get_content().filter_by(ID=123).first.return_value = mock_content
@@ -388,7 +410,9 @@ class TestUpdateDatabaseRecord:
             update_database_record(mock_db, 123, "output.aiff", "/path/to", "AIFF")
 
     @patch("rekordbox_edit.api.convert.get_audio_info")
-    def test_mp3_none_bitrate_defaults_to_320(self, mock_get_audio_info, make_djmd_content_item):
+    def test_mp3_none_bitrate_defaults_to_320(
+        self, mock_get_audio_info, make_djmd_content_item
+    ):
         mock_db = Mock()
         mock_content = make_djmd_content_item(ID=123)
         mock_db.get_content().filter_by(ID=123).first.return_value = mock_content
@@ -469,6 +493,240 @@ class TestRollbackAndCleanup:
             rollback_and_cleanup(mock_db, [])
 
         assert mock_logger.critical.call_count == 2
+
+
+class TestConvert:
+    def _make_plan(self, files=None, format_out="aiff", should_delete=True):
+        return ConvertPlan(
+            files=files or [Track(ID="1", FileNameL="track.wav")],
+            skipped=[],
+            should_delete=should_delete,
+            format_out=format_out,
+        )
+
+    def _seed_db(self, mock_db, *contents):
+        mock_db.session.execute.return_value.scalars.return_value.all.return_value = (
+            list(contents)
+        )
+
+    def test_empty_plan_returns_early_without_commit(self, mock_db):
+        plan = ConvertPlan(files=[], skipped=[], should_delete=True, format_out="aiff")
+        result = convert(mock_db, plan)
+        assert result == ConvertResult(converted=[], deleted=0)
+        mock_db.session.commit.assert_not_called()
+
+    @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=False)
+    def test_no_ffmpeg_raises_immediately(self, _, mock_db):
+        with pytest.raises(RuntimeError, match="FFmpeg"):
+            convert(mock_db, self._make_plan())
+        mock_db.session.commit.assert_not_called()
+
+    @patch("rekordbox_edit.api.convert.rollback_and_cleanup")
+    @patch("rekordbox_edit.api.convert.os.path.exists", return_value=False)
+    @patch(
+        "rekordbox_edit.api.convert.get_output_path",
+        return_value=("/out.aiff", "out.aiff", "/"),
+    )
+    @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=True)
+    def test_missing_source_triggers_rollback_and_raises(
+        self,
+        _,
+        mock_get_output,
+        mock_exists,
+        mock_rollback,
+        mock_db,
+        make_djmd_content_item,
+    ):
+        self._seed_db(mock_db, make_djmd_content_item(ID="1"))
+        with pytest.raises(RuntimeError, match="Source not found"):
+            convert(mock_db, self._make_plan())
+        mock_rollback.assert_called_once()
+
+    @patch("rekordbox_edit.api.convert.rollback_and_cleanup")
+    @patch("rekordbox_edit.api.convert.convert_to_lossless", return_value=False)
+    @patch(
+        "rekordbox_edit.api.convert.get_output_path",
+        return_value=("/out.aiff", "out.aiff", "/"),
+    )
+    @patch("rekordbox_edit.api.convert.os.path.exists", return_value=True)
+    @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=True)
+    def test_conversion_failure_triggers_rollback_and_raises(
+        self,
+        _,
+        mock_exists,
+        mock_get_output,
+        mock_lossless,
+        mock_rollback,
+        mock_db,
+        make_djmd_content_item,
+    ):
+        self._seed_db(mock_db, make_djmd_content_item(ID="1"))
+        with pytest.raises(RuntimeError, match="Conversion failed"):
+            convert(mock_db, self._make_plan())
+        mock_rollback.assert_called_once()
+
+    @patch("rekordbox_edit.api.convert.rollback_and_cleanup")
+    @patch(
+        "rekordbox_edit.api.convert.update_database_record",
+        side_effect=RuntimeError("DB error"),
+    )
+    @patch("rekordbox_edit.api.convert.convert_to_lossless", return_value=True)
+    @patch(
+        "rekordbox_edit.api.convert.get_output_path",
+        return_value=("/out.aiff", "out.aiff", "/"),
+    )
+    @patch("rekordbox_edit.api.convert.os.path.exists", return_value=True)
+    @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=True)
+    def test_exception_triggers_rollback_and_reraises(
+        self,
+        _,
+        mock_exists,
+        mock_get_output,
+        mock_lossless,
+        mock_update,
+        mock_rollback,
+        mock_db,
+        make_djmd_content_item,
+    ):
+        self._seed_db(mock_db, make_djmd_content_item(ID="1"))
+        with pytest.raises(RuntimeError, match="DB error"):
+            convert(mock_db, self._make_plan())
+        mock_rollback.assert_called_once()
+
+    @patch("rekordbox_edit.api.convert.rollback_and_cleanup")
+    @patch(
+        "rekordbox_edit.api.convert.convert_to_lossless", side_effect=KeyboardInterrupt
+    )
+    @patch(
+        "rekordbox_edit.api.convert.get_output_path",
+        return_value=("/out.aiff", "out.aiff", "/"),
+    )
+    @patch("rekordbox_edit.api.convert.os.path.exists", return_value=True)
+    @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=True)
+    def test_keyboard_interrupt_triggers_rollback_and_reraises(
+        self,
+        _,
+        mock_exists,
+        mock_get_output,
+        mock_lossless,
+        mock_rollback,
+        mock_db,
+        make_djmd_content_item,
+    ):
+        self._seed_db(mock_db, make_djmd_content_item(ID="1"))
+        with pytest.raises(KeyboardInterrupt):
+            convert(mock_db, self._make_plan())
+        mock_rollback.assert_called_once()
+
+    @patch("rekordbox_edit.api.convert.update_database_record")
+    @patch("rekordbox_edit.api.convert.convert_to_lossless", return_value=True)
+    @patch(
+        "rekordbox_edit.api.convert.get_output_path",
+        return_value=("/out.aiff", "out.aiff", "/"),
+    )
+    @patch("rekordbox_edit.api.convert.os.path.exists", return_value=True)
+    @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=True)
+    def test_successful_lossless_commits_and_returns_result(
+        self,
+        _,
+        mock_exists,
+        mock_get_output,
+        mock_lossless,
+        mock_update,
+        mock_db,
+        make_djmd_content_item,
+    ):
+        content = make_djmd_content_item(ID="1", FolderPath="/music/track.wav")
+        self._seed_db(mock_db, content)
+
+        result = convert(mock_db, self._make_plan(should_delete=False))
+
+        mock_lossless.assert_called_once()
+        mock_update.assert_called_once()
+        mock_db.session.commit.assert_called_once()
+        assert len(result.converted) == 1
+        assert result.deleted == 0
+
+    @patch("rekordbox_edit.api.convert.update_database_record")
+    @patch("rekordbox_edit.api.convert.convert_to_mp3", return_value=True)
+    @patch(
+        "rekordbox_edit.api.convert.get_output_path",
+        return_value=("/out.mp3", "out.mp3", "/"),
+    )
+    @patch("rekordbox_edit.api.convert.os.path.exists", return_value=True)
+    @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=True)
+    def test_mp3_format_uses_convert_to_mp3(
+        self,
+        _,
+        mock_exists,
+        mock_get_output,
+        mock_mp3,
+        mock_update,
+        mock_db,
+        make_djmd_content_item,
+    ):
+        content = make_djmd_content_item(ID="1", FolderPath="/music/track.wav")
+        self._seed_db(mock_db, content)
+
+        convert(mock_db, self._make_plan(format_out="mp3", should_delete=False))
+
+        mock_mp3.assert_called_once_with(content.FolderPath, "/out.mp3")
+
+    @patch("rekordbox_edit.api.convert.os.remove")
+    @patch("rekordbox_edit.api.convert.update_database_record")
+    @patch("rekordbox_edit.api.convert.convert_to_lossless", return_value=True)
+    @patch(
+        "rekordbox_edit.api.convert.get_output_path",
+        return_value=("/out.aiff", "out.aiff", "/"),
+    )
+    @patch("rekordbox_edit.api.convert.os.path.exists", return_value=True)
+    @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=True)
+    def test_deletes_originals_when_should_delete_true(
+        self,
+        _,
+        mock_exists,
+        mock_get_output,
+        mock_lossless,
+        mock_update,
+        mock_remove,
+        mock_db,
+        make_djmd_content_item,
+    ):
+        content = make_djmd_content_item(ID="1", FolderPath="/music/track.wav")
+        self._seed_db(mock_db, content)
+
+        result = convert(mock_db, self._make_plan(should_delete=True))
+
+        mock_remove.assert_called_once_with(content.FolderPath)
+        assert result.deleted == 1
+
+    @patch("rekordbox_edit.api.convert.os.remove")
+    @patch("rekordbox_edit.api.convert.update_database_record")
+    @patch("rekordbox_edit.api.convert.convert_to_lossless", return_value=True)
+    @patch(
+        "rekordbox_edit.api.convert.get_output_path",
+        return_value=("/out.aiff", "out.aiff", "/"),
+    )
+    @patch("rekordbox_edit.api.convert.os.path.exists", return_value=True)
+    @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=True)
+    def test_skips_deletion_when_should_delete_false(
+        self,
+        _,
+        mock_exists,
+        mock_get_output,
+        mock_lossless,
+        mock_update,
+        mock_remove,
+        mock_db,
+        make_djmd_content_item,
+    ):
+        content = make_djmd_content_item(ID="1", FolderPath="/music/track.wav")
+        self._seed_db(mock_db, content)
+
+        result = convert(mock_db, self._make_plan(should_delete=False))
+
+        mock_remove.assert_not_called()
+        assert result.deleted == 0
 
 
 class TestGetOutputPath:
