@@ -24,8 +24,10 @@ from rekordbox_edit._click import (
 )
 from rekordbox_edit.args import (
     ConfirmationArgs,
+    ConvertArgs,
     FilterArgs,
     confirmation_args_from_kwargs,
+    convert_args_from_kwargs,
     filter_args_from_kwargs,
 )
 from rekordbox_edit.logger import get_debug_file_path, set_level
@@ -310,15 +312,16 @@ def convert_command(
     confirmation = confirmation_args_from_kwargs(
         dry_run=dry_run, yes=yes, interactive=interactive
     )
-    _convert(filters, confirmation, format_out, delete, overwrite, print_opt)
+    convert_args = convert_args_from_kwargs(
+        format_out=format_out, delete=delete, overwrite=overwrite
+    )
+    _convert(filters, confirmation, convert_args, print_opt)
 
 
 def _convert(
     filters: FilterArgs,
     confirmation: ConfirmationArgs,
-    format_out: str,
-    delete: bool | None,
-    overwrite: bool,
+    convert_args: ConvertArgs,
     print_opt: PrintChoice | None,
 ) -> None:
     """Convert audio files for tracks matching `filters`."""
@@ -328,6 +331,11 @@ def _convert(
         confirmation.dry_run,
         confirmation.yes,
         confirmation.interactive,
+    )
+    format_out, delete, overwrite = (
+        convert_args.format_out,
+        convert_args.delete,
+        convert_args.overwrite,
     )
     set_level(print_opt)
 
