@@ -10,6 +10,7 @@ from pyrekordbox import Rekordbox6Database
 from rekordbox_edit._click import (
     PrintChoice,
     add_click_options,
+    edit_click_options,
     global_click_confirmations,
     global_click_filters,
     print_option,
@@ -44,24 +45,13 @@ def _compute_new_value(
 @click.command(
     epilog=f"Debug logs for each run can be found at:\n{get_debug_file_path().parent}"
 )
-@add_click_options([*global_click_filters, *global_click_confirmations, print_option])
-@click.option(
-    "--replace",
-    "replace_value",
-    required=True,
-    help="The new value to write to the field",
-)
-@click.option(
-    "--match",
-    "match_pattern",
-    default=None,
-    metavar="PATTERN",
-    help="Find this literal string within the field value and replace only that portion",
-)
-@click.option(
-    "--multi",
-    is_flag=True,
-    help="Allow editing more than one track (required when filters match multiple tracks)",
+@add_click_options(
+    [
+        *global_click_filters,
+        *global_click_confirmations,
+        *edit_click_options,
+        print_option,
+    ]
 )
 @track_ids_argument
 @click.argument(

@@ -121,6 +121,27 @@ global_click_confirmations = [
     ),
 ]
 
+edit_click_options = [
+    click.option(
+        "--replace",
+        "replace_value",
+        required=True,
+        help="The new value to write to the field",
+    ),
+    click.option(
+        "--match",
+        "match_pattern",
+        default=None,
+        metavar="PATTERN",
+        help="Find this literal string within the field value and replace only that portion",
+    ),
+    click.option(
+        "--multi",
+        is_flag=True,
+        help="Allow editing more than one track (required when filters match multiple tracks)",
+    ),
+]
+
 
 def add_click_options(options):
     def _add_options(func):
