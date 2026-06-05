@@ -22,7 +22,12 @@ from rekordbox_edit._click import (
     print_option,
     track_ids_argument,
 )
-from rekordbox_edit.args import filter_args_from_kwargs
+from rekordbox_edit.args import (
+    ConfirmationArgs,
+    FilterArgs,
+    confirmation_args_from_kwargs,
+    filter_args_from_kwargs,
+)
 from rekordbox_edit.logger import get_debug_file_path, set_level
 from rekordbox_edit.query import get_filtered_content
 from rekordbox_edit.display import PrintableField, print_track_info
@@ -286,15 +291,51 @@ def convert_command(
 
     Skips lossy formats and files already in the target format.
     """
+    filters = filter_args_from_kwargs(
+        track_id=track_id,
+        track_ids=track_ids,
+        playlist=playlist,
+        exact_playlist=exact_playlist,
+        album=album,
+        exact_album=exact_album,
+        artist=artist,
+        exact_artist=exact_artist,
+        title=title,
+        exact_title=exact_title,
+        path=path,
+        exact_path=exact_path,
+        format=format,
+        match_all=match_all,
+    )
+    confirmation = confirmation_args_from_kwargs(
+        dry_run=dry_run, yes=yes, interactive=interactive
+    )
+    _convert(filters, confirmation, format_out, delete, overwrite, print_opt)
+
+
+def _convert(
+    filters: FilterArgs,
+    confirmation: ConfirmationArgs,
+    format_out: str,
+    delete: bool | None,
+    overwrite: bool,
+    print_opt: PrintChoice | None,
+) -> None:
+    """Convert audio files for tracks matching `filters`."""
     from rekordbox_edit.utils import ffmpeg_in_path, get_ffmpeg_directions
 
+    dry_run, yes, interactive = (
+        confirmation.dry_run,
+        confirmation.yes,
+        confirmation.interactive,
+    )
     set_level(print_opt)
 
     piped_stdin = not sys.stdin.isatty()
     if piped_stdin:
         stdin_data = sys.stdin.read().strip()
         if stdin_data:
-            track_ids = list(track_ids or []) + stdin_data.split()
+            filters.track_ids = list(filters.track_ids) + stdin_data.split()
 
     # Validate --print option requirements
     scripting_mode = print_opt in (PrintChoice.IDS, PrintChoice.SILENT)
@@ -362,22 +403,6 @@ def convert_command(
         logger.debug("Database connection established")
 
         # === QUERY & FILTER ===
-        filters = filter_args_from_kwargs(
-            track_id=track_id,
-            track_ids=track_ids,
-            playlist=playlist,
-            exact_playlist=exact_playlist,
-            album=album,
-            exact_album=exact_album,
-            artist=artist,
-            exact_artist=exact_artist,
-            title=title,
-            exact_title=exact_title,
-            path=path,
-            exact_path=exact_path,
-            format=format,
-            match_all=match_all,
-        )
         result = get_filtered_content(db, filters)
         filtered_content = result.scalars().all()
         logger.debug(f"Query returned {len(filtered_content)} tracks")

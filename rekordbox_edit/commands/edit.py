@@ -16,7 +16,12 @@ from rekordbox_edit._click import (
     print_option,
     track_ids_argument,
 )
-from rekordbox_edit.args import filter_args_from_kwargs
+from rekordbox_edit.args import (
+    ConfirmationArgs,
+    FilterArgs,
+    confirmation_args_from_kwargs,
+    filter_args_from_kwargs,
+)
 from rekordbox_edit.logger import get_debug_file_path, set_level
 from rekordbox_edit.query import get_filtered_content
 from rekordbox_edit.display import PrintableField, print_track_info
@@ -84,29 +89,6 @@ def edit_command(
     print_opt: PrintChoice | None,
 ):
     """Edit a metadata field on tracks in the RekordBox database."""
-
-    set_level(print_opt)
-
-    piped_stdin = False
-    if not sys.stdin.isatty():
-        stdin_data = sys.stdin.read().strip()
-        if stdin_data:
-            piped_stdin = True
-            track_ids = list(track_ids or []) + stdin_data.split()
-
-    scripting_mode = print_opt in (PrintChoice.IDS, PrintChoice.SILENT)
-    if scripting_mode and not (dry_run or yes):
-        raise click.UsageError(
-            "--print=ids or --print=silent requires --dry-run or --yes to skip confirmation"
-        )
-
-    if piped_stdin and not (dry_run or yes):
-        raise click.UsageError("Piping track IDs into edit requires --dry-run or --yes")
-
-    db = Rekordbox6Database()
-    if not db.session:
-        raise RuntimeError("Failed to connect to Rekordbox Database: No Session.")
-
     filters = filter_args_from_kwargs(
         track_id=track_id,
         track_ids=track_ids,
@@ -123,6 +105,49 @@ def edit_command(
         format=format,
         match_all=match_all,
     )
+    confirmation = confirmation_args_from_kwargs(
+        dry_run=dry_run, yes=yes, interactive=interactive
+    )
+    _edit(filters, confirmation, field, replace_value, match_pattern, multi, print_opt)
+
+
+def _edit(
+    filters: FilterArgs,
+    confirmation: ConfirmationArgs,
+    field: str,
+    replace_value: str,
+    match_pattern: str | None,
+    multi: bool,
+    print_opt: PrintChoice | None,
+) -> None:
+    """Apply a field edit to tracks matching `filters`."""
+    dry_run, yes, interactive = (
+        confirmation.dry_run,
+        confirmation.yes,
+        confirmation.interactive,
+    )
+    set_level(print_opt)
+
+    piped_stdin = False
+    if not sys.stdin.isatty():
+        stdin_data = sys.stdin.read().strip()
+        if stdin_data:
+            piped_stdin = True
+            filters.track_ids = list(filters.track_ids) + stdin_data.split()
+
+    scripting_mode = print_opt in (PrintChoice.IDS, PrintChoice.SILENT)
+    if scripting_mode and not (dry_run or yes):
+        raise click.UsageError(
+            "--print=ids or --print=silent requires --dry-run or --yes to skip confirmation"
+        )
+
+    if piped_stdin and not (dry_run or yes):
+        raise click.UsageError("Piping track IDs into edit requires --dry-run or --yes")
+
+    db = Rekordbox6Database()
+    if not db.session:
+        raise RuntimeError("Failed to connect to Rekordbox Database: No Session.")
+
     result = get_filtered_content(db, filters)
     tracks = result.scalars().all()
 
