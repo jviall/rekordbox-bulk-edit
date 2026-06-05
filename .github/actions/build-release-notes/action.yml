@@ -1,0 +1,88 @@
+name: "Build Release Notes"
+description: "Generate categorized release notes from conventional commits between two tags"
+inputs:
+  from_tag:
+    description: "Tag to start the changelog range from (exclusive)"
+    required: true
+  to_tag:
+    description: "Tag to end the changelog range at (inclusive)"
+    required: true
+  github_token:
+    description: "GitHub token for API access"
+    required: true
+runs:
+  using: "composite"
+  steps:
+    - uses: mikepenz/release-changelog-builder-action@348e88fab4c37338b1e803ceb2d4a7a5db6c0833 # v6.2.2
+      with:
+        outputFile: release-notes.md
+        configurationJson: |
+          {
+            "categories": [
+              {
+                "title": "## Breaking Changes",
+                "labels": [],
+                "rules": [
+                  {
+                    "pattern": "^(\\w+)?(\\(.*\\))?!:",
+                    "on_property": "title"
+                  }
+                ]
+              },
+              {
+                "title": "## Features",
+                "labels": [],
+                "rules": [
+                  {
+                    "pattern": "^feat(\\(.*\\))?:",
+                    "on_property": "title"
+                  }
+                ]
+              },
+              {
+                "title": "## Fixes",
+                "labels": [],
+                "rules": [
+                  {
+                    "pattern": "^fix(?!\\(deps\\))(\\(.*\\))?:",
+                    "on_property": "title"
+                  }
+                ]
+              },
+              {
+                "title": "## Chores",
+                "labels": [],
+                "rules": [
+                  {
+                    "pattern": "^(chore(?!\\(deps\\))|refactor|ci|docs|style|perf|test|build)(\\(.*\\))?:",
+                    "on_property": "title"
+                  }
+                ]
+              },
+              {
+                "title": "## Dependency Updates",
+                "labels": [],
+                "rules": [
+                  {
+                    "pattern": "^(chore|fix)\\(deps\\):",
+                    "on_property": "title"
+                  }
+                ]
+              }
+            ],
+            "exhaustive": true,
+            "sort": {
+              "order": "ASC",
+              "on_property": "title"
+            },
+            "template": "#{{CHANGELOG}}\n\n## Uncategorized\n#{{UNCATEGORIZED}}",
+            "pr_template": "- #{{TITLE}} (##{{NUMBER}} by @#{{AUTHOR}})",
+            "empty_template": "- No changes",
+            "tag_resolver": {
+              "method": "sort"
+            }
+          }
+        fromTag: ${{ inputs.from_tag }}
+        toTag: ${{ inputs.to_tag }}
+      env:
+        GITHUB_TOKEN: ${{ inputs.github_token }}

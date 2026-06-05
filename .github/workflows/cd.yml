@@ -68,16 +68,25 @@ jobs:
         with:
           skip-existing: true
 
+      - name: Find last stable release
+        id: last_stable
+        run: |
+          echo "tag=$(gh release list --exclude-pre-releases --limit 1 --json tagName -q '.[0].tagName')" >> $GITHUB_OUTPUT
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build release notes
+        uses: ./.github/actions/build-release-notes
+        with:
+          from_tag: ${{ steps.last_stable.outputs.tag }}
+          to_tag: v${{ steps.version.outputs.version }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Create GitHub Pre-Release
         uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda # v3
         with:
+          token: ${{ secrets.GITHUB_TOKEN }}
           tag_name: v${{ steps.version.outputs.version }}
           name: v${{ steps.version.outputs.version }}
           prerelease: true
-          generate_release_notes: true
-          body: |
-            🚧 Development pre-release
-
-            Install: `pip install --pre rekordbox-edit==${{ steps.version.outputs.version }}`
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          body_path: release-notes.md
