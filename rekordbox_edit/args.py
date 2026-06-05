@@ -52,3 +52,26 @@ def filter_args_from_kwargs(**kwargs) -> FilterArgs:
         format=list(kwargs.get("format") or []),
         match_all=bool(kwargs.get("match_all", False)),
     )
+
+
+@dataclass
+class ConfirmationArgs:
+    """How the user gates a side effect before it lands.
+
+    `dry_run` skips the change entirely. `yes` skips confirmation and applies
+    the batch. `interactive` prompts per item. With all three false, the
+    caller is expected to prompt once for the batch.
+    """
+
+    dry_run: bool = False
+    yes: bool = False
+    interactive: bool = False
+
+
+def confirmation_args_from_kwargs(**kwargs) -> ConfirmationArgs:
+    """Pack the flat Click kwargs for the `global_click_confirmations` group into a ConfirmationArgs."""
+    return ConfirmationArgs(
+        dry_run=bool(kwargs.get("dry_run", False)),
+        yes=bool(kwargs.get("yes", False)),
+        interactive=bool(kwargs.get("interactive", False)),
+    )
