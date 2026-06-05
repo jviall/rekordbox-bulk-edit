@@ -709,10 +709,10 @@ class TestConvertCommand:
             ["--dry-run", "--artist", "Daft Punk", "--format", "flac", "--match-all"],
         )
 
-        call_kwargs = mock_get_filtered_content.call_args.kwargs
-        assert call_kwargs["artists"] == ("Daft Punk",)
-        assert call_kwargs["formats"] == ("flac",)
-        assert call_kwargs["match_all"] is True
+        filters = mock_get_filtered_content.call_args.args[1]
+        assert filters.artist == ["Daft Punk"]
+        assert filters.format == ["flac"]
+        assert filters.match_all is True
 
     @patch("rekordbox_edit.commands.convert.get_rekordbox_pid")
     @patch("rekordbox_edit.commands.convert.confirm")
@@ -2074,8 +2074,8 @@ class TestConvertStdinPiping:
             input="190993005 108916663 59476253",
         )
 
-        call_kwargs = mock_get_filtered_content.call_args.kwargs
-        assert call_kwargs["track_id_args"] == ["190993005", "108916663", "59476253"]
+        filters = mock_get_filtered_content.call_args.args[1]
+        assert filters.track_ids == ["190993005", "108916663", "59476253"]
 
     @patch("rekordbox_edit.commands.convert.get_rekordbox_pid")
     @patch("rekordbox_edit.commands.convert.get_filtered_content")
@@ -2109,8 +2109,8 @@ class TestConvertStdinPiping:
             input="59476253 113475696",
         )
 
-        call_kwargs = mock_get_filtered_content.call_args.kwargs
-        assert call_kwargs["track_id_args"] == [
+        filters = mock_get_filtered_content.call_args.args[1]
+        assert filters.track_ids == [
             "190993005",
             "108916663",
             "59476253",
@@ -2154,5 +2154,5 @@ class TestConvertStdinPiping:
         runner = CliRunner()
         runner.invoke(convert_command, ["--dry-run"], input="   ")
 
-        call_kwargs = mock_get_filtered_content.call_args.kwargs
-        assert not call_kwargs["track_id_args"]
+        filters = mock_get_filtered_content.call_args.args[1]
+        assert not filters.track_ids

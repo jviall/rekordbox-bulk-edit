@@ -14,6 +14,7 @@ from rekordbox_edit._click import (
     print_option,
     track_ids_argument,
 )
+from rekordbox_edit.args import filter_args_from_kwargs
 from rekordbox_edit.logger import get_debug_file_path, set_level
 from rekordbox_edit.query import get_filtered_content
 from rekordbox_edit.display import print_track_info
@@ -51,61 +52,31 @@ def search_command(
         if stdin_data:
             track_ids = list(track_ids or []) + stdin_data.split()
 
-    logger.debug("Connecting to RekordBox database...")
+    filters = filter_args_from_kwargs(
+        track_id=track_id,
+        track_ids=track_ids,
+        playlist=playlist,
+        exact_playlist=exact_playlist,
+        album=album,
+        exact_album=exact_album,
+        artist=artist,
+        exact_artist=exact_artist,
+        title=title,
+        exact_title=exact_title,
+        path=path,
+        exact_path=exact_path,
+        format=format,
+        match_all=match_all,
+    )
 
-    # Log search parameters for troubleshooting
-    filters = []
-    if track_ids:
-        filters.append(f"track_ids={track_ids}")
-    if track_id:
-        filters.append(f"track_id={track_id}")
-    if artist:
-        filters.append(f"artist={artist}")
-    if exact_artist:
-        filters.append(f"exact_artist={exact_artist}")
-    if title:
-        filters.append(f"title={title}")
-    if exact_title:
-        filters.append(f"exact_title={exact_title}")
-    if album:
-        filters.append(f"album={album}")
-    if exact_album:
-        filters.append(f"exact_album={exact_album}")
-    if playlist:
-        filters.append(f"playlist={playlist}")
-    if exact_playlist:
-        filters.append(f"exact_playlist={exact_playlist}")
-    if path:
-        filters.append(f"path={path}")
-    if exact_path:
-        filters.append(f"exact_path={exact_path}")
-    if format:
-        filters.append(f"format={format}")
-    if match_all:
-        filters.append("match_all=True")
-    logger.debug(f"Search filters: {', '.join(filters) if filters else 'none'}")
+    logger.debug(f"Search filters: {filters}")
+    logger.debug("Connecting to RekordBox database...")
 
     db = Rekordbox6Database()
     if not db.session:
         raise RuntimeError("Failed to connect to Rekordbox Database: No Session.")
 
-    filtered_result = get_filtered_content(
-        db,
-        track_id_args=track_ids,
-        track_ids=track_id,
-        playlists=playlist,
-        exact_playlists=exact_playlist,
-        artists=artist,
-        exact_artists=exact_artist,
-        albums=album,
-        exact_albums=exact_album,
-        titles=title,
-        exact_titles=exact_title,
-        paths=path,
-        exact_paths=exact_path,
-        formats=format,
-        match_all=match_all,
-    )
+    filtered_result = get_filtered_content(db, filters)
 
     if print_opt is PrintChoice.SILENT:
         pass

@@ -13,6 +13,8 @@ from pyrekordbox.db6.tables import (
 from sqlalchemy import ColumnElement, Result, and_, func, or_, select
 from sqlalchemy.orm import aliased
 
+from rekordbox_edit.args import FilterArgs
+
 logger = logging.getLogger(__name__)
 
 
@@ -247,20 +249,7 @@ class CollectionQuery:
 
 def get_filtered_content(
     db: Rekordbox6Database,
-    track_id_args: List[str] | None = None,
-    track_ids: List[str] | None = None,
-    formats: List[str] | None = None,
-    playlists: List[str] | None = None,
-    exact_playlists: List[str] | None = None,
-    artists: List[str] | None = None,
-    exact_artists: List[str] | None = None,
-    albums: List[str] | None = None,
-    exact_albums: List[str] | None = None,
-    titles: List[str] | None = None,
-    exact_titles: List[str] | None = None,
-    paths: List[str] | None = None,
-    exact_paths: List[str] | None = None,
-    match_all: bool = False,
+    filters: FilterArgs,
 ) -> Result[Tuple[DjmdContent]]:
     """Query the Rekordbox database with the provided filters."""
     db = db if db is not None else Rekordbox6Database()
@@ -269,59 +258,47 @@ def get_filtered_content(
 
     query = CollectionQuery()
 
-    if track_id_args:
-        logger.debug(f"Filtering by {len(track_id_args)} track ID argument(s)")
-        query = query.by_track_ids(track_ids=track_id_args)
+    if filters.track_ids:
+        logger.debug(f"Filtering by {len(filters.track_ids)} track ID argument(s)")
+        query = query.by_track_ids(track_ids=filters.track_ids)
 
-    if track_ids:
-        for track_id in track_ids:
-            query = query.by_track_ids(track_id)
+    for tid in filters.track_id:
+        query = query.by_track_ids(tid)
 
-    if formats:
-        for fmt in formats:
-            query = query.by_format(fmt)
+    for fmt in filters.format:
+        query = query.by_format(fmt)
 
-    if playlists:
-        for playlist in playlists:
-            query = query.by_playlist(playlist)
+    for playlist in filters.playlist:
+        query = query.by_playlist(playlist)
 
-    if exact_playlists:
-        for exact_playlist in exact_playlists:
-            query = query.by_playlist(exact_playlist, exact=True)
+    for exact_playlist in filters.exact_playlist:
+        query = query.by_playlist(exact_playlist, exact=True)
 
-    if artists:
-        for artist in artists:
-            query = query.by_artist(artist)
+    for artist in filters.artist:
+        query = query.by_artist(artist)
 
-    if exact_artists:
-        for exact_artist in exact_artists:
-            query = query.by_artist(exact_artist, exact=True)
+    for exact_artist in filters.exact_artist:
+        query = query.by_artist(exact_artist, exact=True)
 
-    if albums:
-        for album in albums:
-            query = query.by_album(album)
+    for album in filters.album:
+        query = query.by_album(album)
 
-    if exact_albums:
-        for exact_album in exact_albums:
-            query = query.by_album(exact_album, exact=True)
+    for exact_album in filters.exact_album:
+        query = query.by_album(exact_album, exact=True)
 
-    if titles:
-        for title in titles:
-            query = query.by_title(title)
+    for title in filters.title:
+        query = query.by_title(title)
 
-    if exact_titles:
-        for title in exact_titles:
-            query = query.by_title(title, exact=True)
+    for title in filters.exact_title:
+        query = query.by_title(title, exact=True)
 
-    if paths:
-        for path in paths:
-            query = query.by_path(path)
+    for path in filters.path:
+        query = query.by_path(path)
 
-    if exact_paths:
-        for exact_path in exact_paths:
-            query = query.by_path(exact_path, exact=True)
+    for exact_path in filters.exact_path:
+        query = query.by_path(exact_path, exact=True)
 
-    if match_all:
+    if filters.match_all:
         query = query.match_all()
 
     return query.execute(db)
