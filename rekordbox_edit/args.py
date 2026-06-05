@@ -1,25 +1,19 @@
-"""Pydantic models for CLI argument groups.
+"""Pydantic models for the public API and CLI argument groups.
 
-Two layers:
+Four layers:
 
 - **Component models** (`FilterArgs`, `ConfirmationArgs`, `EditArgs`,
-  `ConvertArgs`) declare cohesive subsets of inputs. Each is the typed object
-  consumed by a narrow internal helper — most notably `FilterArgs` →
-  `get_filtered_content`.
-- **Command models** (`EditCommandArgs`, `ConvertCommandArgs`) compose the
-  components via model inheritance, producing a flat shape with every field
-  the corresponding command needs. The private `_edit` / `_convert` helpers
-  accept exactly one command model.
-
-A caller can construct either form via kwargs or `model_validate({...})`:
-
-    _edit(EditCommandArgs(field="Title", replace_value="X", artist=["Y"]))
-    _edit(EditCommandArgs.model_validate(config_dict))
+  `ConvertArgs`) declare cohesive subsets of inputs.
+- **API contract types** (`EditPlanArgs`, `ConvertPlanArgs`) compose
+  component models into the typed inputs that `plan_edit` and `plan_convert`
+  accept. They contain no CLI-specific fields.
+- **Command models** (`EditCommandArgs`, `ConvertCommandArgs`) extend the
+  API types with `ConfirmationArgs` for CLI use.
+- **Domain model** (`Track`) is the sole return type of the API layer.
+  Field names mirror DjmdContent column names so conversion is mechanical.
 """
 
 from pydantic import BaseModel, ConfigDict
-
-from rekordbox_edit._click import PrintChoice
 
 
 class FilterArgs(BaseModel):
@@ -66,7 +60,7 @@ class ConfirmationArgs(BaseModel):
 class EditArgs(BaseModel):
     """Edit-command inputs that describe what to change.
 
-    `field` names a column from `FIELD_COLUMNS` in `commands/edit.py`.
+    `field` names a column from `FIELD_COLUMNS` in `api/edit.py`.
     `match_pattern` is the optional substring to find within the current value;
     when omitted, the whole value is replaced. `multi` allows the edit to
     apply to more than one matched track.
@@ -84,7 +78,7 @@ class ConvertArgs(BaseModel):
     """Convert-command inputs that describe the output and conflict policy.
 
     `delete` is tri-state: `None` defers to a per-format default in
-    `_convert`, while `True` / `False` are explicit.
+    `plan_convert`, while `True` / `False` are explicit.
     """
 
     model_config = ConfigDict(extra="forbid")
@@ -94,27 +88,44 @@ class ConvertArgs(BaseModel):
     overwrite: bool = False
 
 
-class SearchCommandArgs(FilterArgs):
-    """All inputs `_search` accepts. Search is a read-only command, so it
-    inherits only the filter group and adds `print_opt`.
+class Track(BaseModel):
+    """Domain model for a Rekordbox track.
+
+    Field names mirror DjmdContent column names so conversion is a mechanical
+    field copy with no translation. This type is the sole return type of the
+    API layer — ORM objects never cross the API boundary.
     """
 
-    print_opt: PrintChoice | None = None
+    model_config = ConfigDict(extra="forbid")
+
+    ID: str
+    Title: str | None = None
+    ArtistName: str | None = None
+    AlbumName: str | None = None
+    FileNameL: str | None = None
+    FolderPath: str | None = None
+    FileType: int | None = None
+    SampleRate: int | None = None
+    BitDepth: int | None = None
+    BitRate: int | None = None
 
 
-class EditCommandArgs(FilterArgs, ConfirmationArgs, EditArgs):
-    """All inputs `_edit` accepts, composed from the three component groups.
+class EditPlanArgs(FilterArgs, EditArgs):
+    """Inputs for `plan_edit`: filter criteria plus edit specification."""
+
+
+class ConvertPlanArgs(FilterArgs, ConvertArgs):
+    """Inputs for `plan_convert`: filter criteria plus conversion specification."""
+
+
+class EditCommandArgs(EditPlanArgs, ConfirmationArgs):
+    """All inputs the edit CLI command accepts.
 
     Inherits via Pydantic model inheritance: every field of every parent
-    appears flat in this model. Liskov also holds, so an `EditCommandArgs`
-    can be passed anywhere a `FilterArgs`/`ConfirmationArgs`/`EditArgs` is
-    expected (e.g. `get_filtered_content(db, args)`).
+    appears flat in this model. An `EditCommandArgs` can be passed anywhere
+    an `EditPlanArgs` or `FilterArgs` is expected.
     """
 
-    print_opt: PrintChoice | None = None
 
-
-class ConvertCommandArgs(FilterArgs, ConfirmationArgs, ConvertArgs):
-    """All inputs `_convert` accepts, composed from the three component groups."""
-
-    print_opt: PrintChoice | None = None
+class ConvertCommandArgs(ConvertPlanArgs, ConfirmationArgs):
+    """All inputs the convert CLI command accepts."""
