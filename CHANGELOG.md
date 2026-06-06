@@ -1,3 +1,37 @@
+## v0.5.0 (2026-06-06)
+
+
+- ci: use workflow token
+- chore(deps): update github actions (#71)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+- ci: fix canary release increment
+- test: add tests to cover new modules
+- test: add back convert tests that got dropped
+- refactor: rename args.py to models.py
+- feat: wire public API and delete legacy commands/
+- - feat: expose public API from rekordbox_edit.__init__
+- chore: remove tests/commands/ (replaced by tests/cli/)
+- chore: remove commands/ and cli.py (replaced by api/ and cli/)
+- fix: resolve typecheck and lint errors in api layer and tests
+- feat: add api/ and cli/ packages
+- - feat: add api/_utils.py with _track_from_content
+- feat: update display.py to accept Track instead of DjmdContent
+- refactor(display): remove redundant setup comments in tests
+- feat: add api/search.py
+- feat: add api/edit.py with plan_edit and edit
+- feat: add api/convert.py with plan_convert and convert
+- fix(convert): remove unused get_file_type_name import
+- feat: add api/__init__.py re-exports
+- feat: add cli/main.py and cli/__init__.py
+- feat: add cli/_utils.py with shared confirmation helpers
+- feat: add cli/search.py
+- feat: add cli/edit.py
+- feat: add cli/convert.py
+- refactor: restructure args.py with Track model and API arg types
+- - refactor: add Track model and EditPlanArgs/ConvertPlanArgs to args.py
+- refactor: correct docstring layer count and strengthen test assertions
+- feat!: drop support for python 3.10
+
 ## v0.4.0 (2026-06-05)
 
 
