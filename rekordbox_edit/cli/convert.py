@@ -8,7 +8,6 @@ from pyrekordbox import Rekordbox6Database
 from pyrekordbox.utils import get_rekordbox_pid
 
 from rekordbox_edit._click import (
-    PrintChoice,
     add_click_options,
     convert_click_options,
     global_click_confirmations,
@@ -19,9 +18,11 @@ from rekordbox_edit._click import (
 from rekordbox_edit.api.convert import convert, plan_convert
 from rekordbox_edit.models import ConvertCommandArgs
 from rekordbox_edit.cli._utils import (
+    SCRIPTING_MODES,
     _confirm_converts,
     _handle_stdin,
     _print_ids,
+    _print_tracks_json,
     _validate_scripting_preconditions,
 )
 from rekordbox_edit.display import PrintableField, print_track_info
@@ -57,7 +58,7 @@ def convert_command(**kwargs):
     piped_stdin = _handle_stdin(args)
     _validate_scripting_preconditions(print_opt, args, piped_stdin)
 
-    scripting_mode = print_opt in (PrintChoice.IDS, PrintChoice.SILENT)
+    scripting_mode = print_opt in SCRIPTING_MODES
 
     rekordbox_pid = get_rekordbox_pid()
     if rekordbox_pid:
@@ -88,15 +89,19 @@ def convert_command(**kwargs):
         logger.info("No files need conversion.")
         return
 
-    logger.info(f"Found {len(plan.files)} files to convert to {plan.format_out.upper()}")
-    print_track_info(
-        plan.files,
-        changed_field=PrintableField.FileType,
-        new_values=[plan.format_out.upper()] * len(plan.files),
+    logger.info(
+        f"Found {len(plan.files)} files to convert to {plan.format_out.upper()}"
     )
+    if not scripting_mode:
+        print_track_info(
+            plan.files,
+            changed_field=PrintableField.FileType,
+            new_values=[plan.format_out.upper()] * len(plan.files),
+        )
 
     if args.dry_run:
         _print_ids(print_opt, [t.ID for t in plan.files])
+        _print_tracks_json(print_opt, plan.files)
         return
 
     confirmed = _confirm_converts(plan, args)
@@ -107,4 +112,7 @@ def convert_command(**kwargs):
     logger.info(f"Converted {len(result.converted)} files to {plan.format_out.upper()}")
     if result.deleted:
         logger.info(f"Deleted {result.deleted} original file(s)")
+    converted_ids = {str(f["content_id"]) for f in result.converted}
+    converted_tracks = [t for t in confirmed.files if t.ID in converted_ids]
     _print_ids(print_opt, [str(f["content_id"]) for f in result.converted])
+    _print_tracks_json(print_opt, converted_tracks)

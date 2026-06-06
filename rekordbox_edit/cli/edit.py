@@ -14,9 +14,11 @@ from rekordbox_edit._click import (
 from rekordbox_edit.api.edit import FIELD_COLUMNS, edit, plan_edit
 from rekordbox_edit.models import EditCommandArgs
 from rekordbox_edit.cli._utils import (
+    SCRIPTING_MODES,
     _confirm_edits,
     _handle_stdin,
     _print_ids,
+    _print_tracks_json,
     _validate_scripting_preconditions,
 )
 from rekordbox_edit.display import PrintableField, print_track_info
@@ -59,14 +61,16 @@ def edit_command(**kwargs):
         logger.info("No changes to make.")
         return
 
-    print_track_info(
-        [t for t, _ in plan.edits],
-        changed_field=PrintableField[plan.field],
-        new_values=[v for _, v in plan.edits],
-    )
+    if print_opt not in SCRIPTING_MODES:
+        print_track_info(
+            [t for t, _ in plan.edits],
+            changed_field=PrintableField[plan.field],
+            new_values=[v for _, v in plan.edits],
+        )
 
     if args.dry_run:
         _print_ids(print_opt, [t.ID for t, _ in plan.edits])
+        _print_tracks_json(print_opt, [t for t, _ in plan.edits])
         return
 
     confirmed = _confirm_edits(plan, args)
@@ -76,3 +80,4 @@ def edit_command(**kwargs):
     result = edit(db, confirmed)
     logger.info(f"Applied {result.applied} edit(s).")
     _print_ids(print_opt, [t.ID for t, _ in confirmed.edits])
+    _print_tracks_json(print_opt, [t for t, _ in confirmed.edits])

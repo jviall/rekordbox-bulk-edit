@@ -106,6 +106,15 @@ class TestValidateScriptingPreconditions:
         args = Mock(dry_run=False, yes=False)
         _validate_scripting_preconditions(None, args, piped_stdin=False)
 
+    def test_json_mode_without_confirmation_flag_raises(self):
+        args = Mock(dry_run=False, yes=False)
+        with pytest.raises(click.UsageError):
+            _validate_scripting_preconditions(PrintChoice.JSON, args, piped_stdin=False)
+
+    def test_json_mode_with_yes_does_not_raise(self):
+        args = Mock(dry_run=False, yes=True)
+        _validate_scripting_preconditions(PrintChoice.JSON, args, piped_stdin=False)
+
 
 class TestConfirmEdits:
     def test_yes_returns_plan_immediately(self):

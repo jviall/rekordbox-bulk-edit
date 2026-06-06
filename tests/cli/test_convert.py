@@ -170,3 +170,24 @@ class TestConvertCommand:
         )
 
         assert result.exit_code != 0
+
+    @patch("rekordbox_edit.cli.convert.convert")
+    @patch("rekordbox_edit.cli.convert.plan_convert")
+    @patch("rekordbox_edit.cli.convert.Rekordbox6Database")
+    @patch("rekordbox_edit.cli.convert.get_rekordbox_pid", return_value=None)
+    def test_print_json_outputs_converted_tracks(
+        self, mock_pid, mock_db_class, mock_plan, mock_convert
+    ):
+        import json
+
+        mock_db_class.return_value = Mock(session=Mock())
+        mock_plan.return_value = _make_plan()
+        mock_convert.return_value = Mock(converted=[{"content_id": "1"}], deleted=0)
+
+        result = CliRunner().invoke(
+            convert_command, ["--format-out", "aiff", "--yes", "--print", "json"]
+        )
+
+        assert result.exit_code == 0
+        payload = json.loads(result.output)
+        assert [t["ID"] for t in payload] == ["1"]

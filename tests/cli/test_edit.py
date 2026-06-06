@@ -113,3 +113,25 @@ class TestEditCommand:
 
         assert result.exit_code == 0
         assert "AAA" in result.output
+
+    @patch("rekordbox_edit.cli.edit.edit")
+    @patch("rekordbox_edit.cli.edit.plan_edit")
+    @patch("rekordbox_edit.cli.edit.Rekordbox6Database")
+    def test_print_json_outputs_applied_tracks(
+        self, mock_db_class, mock_plan_edit, mock_edit
+    ):
+        import json
+
+        mock_db_class.return_value = Mock(session=Mock())
+        mock_plan_edit.return_value = _make_plan(
+            edits=[(Track(ID="AAA", FileNameL="x.wav", FolderPath="/x.wav"), "New")]
+        )
+        mock_edit.return_value = Mock(applied=1)
+
+        result = CliRunner().invoke(
+            edit_command, ["Title", "--replace", "New", "--yes", "--print", "json"]
+        )
+
+        assert result.exit_code == 0
+        payload = json.loads(result.output)
+        assert [t["ID"] for t in payload] == ["AAA"]
