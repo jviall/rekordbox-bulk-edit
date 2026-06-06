@@ -66,8 +66,8 @@ jobs:
       - name: Compute canary increment
         id: canary_increment
         run: |
-          count=$(git tag -l "canary-${{ steps.last_stable.outputs.tag }}-dev*" | wc -l | tr -d '[:space:]')
-          echo "increment=$((count + 1))" >> $GITHUB_OUTPUT
+          count=$(git rev-list ${{ steps.last_stable.outputs.tag }}..HEAD --count)
+          echo "increment=$count" >> $GITHUB_OUTPUT
 
       - name: Bump to dev version
         id: bump
@@ -88,8 +88,8 @@ jobs:
 
       - name: Create and push tag
         run: |
-          git tag canary-${{ steps.last_stable.outputs.tag }}-dev${{ steps.canary_increment.outputs.increment }}
-          git push origin canary-${{ steps.last_stable.outputs.tag }}-dev${{ steps.canary_increment.outputs.increment }}
+          git tag canary-v${{ steps.version.outputs.version }}
+          git push origin canary-v${{ steps.version.outputs.version }}
 
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b # release/v1
@@ -100,14 +100,14 @@ jobs:
         uses: ./.github/actions/build-release-notes
         with:
           from_tag: ${{ steps.last_stable.outputs.tag }}
-          to_tag: canary-${{ steps.last_stable.outputs.tag }}-dev${{ steps.canary_increment.outputs.increment }}
+          to_tag: canary-v${{ steps.version.outputs.version }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create GitHub Pre-Release
         uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda # v3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          tag_name: canary-${{ steps.last_stable.outputs.tag }}-dev${{ steps.canary_increment.outputs.increment }}
+          tag_name: canary-v${{ steps.version.outputs.version }}
           name: v${{ steps.version.outputs.version }}
           prerelease: true
           body_path: release-notes.md
