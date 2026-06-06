@@ -94,20 +94,35 @@ class Track(BaseModel):
     Field names mirror DjmdContent column names so conversion is a mechanical
     field copy with no translation. This type is the sole return type of the
     API layer — ORM objects never cross the API boundary.
+
+    `extra="allow"` lets `_track_from_content` bulk-copy every DjmdContent
+    column without enumerating each one; the declared fields below stay typed
+    and validated, undeclared columns ride along as untyped attributes.
     """
 
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="allow")
 
-    ID: str
-    Title: str | None = None
-    ArtistName: str | None = None
     AlbumName: str | None = None
-    FileNameL: str | None = None
-    FolderPath: str | None = None
-    FileType: int | None = None
-    SampleRate: int | None = None
+    Analysed: int | None = None
+    AnalysisUpdated: str | None = None
+    ArtistName: str | None = None
     BitDepth: int | None = None
     BitRate: int | None = None
+    Commnt: str | None = None
+    DateCreated: str | None = None
+    FileNameL: str
+    FileNameS: str | None = None
+    FileType: int | None = None
+    FolderPath: str
+    ID: str
+    Length: int | None = None
+    Rating: int | None = None
+    ReleaseDate: str | None = None
+    ReleaseYear: int | None = None
+    SampleRate: int | None = None
+    Tag: str | None = None
+    Title: str | None = None
+    TrackNo: int | None = None
 
 
 class EditPlanArgs(FilterArgs, EditArgs):

@@ -18,7 +18,7 @@ def mock_logger():
 
 def _make_plan(files=None, skipped=None, format_out="aiff", should_delete=True):
     return ConvertPlan(
-        files=files or [Track(ID="1", FileNameL="track.wav")],
+        files=files or [Track(ID="1", FileNameL="track.wav", FolderPath="/track.wav")],
         skipped=skipped or [],
         should_delete=should_delete,
         format_out=format_out,
@@ -64,7 +64,7 @@ class TestConvertCommand:
         self, mock_pid, mock_db_class, mock_plan, mock_logger
     ):
         mock_db_class.return_value = Mock(session=Mock())
-        skipped = [Track(ID="2", FileNameL="conflict.wav")]
+        skipped = [Track(ID="2", FileNameL="conflict.wav", FolderPath="/conflict.wav")]
         mock_plan.return_value = _make_plan(skipped=skipped)
 
         with patch("rekordbox_edit.cli.convert.convert") as mock_convert:

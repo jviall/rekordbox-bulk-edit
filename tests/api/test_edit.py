@@ -23,7 +23,9 @@ class TestPlanEdit:
         assert new_val == "New"
 
     @patch("rekordbox_edit.api.edit.get_filtered_content")
-    def test_skips_tracks_with_no_change(self, mock_gfc, mock_db, make_djmd_content_item):
+    def test_skips_tracks_with_no_change(
+        self, mock_gfc, mock_db, make_djmd_content_item
+    ):
         content = make_djmd_content_item(Title="Same")
         mock_result = Mock()
         mock_result.scalars.return_value.all.return_value = [content]
@@ -44,7 +46,9 @@ class TestPlanEdit:
         mock_gfc.return_value = mock_result
 
         with pytest.raises(ValueError, match="multi"):
-            plan_edit(mock_db, EditPlanArgs(field="Title", replace_value="New", multi=False))
+            plan_edit(
+                mock_db, EditPlanArgs(field="Title", replace_value="New", multi=False)
+            )
 
     @patch("rekordbox_edit.api.edit.get_filtered_content")
     def test_multi_flag_allows_multiple_edits(
@@ -56,7 +60,9 @@ class TestPlanEdit:
         mock_result.scalars.return_value.all.return_value = [content1, content2]
         mock_gfc.return_value = mock_result
 
-        plan = plan_edit(mock_db, EditPlanArgs(field="Title", replace_value="New", multi=True))
+        plan = plan_edit(
+            mock_db, EditPlanArgs(field="Title", replace_value="New", multi=True)
+        )
 
         assert len(plan.edits) == 2
 
@@ -79,9 +85,11 @@ class TestPlanEdit:
 class TestEdit:
     def test_applies_changes_and_commits(self, mock_db, make_djmd_content_item):
         content = make_djmd_content_item(ID="1", Title="Old")
-        mock_db.session.execute.return_value.scalars.return_value.all.return_value = [content]
+        mock_db.session.execute.return_value.scalars.return_value.all.return_value = [
+            content
+        ]
 
-        track = Track(ID="1", Title="Old")
+        track = Track(ID="1", Title="Old", FileNameL="x.wav", FolderPath="/x.wav")
         plan = EditPlan(field="Title", edits=[(track, "New Title")])
 
         result = edit(mock_db, plan)

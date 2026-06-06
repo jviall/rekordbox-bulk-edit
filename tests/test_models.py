@@ -17,8 +17,8 @@ from rekordbox_edit.models import (
 
 
 class TestTrack:
-    def test_construction_with_id_only(self):
-        track = Track(ID="123")
+    def test_construction_with_required_fields(self):
+        track = Track(ID="123", FileNameL="x.wav", FolderPath="/x.wav")
         assert track.ID == "123"
         assert track.Title is None
         assert track.ArtistName is None
@@ -39,9 +39,17 @@ class TestTrack:
         assert track.FileType == 11
         assert track.SampleRate == 44100
 
-    def test_extra_fields_forbidden(self):
-        with pytest.raises(ValidationError):
-            Track.model_validate({"ID": "1", "unknown_field": "x"})
+    def test_extra_fields_allowed(self):
+        track = Track.model_validate(
+            {
+                "ID": "1",
+                "FileNameL": "x.wav",
+                "FolderPath": "/x.wav",
+                "unknown_field": "x",
+            }
+        )
+        assert track.ID == "1"
+        assert track.unknown_field == "x"
 
 
 class TestFilterArgs:
@@ -78,7 +86,9 @@ class TestEditArgs:
 
     def test_extra_fields_forbidden(self):
         with pytest.raises(ValidationError):
-            EditArgs.model_validate({"field": "Title", "replace_value": "x", "unknown": "y"})
+            EditArgs.model_validate(
+                {"field": "Title", "replace_value": "x", "unknown": "y"}
+            )
 
 
 class TestConvertArgs:
@@ -106,7 +116,9 @@ class TestEditPlanArgs:
 
     def test_extra_fields_forbidden(self):
         with pytest.raises(ValidationError):
-            EditPlanArgs.model_validate({"field": "Title", "replace_value": "x", "dry_run": True})
+            EditPlanArgs.model_validate(
+                {"field": "Title", "replace_value": "x", "dry_run": True}
+            )
 
 
 class TestConvertPlanArgs:
