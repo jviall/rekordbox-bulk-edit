@@ -106,7 +106,7 @@ jobs:
       - name: Create GitHub Pre-Release
         uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda # v3
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.WORKFLOW_TOKEN }}
           tag_name: canary-v${{ steps.version.outputs.version }}
           name: v${{ steps.version.outputs.version }}
           prerelease: true
