@@ -50,7 +50,7 @@ def set_level(level: PrintChoice | None) -> None:
 
     if _console_handler is None:
         return
-    if level in (PrintChoice.SILENT, PrintChoice.IDS):
+    if level in (PrintChoice.SILENT, PrintChoice.IDS, PrintChoice.JSON):
         _console_handler.setLevel(logging.ERROR)
     elif level == PrintChoice.DEBUG:
         _console_handler.setLevel(logging.DEBUG)

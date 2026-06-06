@@ -8,6 +8,7 @@ class PrintChoice(Enum):
     IDS = 1
     INFO = 2
     DEBUG = 3
+    JSON = 4
 
 
 print_option = click.option(
@@ -15,7 +16,7 @@ print_option = click.option(
     "print_opt",  # avoid shadowing the print() function
     default="info",
     type=click.Choice(PrintChoice, case_sensitive=False),
-    help="Configures the kind of console output you want from the command, if any. The 'ids' option can be used to pipe a list of resulting content IDs into to another command.",
+    help="Configures the kind of console output you want from the command, if any. Use 'ids' to pipe a list of resulting content IDs or 'json' to pipe full track records into another command.",
 )
 
 track_ids_argument = click.argument("track-ids", type=str, required=False, nargs=-1)

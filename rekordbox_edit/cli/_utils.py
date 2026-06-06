@@ -1,5 +1,6 @@
 """Shared CLI utilities: stdin handling, scripting guards, confirmation flows."""
 
+import json
 import logging
 import sys
 
@@ -8,10 +9,12 @@ import click
 from rekordbox_edit._click import PrintChoice
 from rekordbox_edit.api.convert import ConvertPlan
 from rekordbox_edit.api.edit import EditPlan
-from rekordbox_edit.models import ConvertCommandArgs, EditCommandArgs
+from rekordbox_edit.models import ConvertCommandArgs, EditCommandArgs, Track
 from rekordbox_edit.utils import UserQuit, confirm
 
 logger = logging.getLogger(__name__)
+
+SCRIPTING_MODES = (PrintChoice.IDS, PrintChoice.SILENT, PrintChoice.JSON)
 
 
 def _handle_stdin(args) -> bool:
@@ -30,10 +33,9 @@ def _handle_stdin(args) -> bool:
 
 def _validate_scripting_preconditions(print_opt, args, piped_stdin: bool) -> None:
     """Raise UsageError for invalid scripting mode combinations."""
-    scripting_mode = print_opt in (PrintChoice.IDS, PrintChoice.SILENT)
-    if scripting_mode and not (args.dry_run or args.yes):
+    if print_opt in SCRIPTING_MODES and not (args.dry_run or args.yes):
         raise click.UsageError(
-            "--print=ids or --print=silent requires --dry-run or --yes to skip confirmation"
+            "--print=ids, --print=silent, or --print=json requires --dry-run or --yes to skip confirmation"
         )
     if piped_stdin and not (args.dry_run or args.yes):
         raise click.UsageError("Piping track IDs requires --dry-run or --yes")
@@ -43,6 +45,12 @@ def _print_ids(print_opt, ids: list[str]) -> None:
     """Print space-separated IDs if print_opt is IDS."""
     if print_opt is PrintChoice.IDS:
         print(" ".join(ids))
+
+
+def _print_tracks_json(print_opt, tracks: list[Track]) -> None:
+    """Print tracks as a single JSON array if print_opt is JSON."""
+    if print_opt is PrintChoice.JSON:
+        print(json.dumps([t.model_dump(mode="json") for t in tracks]))
 
 
 def _confirm_edits(plan: EditPlan, args: EditCommandArgs) -> EditPlan | None:

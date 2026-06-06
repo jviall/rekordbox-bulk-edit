@@ -12,7 +12,7 @@ from rekordbox_edit._click import (
 )
 from rekordbox_edit.api.search import search
 from rekordbox_edit.models import FilterArgs
-from rekordbox_edit.cli._utils import _handle_stdin, _print_ids
+from rekordbox_edit.cli._utils import _handle_stdin, _print_ids, _print_tracks_json
 from rekordbox_edit.display import print_track_info
 from rekordbox_edit.logger import get_debug_file_path, set_level
 
@@ -37,5 +37,8 @@ def search_command(**kwargs):
         return
     if print_opt is PrintChoice.IDS:
         _print_ids(print_opt, [t.ID for t in tracks])
+        return
+    if print_opt is PrintChoice.JSON:
+        _print_tracks_json(print_opt, tracks)
         return
     print_track_info(tracks)
