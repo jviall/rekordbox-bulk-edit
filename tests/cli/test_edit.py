@@ -17,7 +17,9 @@ def mock_logger():
 
 
 def _make_plan(field="Title", edits=None):
-    edits = edits or [(Track(ID="1", Title="Old"), "New")]
+    edits = edits or [
+        (Track(ID="1", Title="Old", FileNameL="x.wav", FolderPath="/x.wav"), "New")
+    ]
     return EditPlan(field=field, edits=edits)
 
 
@@ -100,7 +102,9 @@ class TestEditCommand:
         self, mock_db_class, mock_plan_edit, mock_edit
     ):
         mock_db_class.return_value = Mock(session=Mock())
-        mock_plan_edit.return_value = _make_plan(edits=[(Track(ID="AAA"), "New")])
+        mock_plan_edit.return_value = _make_plan(
+            edits=[(Track(ID="AAA", FileNameL="x.wav", FolderPath="/x.wav"), "New")]
+        )
         mock_edit.return_value = Mock(applied=1)
 
         result = CliRunner().invoke(

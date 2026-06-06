@@ -19,13 +19,15 @@ from rekordbox_edit.utils import UserQuit
 
 
 def _edit_plan(edits=None):
-    edits = edits or [(Track(ID="1", Title="Old"), "New")]
+    edits = edits or [
+        (Track(ID="1", Title="Old", FileNameL="x.wav", FolderPath="/x.wav"), "New")
+    ]
     return EditPlan(field="Title", edits=edits)
 
 
 def _convert_plan(files=None):
     return ConvertPlan(
-        files=files or [Track(ID="1", FileNameL="track.wav")],
+        files=files or [Track(ID="1", FileNameL="track.wav", FolderPath="/track.wav")],
         skipped=[],
         should_delete=True,
         format_out="aiff",
@@ -143,8 +145,8 @@ class TestConfirmEdits:
 
 class TestInteractiveFilterEdits:
     def test_includes_confirmed_tracks_excludes_declined(self):
-        track1 = Track(ID="1", Title="A")
-        track2 = Track(ID="2", Title="B")
+        track1 = Track(ID="1", Title="A", FileNameL="a.wav", FolderPath="/a.wav")
+        track2 = Track(ID="2", Title="B", FileNameL="b.wav", FolderPath="/b.wav")
         plan = EditPlan(field="Title", edits=[(track1, "X"), (track2, "Y")])
 
         with patch("rekordbox_edit.cli._utils.confirm", side_effect=[True, False]):
@@ -154,8 +156,8 @@ class TestInteractiveFilterEdits:
         assert result.edits[0][0].ID == "1"
 
     def test_user_quit_stops_iteration_early(self):
-        track1 = Track(ID="1")
-        track2 = Track(ID="2")
+        track1 = Track(ID="1", FileNameL="a.wav", FolderPath="/a.wav")
+        track2 = Track(ID="2", FileNameL="b.wav", FolderPath="/b.wav")
         plan = EditPlan(field="Title", edits=[(track1, "X"), (track2, "Y")])
 
         with patch("rekordbox_edit.cli._utils.confirm", side_effect=UserQuit):
@@ -202,8 +204,8 @@ class TestConfirmConverts:
 
 class TestInteractiveFilterConverts:
     def test_includes_confirmed_tracks_excludes_declined(self):
-        track1 = Track(ID="1", FileNameL="a.wav")
-        track2 = Track(ID="2", FileNameL="b.wav")
+        track1 = Track(ID="1", FileNameL="a.wav", FolderPath="/a.wav")
+        track2 = Track(ID="2", FileNameL="b.wav", FolderPath="/b.wav")
         plan = _convert_plan([track1, track2])
 
         with patch("rekordbox_edit.cli._utils.confirm", side_effect=[True, False]):
@@ -213,7 +215,7 @@ class TestInteractiveFilterConverts:
         assert result.files[0].ID == "1"
 
     def test_user_quit_stops_iteration_early(self):
-        track1 = Track(ID="1", FileNameL="a.wav")
+        track1 = Track(ID="1", FileNameL="a.wav", FolderPath="/a.wav")
         plan = _convert_plan([track1])
 
         with patch("rekordbox_edit.cli._utils.confirm", side_effect=UserQuit):
@@ -223,8 +225,8 @@ class TestInteractiveFilterConverts:
 
     def test_preserves_plan_metadata(self):
         plan = ConvertPlan(
-            files=[Track(ID="1", FileNameL="a.wav")],
-            skipped=[Track(ID="2")],
+            files=[Track(ID="1", FileNameL="a.wav", FolderPath="/a.wav")],
+            skipped=[Track(ID="2", FileNameL="b.wav", FolderPath="/b.wav")],
             should_delete=False,
             format_out="mp3",
         )

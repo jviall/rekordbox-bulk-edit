@@ -2,17 +2,13 @@ from pyrekordbox.db6 import DjmdContent
 
 from rekordbox_edit.models import Track
 
+_COLUMN_KEYS = tuple(c.key for c in DjmdContent.__table__.columns)
+
 
 def _track_from_content(content: DjmdContent) -> Track:
-    return Track(
-        ID=str(content.ID),
-        Title=content.Title,
-        ArtistName=content.ArtistName,
-        AlbumName=content.AlbumName,
-        FileNameL=content.FileNameL,
-        FolderPath=content.FolderPath,
-        FileType=content.FileType,
-        SampleRate=content.SampleRate,
-        BitDepth=content.BitDepth,
-        BitRate=content.BitRate,
-    )
+    data = {k: getattr(content, k) for k in _COLUMN_KEYS}
+    data["ID"] = str(data["ID"])
+    # association_proxy attributes; not present in __table__.columns
+    data["ArtistName"] = content.ArtistName
+    data["AlbumName"] = content.AlbumName
+    return Track(**data)

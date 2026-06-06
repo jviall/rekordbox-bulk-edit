@@ -498,7 +498,8 @@ class TestRollbackAndCleanup:
 class TestConvert:
     def _make_plan(self, files=None, format_out="aiff", should_delete=True):
         return ConvertPlan(
-            files=files or [Track(ID="1", FileNameL="track.wav")],
+            files=files
+            or [Track(ID="1", FileNameL="track.wav", FolderPath="/track.wav")],
             skipped=[],
             should_delete=should_delete,
             format_out=format_out,
