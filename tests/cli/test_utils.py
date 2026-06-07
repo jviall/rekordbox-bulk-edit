@@ -44,18 +44,36 @@ class TestHandleStdin:
         args = Mock(track_ids=["existing"])
         with patch("sys.stdin") as mock_stdin:
             mock_stdin.isatty.return_value = False
-            mock_stdin.read.return_value = "AAA BBB"
+            mock_stdin.buffer.read.return_value = b"AAA BBB"
             result = _handle_stdin(args)
         assert result is True
         assert args.track_ids == ["existing", "AAA", "BBB"]
 
-    def test_empty_piped_stdin_returns_true_without_modifying(self):
+    def test_strips_bom_from_piped_stdin(self):
         args = Mock(track_ids=[])
         with patch("sys.stdin") as mock_stdin:
             mock_stdin.isatty.return_value = False
-            mock_stdin.read.return_value = "  "
+            mock_stdin.buffer.read.return_value = bytes([0xEF, 0xBB, 0xBF]) + b"AAA BBB"
             result = _handle_stdin(args)
         assert result is True
+        assert args.track_ids == ["AAA", "BBB"]
+
+    def test_empty_piped_stdin_returns_false(self):
+        args = Mock(track_ids=[])
+        with patch("sys.stdin") as mock_stdin:
+            mock_stdin.isatty.return_value = False
+            mock_stdin.buffer.read.return_value = b"  "
+            result = _handle_stdin(args)
+        assert result is False
+        assert args.track_ids == []
+
+    def test_bom_only_piped_stdin_returns_false(self):
+        args = Mock(track_ids=[])
+        with patch("sys.stdin") as mock_stdin:
+            mock_stdin.isatty.return_value = False
+            mock_stdin.buffer.read.return_value = bytes([0xEF, 0xBB, 0xBF])
+            result = _handle_stdin(args)
+        assert result is False
         assert args.track_ids == []
 
 

@@ -15,12 +15,16 @@ logger = logging.getLogger(__name__)
 
 
 def _handle_stdin(args) -> bool:
-    """Append track IDs from piped stdin to args.track_ids. Returns True if stdin was piped."""
+    """Append track IDs from piped stdin to args.track_ids. Returns True if IDs were piped."""
     if sys.stdin.isatty():
         return False
-    stdin_data = sys.stdin.read().strip()
-    if stdin_data:
-        args.track_ids = list(args.track_ids) + stdin_data.split()
+    # PowerShell pipes data as UTF-8-with-BOM, but Python decodes stdin with the
+    # locale codepage (e.g. cp1252 on Windows), which would leave BOM bytes glued to
+    # the first track ID. Read raw bytes and decode as UTF-8, dropping any BOM.
+    tokens = sys.stdin.buffer.read().decode("utf-8-sig", errors="replace").split()
+    if not tokens:
+        return False
+    args.track_ids = list(args.track_ids) + tokens
     return True
 
 
@@ -68,7 +72,9 @@ def _interactive_filter_edits(plan: EditPlan) -> EditPlan:
     return EditPlan(field=plan.field, edits=confirmed)
 
 
-def _confirm_converts(plan: ConvertPlan, args: ConvertCommandArgs) -> ConvertPlan | None:
+def _confirm_converts(
+    plan: ConvertPlan, args: ConvertCommandArgs
+) -> ConvertPlan | None:
     """Gate the convert plan through user confirmation. Returns None if cancelled."""
     if args.yes:
         return plan
@@ -76,7 +82,8 @@ def _confirm_converts(plan: ConvertPlan, args: ConvertCommandArgs) -> ConvertPla
         return _interactive_filter_converts(plan)
     try:
         if not confirm(
-            f"Convert {len(plan.files)} files to {plan.format_out.upper()}?", default=True
+            f"Convert {len(plan.files)} files to {plan.format_out.upper()}?",
+            default=True,
         ):
             logger.info("Cancelled.")
             return None
