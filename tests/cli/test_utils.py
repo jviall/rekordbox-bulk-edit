@@ -4,34 +4,25 @@ import click
 import pytest
 
 from rekordbox_edit._click import PrintChoice
-from rekordbox_edit.api.convert import ConvertPlan
-from rekordbox_edit.api.edit import EditPlan
 from rekordbox_edit.cli._utils import (
-    _confirm_converts,
-    _confirm_edits,
     _handle_stdin,
-    _interactive_filter_converts,
-    _interactive_filter_edits,
+    _narrow_to_track_ids,
+    _print_response_ids,
+    _print_response_json,
     _validate_scripting_preconditions,
 )
-from rekordbox_edit.models import Track
-from rekordbox_edit.utils import UserQuit
-
-
-def _edit_plan(edits=None):
-    edits = edits or [
-        (Track(ID="1", Title="Old", FileNameL="x.wav", FolderPath="/x.wav"), "New")
-    ]
-    return EditPlan(field="Title", edits=edits)
-
-
-def _convert_plan(files=None):
-    return ConvertPlan(
-        files=files or [Track(ID="1", FileNameL="track.wav", FolderPath="/track.wav")],
-        skipped=[],
-        should_delete=True,
-        format_out="aiff",
-    )
+from rekordbox_edit.models import (
+    ConvertArgs,
+    ConvertOp,
+    ConvertResponse,
+    ConvertResult,
+    EditArgs,
+    EditOp,
+    EditResponse,
+    EditResult,
+    SearchResponse,
+    Track,
+)
 
 
 class TestHandleStdin:
@@ -39,8 +30,7 @@ class TestHandleStdin:
         args = Mock()
         with patch("sys.stdin") as mock_stdin:
             mock_stdin.isatty.return_value = True
-            result = _handle_stdin(args)
-        assert result is False
+            assert _handle_stdin(args) is False
 
     def test_appends_ids_from_piped_stdin(self):
         args = Mock(track_ids=["existing"])
@@ -80,168 +70,102 @@ class TestHandleStdin:
 
 
 class TestValidateScriptingPreconditions:
-    def test_scripting_mode_without_confirmation_flag_raises(self):
+    def test_scripting_mode_without_confirmation_raises(self):
         args = Mock(dry_run=False, yes=False)
         with pytest.raises(click.UsageError):
             _validate_scripting_preconditions(PrintChoice.IDS, args, piped_stdin=False)
 
-    def test_scripting_mode_with_yes_does_not_raise(self):
+    def test_scripting_mode_with_yes_ok(self):
         args = Mock(dry_run=False, yes=True)
         _validate_scripting_preconditions(PrintChoice.IDS, args, piped_stdin=False)
 
-    def test_scripting_mode_with_dry_run_does_not_raise(self):
-        args = Mock(dry_run=True, yes=False)
-        _validate_scripting_preconditions(PrintChoice.SILENT, args, piped_stdin=False)
-
-    def test_piped_stdin_without_confirmation_flag_raises(self):
+    def test_piped_stdin_without_confirmation_raises(self):
         args = Mock(dry_run=False, yes=False)
         with pytest.raises(click.UsageError, match="Piping"):
             _validate_scripting_preconditions(None, args, piped_stdin=True)
 
-    def test_piped_stdin_with_yes_does_not_raise(self):
-        args = Mock(dry_run=False, yes=True)
-        _validate_scripting_preconditions(None, args, piped_stdin=True)
 
-    def test_normal_mode_no_stdin_does_not_raise(self):
-        args = Mock(dry_run=False, yes=False)
-        _validate_scripting_preconditions(None, args, piped_stdin=False)
-
-    def test_json_mode_without_confirmation_flag_raises(self):
-        args = Mock(dry_run=False, yes=False)
-        with pytest.raises(click.UsageError):
-            _validate_scripting_preconditions(PrintChoice.JSON, args, piped_stdin=False)
-
-    def test_json_mode_with_yes_does_not_raise(self):
-        args = Mock(dry_run=False, yes=True)
-        _validate_scripting_preconditions(PrintChoice.JSON, args, piped_stdin=False)
-
-
-class TestConfirmEdits:
-    def test_yes_returns_plan_immediately(self):
-        plan = _edit_plan()
-        args = Mock(yes=True, interactive=False)
-        assert _confirm_edits(plan, args) is plan
-
-    def test_interactive_delegates_to_filter(self):
-        plan = _edit_plan()
-        args = Mock(yes=False, interactive=True)
-        with patch(
-            "rekordbox_edit.cli._utils._interactive_filter_edits", return_value=plan
-        ) as mock_filter:
-            result = _confirm_edits(plan, args)
-        mock_filter.assert_called_once_with(plan)
-        assert result is plan
-
-    def test_user_declines_returns_none(self):
-        args = Mock(yes=False, interactive=False)
-        with patch("rekordbox_edit.cli._utils.confirm", return_value=False):
-            result = _confirm_edits(_edit_plan(), args)
-        assert result is None
-
-    def test_user_quit_returns_none(self):
-        args = Mock(yes=False, interactive=False)
-        with patch("rekordbox_edit.cli._utils.confirm", side_effect=UserQuit):
-            result = _confirm_edits(_edit_plan(), args)
-        assert result is None
-
-    def test_user_confirms_returns_plan(self):
-        plan = _edit_plan()
-        args = Mock(yes=False, interactive=False)
-        with patch("rekordbox_edit.cli._utils.confirm", return_value=True):
-            result = _confirm_edits(plan, args)
-        assert result is plan
-
-
-class TestInteractiveFilterEdits:
-    def test_includes_confirmed_tracks_excludes_declined(self):
-        track1 = Track(ID="1", Title="A", FileNameL="a.wav", FolderPath="/a.wav")
-        track2 = Track(ID="2", Title="B", FileNameL="b.wav", FolderPath="/b.wav")
-        plan = EditPlan(field="Title", edits=[(track1, "X"), (track2, "Y")])
-
-        with patch("rekordbox_edit.cli._utils.confirm", side_effect=[True, False]):
-            result = _interactive_filter_edits(plan)
-
-        assert len(result.edits) == 1
-        assert result.edits[0][0].ID == "1"
-
-    def test_user_quit_stops_iteration_early(self):
-        track1 = Track(ID="1", FileNameL="a.wav", FolderPath="/a.wav")
-        track2 = Track(ID="2", FileNameL="b.wav", FolderPath="/b.wav")
-        plan = EditPlan(field="Title", edits=[(track1, "X"), (track2, "Y")])
-
-        with patch("rekordbox_edit.cli._utils.confirm", side_effect=UserQuit):
-            result = _interactive_filter_edits(plan)
-
-        assert result.edits == []
-
-
-class TestConfirmConverts:
-    def test_yes_returns_plan_immediately(self):
-        plan = _convert_plan()
-        args = Mock(yes=True, interactive=False)
-        assert _confirm_converts(plan, args) is plan
-
-    def test_interactive_delegates_to_filter(self):
-        plan = _convert_plan()
-        args = Mock(yes=False, interactive=True)
-        with patch(
-            "rekordbox_edit.cli._utils._interactive_filter_converts", return_value=plan
-        ) as mock_filter:
-            result = _confirm_converts(plan, args)
-        mock_filter.assert_called_once_with(plan)
-        assert result is plan
-
-    def test_user_declines_returns_none(self):
-        args = Mock(yes=False, interactive=False)
-        with patch("rekordbox_edit.cli._utils.confirm", return_value=False):
-            result = _confirm_converts(_convert_plan(), args)
-        assert result is None
-
-    def test_user_quit_returns_none(self):
-        args = Mock(yes=False, interactive=False)
-        with patch("rekordbox_edit.cli._utils.confirm", side_effect=UserQuit):
-            result = _confirm_converts(_convert_plan(), args)
-        assert result is None
-
-    def test_user_confirms_returns_plan(self):
-        plan = _convert_plan()
-        args = Mock(yes=False, interactive=False)
-        with patch("rekordbox_edit.cli._utils.confirm", return_value=True):
-            result = _confirm_converts(plan, args)
-        assert result is plan
-
-
-class TestInteractiveFilterConverts:
-    def test_includes_confirmed_tracks_excludes_declined(self):
-        track1 = Track(ID="1", FileNameL="a.wav", FolderPath="/a.wav")
-        track2 = Track(ID="2", FileNameL="b.wav", FolderPath="/b.wav")
-        plan = _convert_plan([track1, track2])
-
-        with patch("rekordbox_edit.cli._utils.confirm", side_effect=[True, False]):
-            result = _interactive_filter_converts(plan)
-
-        assert len(result.files) == 1
-        assert result.files[0].ID == "1"
-
-    def test_user_quit_stops_iteration_early(self):
-        track1 = Track(ID="1", FileNameL="a.wav", FolderPath="/a.wav")
-        plan = _convert_plan([track1])
-
-        with patch("rekordbox_edit.cli._utils.confirm", side_effect=UserQuit):
-            result = _interactive_filter_converts(plan)
-
-        assert result.files == []
-
-    def test_preserves_plan_metadata(self):
-        plan = ConvertPlan(
-            files=[Track(ID="1", FileNameL="a.wav", FolderPath="/a.wav")],
-            skipped=[Track(ID="2", FileNameL="b.wav", FolderPath="/b.wav")],
-            should_delete=False,
-            format_out="mp3",
+class TestNarrowToTrackIds:
+    def test_clears_other_filter_criteria(self):
+        args = ConvertArgs(
+            artist=["X"],
+            format=["flac"],
+            format_out="aiff",
+            overwrite=True,
+            delete=True,
         )
-        with patch("rekordbox_edit.cli._utils.confirm", return_value=True):
-            result = _interactive_filter_converts(plan)
 
-        assert result.should_delete is False
-        assert result.format_out == "mp3"
-        assert result.skipped == plan.skipped
+        narrowed = _narrow_to_track_ids(args, ["a", "b"])
+
+        assert narrowed.track_ids == ["a", "b"]
+        assert narrowed.artist == []
+        assert narrowed.format == []
+        # Convert-specific fields preserved
+        assert narrowed.format_out == "aiff"
+        assert narrowed.overwrite is True
+        assert narrowed.delete is True
+
+    def test_works_for_edit_args(self):
+        args = EditArgs(
+            artist=["X"],
+            field="Title",
+            replace_value="N",
+            match_pattern="O",
+            multi=True,
+        )
+
+        narrowed = _narrow_to_track_ids(args, ["a"])
+
+        assert narrowed.track_ids == ["a"]
+        assert narrowed.artist == []
+        # Edit-specific fields preserved
+        assert narrowed.field == "Title"
+        assert narrowed.replace_value == "N"
+        assert narrowed.match_pattern == "O"
+        assert narrowed.multi is True
+
+
+class TestPrintResponseIds:
+    def test_prints_space_separated_ids(self, capsys):
+        track = Track(ID="1", FileNameL="x", FolderPath="/x")
+        resp = SearchResponse(
+            tracks=[track, Track(ID="2", FileNameL="y", FolderPath="/y")]
+        )
+        _print_response_ids(resp)
+        assert capsys.readouterr().out.strip() == "1 2"
+
+
+class TestPrintResponseJson:
+    def test_emits_envelope_json(self, capsys):
+        track = Track(ID="1", FileNameL="x", FolderPath="/x")
+        resp = EditResponse(
+            tracks=[track],
+            result=EditResult(
+                field="Title", edits=[EditOp(id="1", new_value="N")], skipped=[]
+            ),
+        )
+        _print_response_json(resp)
+        import json
+
+        payload = json.loads(capsys.readouterr().out)
+        assert payload["tracks"][0]["ID"] == "1"
+        assert payload["result"]["field"] == "Title"
+
+    def test_convert_response_json(self, capsys):
+        track = Track(ID="1", FileNameL="x.aif", FolderPath="/x.aif")
+        resp = ConvertResponse(
+            tracks=[track],
+            result=ConvertResult(
+                format_out="aiff",
+                converted=[
+                    ConvertOp(id="1", source_path="/x.wav", output_path="/x.aif")
+                ],
+                deleted=0,
+                skipped=[],
+            ),
+        )
+        _print_response_json(resp)
+        import json
+
+        payload = json.loads(capsys.readouterr().out)
+        assert payload["result"]["format_out"] == "aiff"

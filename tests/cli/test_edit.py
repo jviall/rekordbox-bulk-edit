@@ -5,9 +5,8 @@ from unittest.mock import Mock, patch
 import pytest
 from click.testing import CliRunner
 
-from rekordbox_edit.api.edit import EditPlan
-from rekordbox_edit.models import Track
 from rekordbox_edit.cli.edit import edit_command
+from rekordbox_edit.models import EditOp, EditResponse, EditResult, Track
 
 
 @pytest.fixture(autouse=True)
@@ -16,96 +15,80 @@ def mock_logger():
         yield mock_log
 
 
-def _make_plan(field="Title", edits=None):
-    edits = edits or [
-        (Track(ID="1", Title="Old", FileNameL="x.wav", FolderPath="/x.wav"), "New")
+def _response(tracks=None, edits=None, skipped=None):
+    tracks = tracks or [
+        Track(ID="1", Title="New", FileNameL="x.wav", FolderPath="/x.wav")
     ]
-    return EditPlan(field=field, edits=edits)
+    edits = edits or [EditOp(id=t.ID, new_value="New") for t in tracks]
+    return EditResponse(
+        tracks=tracks,
+        result=EditResult(field="Title", edits=edits, skipped=skipped or []),
+    )
 
 
 class TestEditCommand:
     @patch("rekordbox_edit.cli.edit.edit")
-    @patch("rekordbox_edit.cli.edit.plan_edit")
     @patch("rekordbox_edit.cli.edit.Rekordbox6Database")
-    def test_calls_edit_on_confirmation(self, mock_db_class, mock_plan_edit, mock_edit):
+    def test_yes_calls_edit_once(self, mock_db_class, mock_edit):
         mock_db_class.return_value = Mock(session=Mock())
-        mock_plan_edit.return_value = _make_plan()
-        mock_edit.return_value = Mock(applied=1)
+        mock_edit.return_value = _response()
 
         result = CliRunner().invoke(
             edit_command, ["Title", "--replace", "New", "--yes"]
         )
 
         assert result.exit_code == 0
+        # exactly one call, dry_run not set
         mock_edit.assert_called_once()
+        assert mock_edit.call_args.kwargs.get("dry_run", False) is False
 
-    @patch("rekordbox_edit.cli.edit.plan_edit")
+    @patch("rekordbox_edit.cli.edit.edit")
     @patch("rekordbox_edit.cli.edit.Rekordbox6Database")
-    def test_dry_run_does_not_call_edit(self, mock_db_class, mock_plan_edit):
+    def test_dry_run_passes_flag_through(self, mock_db_class, mock_edit):
         mock_db_class.return_value = Mock(session=Mock())
-        mock_plan_edit.return_value = _make_plan()
+        mock_edit.return_value = _response()
 
-        with patch("rekordbox_edit.cli.edit.edit") as mock_edit:
-            result = CliRunner().invoke(
-                edit_command, ["Title", "--replace", "New", "--dry-run"]
-            )
+        result = CliRunner().invoke(
+            edit_command, ["Title", "--replace", "New", "--dry-run"]
+        )
 
         assert result.exit_code == 0
-        mock_edit.assert_not_called()
+        mock_edit.assert_called_once()
+        assert mock_edit.call_args.kwargs.get("dry_run") is True
 
-    @patch("rekordbox_edit.cli.edit.plan_edit")
+    @patch("rekordbox_edit.cli.edit.edit")
     @patch("rekordbox_edit.cli.edit.Rekordbox6Database")
-    def test_empty_plan_exits_early(self, mock_db_class, mock_plan_edit):
+    def test_empty_result_exits_cleanly(self, mock_db_class, mock_edit):
         mock_db_class.return_value = Mock(session=Mock())
-        mock_plan_edit.return_value = EditPlan(field="Title", edits=[])
+        mock_edit.return_value = _response(tracks=[], edits=[])
 
-        with patch("rekordbox_edit.cli.edit.edit") as mock_edit:
-            result = CliRunner().invoke(
-                edit_command, ["Title", "--replace", "New", "--yes"]
-            )
+        result = CliRunner().invoke(
+            edit_command, ["Title", "--replace", "New", "--yes"]
+        )
 
         assert result.exit_code == 0
-        mock_edit.assert_not_called()
 
-    @patch("rekordbox_edit.cli.edit.plan_edit")
+    @patch("rekordbox_edit.cli.edit.edit")
     @patch("rekordbox_edit.cli.edit.Rekordbox6Database")
-    def test_value_error_becomes_usage_error(self, mock_db_class, mock_plan_edit):
+    def test_value_error_becomes_usage_error(self, mock_db_class, mock_edit):
         mock_db_class.return_value = Mock(session=Mock())
-        mock_plan_edit.side_effect = ValueError("Found 2 tracks that would be edited")
+        mock_edit.side_effect = ValueError("Found 2 tracks that would be edited")
 
-        result = CliRunner().invoke(edit_command, ["Title", "--replace", "New"])
+        result = CliRunner().invoke(
+            edit_command, ["Title", "--replace", "New", "--yes"]
+        )
 
         assert result.exit_code != 0
         assert "Error" in result.output
 
-    @patch("rekordbox_edit.cli.edit._handle_stdin", return_value=False)
-    @patch("rekordbox_edit.cli.edit._confirm_edits")
-    @patch("rekordbox_edit.cli.edit.plan_edit")
-    @patch("rekordbox_edit.cli.edit.Rekordbox6Database")
-    def test_cancellation_skips_edit(
-        self, mock_db_class, mock_plan_edit, mock_confirm, _
-    ):
-        mock_db_class.return_value = Mock(session=Mock())
-        mock_plan_edit.return_value = _make_plan()
-        mock_confirm.return_value = None
-
-        with patch("rekordbox_edit.cli.edit.edit") as mock_edit:
-            result = CliRunner().invoke(edit_command, ["Title", "--replace", "New"])
-
-        assert result.exit_code == 0
-        mock_edit.assert_not_called()
-
     @patch("rekordbox_edit.cli.edit.edit")
-    @patch("rekordbox_edit.cli.edit.plan_edit")
     @patch("rekordbox_edit.cli.edit.Rekordbox6Database")
-    def test_print_ids_outputs_applied_ids(
-        self, mock_db_class, mock_plan_edit, mock_edit
-    ):
+    def test_print_ids_outputs_ids(self, mock_db_class, mock_edit):
         mock_db_class.return_value = Mock(session=Mock())
-        mock_plan_edit.return_value = _make_plan(
-            edits=[(Track(ID="AAA", FileNameL="x.wav", FolderPath="/x.wav"), "New")]
+        track = Track(ID="AAA", FileNameL="x.wav", FolderPath="/x.wav")
+        mock_edit.return_value = _response(
+            tracks=[track], edits=[EditOp(id="AAA", new_value="New")]
         )
-        mock_edit.return_value = Mock(applied=1)
 
         result = CliRunner().invoke(
             edit_command, ["Title", "--replace", "New", "--yes", "--print", "ids"]
@@ -115,23 +98,21 @@ class TestEditCommand:
         assert "AAA" in result.output
 
     @patch("rekordbox_edit.cli.edit.edit")
-    @patch("rekordbox_edit.cli.edit.plan_edit")
     @patch("rekordbox_edit.cli.edit.Rekordbox6Database")
-    def test_print_json_outputs_applied_tracks(
-        self, mock_db_class, mock_plan_edit, mock_edit
-    ):
+    def test_print_json_outputs_envelope(self, mock_db_class, mock_edit):
         import json
 
         mock_db_class.return_value = Mock(session=Mock())
-        mock_plan_edit.return_value = _make_plan(
-            edits=[(Track(ID="AAA", FileNameL="x.wav", FolderPath="/x.wav"), "New")]
+        track = Track(ID="AAA", FileNameL="x.wav", FolderPath="/x.wav")
+        mock_edit.return_value = _response(
+            tracks=[track], edits=[EditOp(id="AAA", new_value="New")]
         )
-        mock_edit.return_value = Mock(applied=1)
 
         result = CliRunner().invoke(
             edit_command, ["Title", "--replace", "New", "--yes", "--print", "json"]
         )
 
         assert result.exit_code == 0
-        payload = json.loads(result.output)
-        assert [t["ID"] for t in payload] == ["AAA"]
+        payload = json.loads(result.output.splitlines()[-1])
+        assert payload["result"]["field"] == "Title"
+        assert payload["result"]["edits"] == [{"id": "AAA", "new_value": "New"}]

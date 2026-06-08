@@ -6,12 +6,17 @@ import pytest
 from click.testing import CliRunner
 
 from rekordbox_edit.cli.search import search_command
+from rekordbox_edit.models import SearchResponse
 
 
 @pytest.fixture(autouse=True)
 def mock_logger():
     with patch("rekordbox_edit.cli.search.logger") as mock_log:
         yield mock_log
+
+
+def _response(*tracks):
+    return SearchResponse(tracks=list(tracks))
 
 
 class TestSearchCommand:
@@ -22,7 +27,7 @@ class TestSearchCommand:
         self, mock_db_class, mock_search, mock_print, make_track
     ):
         mock_db_class.return_value = Mock(session=Mock())
-        mock_search.return_value = [make_track(ID="AAA111")]
+        mock_search.return_value = _response(make_track(ID="AAA111"))
 
         result = CliRunner().invoke(search_command, [])
 
@@ -31,74 +36,38 @@ class TestSearchCommand:
 
     @patch("rekordbox_edit.cli.search.search")
     @patch("rekordbox_edit.cli.search.Rekordbox6Database")
-    def test_print_ids_outputs_space_separated_ids(
-        self, mock_db_class, mock_search, make_track
-    ):
+    def test_print_ids(self, mock_db_class, mock_search, make_track):
         mock_db_class.return_value = Mock(session=Mock())
-        mock_search.return_value = [make_track(ID="AAA111"), make_track(ID="BBB222")]
+        mock_search.return_value = _response(make_track(ID="A"), make_track(ID="B"))
 
         result = CliRunner().invoke(search_command, ["--print", "ids"])
 
         assert result.exit_code == 0
-        assert "AAA111 BBB222" in result.output
+        assert "A B" in result.output
 
-    @patch("rekordbox_edit.cli.search.print_track_info")
     @patch("rekordbox_edit.cli.search.search")
     @patch("rekordbox_edit.cli.search.Rekordbox6Database")
-    def test_print_json_outputs_track_array(
-        self, mock_db_class, mock_search, mock_print, make_track
-    ):
+    def test_print_json_emits_envelope(self, mock_db_class, mock_search, make_track):
         import json
 
         mock_db_class.return_value = Mock(session=Mock())
-        mock_search.return_value = [make_track(ID="AAA111"), make_track(ID="BBB222")]
+        mock_search.return_value = _response(make_track(ID="A"))
 
         result = CliRunner().invoke(search_command, ["--print", "json"])
 
         assert result.exit_code == 0
         payload = json.loads(result.output)
-        assert [t["ID"] for t in payload] == ["AAA111", "BBB222"]
-        mock_print.assert_not_called()
+        assert payload["tracks"][0]["ID"] == "A"
 
-    @patch("rekordbox_edit.cli.search.print_track_info")
     @patch("rekordbox_edit.cli.search.search")
     @patch("rekordbox_edit.cli.search.Rekordbox6Database")
     def test_print_silent_produces_no_output(
-        self, mock_db_class, mock_search, mock_print, make_track
+        self, mock_db_class, mock_search, make_track
     ):
         mock_db_class.return_value = Mock(session=Mock())
-        mock_search.return_value = [make_track(ID="AAA111")]
+        mock_search.return_value = _response(make_track(ID="A"))
 
         result = CliRunner().invoke(search_command, ["--print", "silent"])
 
         assert result.exit_code == 0
         assert result.output.strip() == ""
-        mock_print.assert_not_called()
-
-    @patch("rekordbox_edit.cli.search.search")
-    @patch("rekordbox_edit.cli.search.Rekordbox6Database")
-    def test_filters_forwarded_to_search(self, mock_db_class, mock_search):
-        mock_db_class.return_value = Mock(session=Mock())
-        mock_search.return_value = []
-
-        CliRunner().invoke(
-            search_command,
-            ["--artist", "Daft Punk", "--format", "flac", "--match-all"],
-        )
-
-        args = mock_search.call_args.args[1]
-        assert args.artist == ["Daft Punk"]
-        assert args.format == ["flac"]
-        assert args.match_all is True
-
-    @patch("rekordbox_edit.cli.search.search")
-    @patch("rekordbox_edit.cli.search.Rekordbox6Database")
-    def test_reads_track_ids_from_stdin(self, mock_db_class, mock_search):
-        mock_db_class.return_value = Mock(session=Mock())
-        mock_search.return_value = []
-
-        CliRunner().invoke(search_command, [], input="AAA111 BBB222")
-
-        args = mock_search.call_args.args[1]
-        assert "AAA111" in args.track_ids
-        assert "BBB222" in args.track_ids

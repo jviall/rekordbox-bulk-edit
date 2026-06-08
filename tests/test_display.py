@@ -145,9 +145,7 @@ class TestPrintTrackInfo:
         assert "FLAC" in captured.out
         assert "MP3" in captured.out
 
-    def test_track_with_unknown_file_type(
-        self, capsys, wide_console, make_track
-    ):
+    def test_track_with_unknown_file_type(self, capsys, wide_console, make_track):
         """Test printing track with unknown file type."""
         mock_content = make_track(
             ID="123",

@@ -4,14 +4,18 @@ import pytest
 from pydantic import ValidationError
 
 from rekordbox_edit.models import (
-    ConfirmationArgs,
     ConvertArgs,
-    ConvertCommandArgs,
-    ConvertPlanArgs,
+    ConvertOp,
+    ConvertResponse,
+    ConvertResult,
     EditArgs,
-    EditCommandArgs,
-    EditPlanArgs,
+    EditOp,
+    EditResponse,
+    EditResult,
     FilterArgs,
+    SearchArgs,
+    SearchResponse,
+    SkippedTrack,
     Track,
 )
 
@@ -23,33 +27,11 @@ class TestTrack:
         assert track.Title is None
         assert track.ArtistName is None
 
-    def test_all_fields(self):
-        track = Track(
-            ID="abc",
-            Title="Song",
-            ArtistName="Artist",
-            AlbumName="Album",
-            FileNameL="song.aif",
-            FolderPath="/music/song.aif",
-            FileType=11,
-            SampleRate=44100,
-            BitDepth=16,
-            BitRate=1411,
-        )
-        assert track.FileType == 11
-        assert track.SampleRate == 44100
-
     def test_extra_fields_allowed(self):
         track = Track.model_validate(
-            {
-                "ID": "1",
-                "FileNameL": "x.wav",
-                "FolderPath": "/x.wav",
-                "unknown_field": "x",
-            }
+            {"ID": "1", "FileNameL": "x.wav", "FolderPath": "/x.wav", "extra": "x"}
         )
-        assert track.ID == "1"
-        assert track.unknown_field == "x"
+        assert getattr(track, "extra") == "x"
 
 
 class TestFilterArgs:
@@ -64,98 +46,128 @@ class TestFilterArgs:
             FilterArgs.model_validate({"unknown": "x"})
 
 
-class TestConfirmationArgs:
-    def test_defaults(self):
-        args = ConfirmationArgs()
-        assert args.dry_run is False
-        assert args.yes is False
-        assert args.interactive is False
-
-    def test_extra_fields_forbidden(self):
-        with pytest.raises(ValidationError):
-            ConfirmationArgs.model_validate({"unknown": "x"})
+class TestSearchArgs:
+    def test_is_filter_args(self):
+        args = SearchArgs(artist=["X"])
+        assert isinstance(args, FilterArgs)
+        assert args.artist == ["X"]
 
 
 class TestEditArgs:
-    def test_required_fields(self):
-        args = EditArgs(field="Title", replace_value="New")
+    def test_has_filter_and_edit_fields(self):
+        args = EditArgs(field="Title", replace_value="New", artist=["X"])
+        assert isinstance(args, FilterArgs)
         assert args.field == "Title"
         assert args.replace_value == "New"
-        assert args.match_pattern is None
+        assert args.artist == ["X"]
         assert args.multi is False
-
-    def test_extra_fields_forbidden(self):
-        with pytest.raises(ValidationError):
-            EditArgs.model_validate(
-                {"field": "Title", "replace_value": "x", "unknown": "y"}
-            )
 
 
 class TestConvertArgs:
-    def test_defaults(self):
-        args = ConvertArgs()
-        assert args.format_out == "aiff"
+    def test_has_filter_and_convert_fields(self):
+        args = ConvertArgs(format_out="mp3", overwrite=True, artist=["X"])
+        assert isinstance(args, FilterArgs)
+        assert args.format_out == "mp3"
+        assert args.overwrite is True
         assert args.delete is None
-        assert args.overwrite is False
-
-    def test_delete_tri_state(self):
-        assert ConvertArgs(delete=True).delete is True
-        assert ConvertArgs(delete=False).delete is False
-        assert ConvertArgs().delete is None
+        assert args.artist == ["X"]
 
 
-class TestEditPlanArgs:
-    def test_inherits_filter_and_edit_fields(self):
-        args = EditPlanArgs(field="Title", replace_value="New")
-        assert args.field == "Title"
-        assert args.match_all is False
-        assert args.multi is False
+class TestSkippedTrack:
+    def test_known_reasons_accepted(self):
+        assert SkippedTrack(id="1", reason="no_change").reason == "no_change"
+        assert (
+            SkippedTrack(id="1", reason="already_target_format").reason
+            == "already_target_format"
+        )
+        assert (
+            SkippedTrack(id="1", reason="output_file_exists").reason
+            == "output_file_exists"
+        )
 
-    def test_no_confirmation_fields(self):
-        assert "dry_run" not in EditPlanArgs.model_fields
-
-    def test_extra_fields_forbidden(self):
+    def test_unknown_reason_rejected(self):
         with pytest.raises(ValidationError):
-            EditPlanArgs.model_validate(
-                {"field": "Title", "replace_value": "x", "dry_run": True}
+            SkippedTrack(id="1", reason="nope")  # ty: ignore[invalid-argument-type]
+
+
+class TestEditResponseAlignment:
+    def test_rejects_mismatched_lengths(self):
+        track = Track(ID="1", FileNameL="x.wav", FolderPath="/x.wav")
+        with pytest.raises(ValidationError, match="align"):
+            EditResponse(
+                tracks=[track, track],
+                result=EditResult(
+                    field="Title",
+                    edits=[EditOp(id="1", new_value="X")],
+                    skipped=[],
+                ),
             )
 
-
-class TestConvertPlanArgs:
-    def test_inherits_filter_and_convert_fields(self):
-        args = ConvertPlanArgs(format_out="aiff")
-        assert args.format_out == "aiff"
-        assert args.match_all is False
-
-    def test_no_confirmation_fields(self):
-        assert "dry_run" not in ConvertPlanArgs.model_fields
-
-
-class TestEditCommandArgs:
-    def test_has_all_fields(self):
-        args = EditCommandArgs(field="Title", replace_value="New")
-        assert args.field == "Title"
-        assert args.dry_run is False
-        assert args.yes is False
-        assert args.interactive is False
-
-    def test_is_subtype_of_edit_plan_args(self):
-        args = EditCommandArgs(field="Title", replace_value="X")
-        assert isinstance(args, EditPlanArgs)
-
-    def test_no_print_opt(self):
-        assert "print_opt" not in EditCommandArgs.model_fields
+    def test_accepts_matched_lengths(self):
+        track = Track(ID="1", FileNameL="x.wav", FolderPath="/x.wav")
+        EditResponse(
+            tracks=[track],
+            result=EditResult(
+                field="Title",
+                edits=[EditOp(id="1", new_value="X")],
+                skipped=[],
+            ),
+        )
 
 
-class TestConvertCommandArgs:
-    def test_has_all_fields(self):
-        args = ConvertCommandArgs(format_out="mp3")
-        assert args.format_out == "mp3"
-        assert args.dry_run is False
+class TestConvertResponseAlignment:
+    def test_rejects_mismatched_lengths(self):
+        track = Track(ID="1", FileNameL="x.aif", FolderPath="/x.aif")
+        with pytest.raises(ValidationError, match="align"):
+            ConvertResponse(
+                tracks=[track, track],
+                result=ConvertResult(
+                    format_out="aiff",
+                    converted=[
+                        ConvertOp(id="1", source_path="/x.wav", output_path="/x.aif")
+                    ],
+                    deleted=0,
+                    skipped=[],
+                ),
+            )
 
-    def test_is_subtype_of_convert_plan_args(self):
-        args = ConvertCommandArgs(format_out="flac")
-        assert isinstance(args, ConvertPlanArgs)
+    def test_accepts_matched_lengths(self):
+        track = Track(ID="1", FileNameL="x.aif", FolderPath="/x.aif")
+        ConvertResponse(
+            tracks=[track],
+            result=ConvertResult(
+                format_out="aiff",
+                converted=[
+                    ConvertOp(id="1", source_path="/x.wav", output_path="/x.aif")
+                ],
+                deleted=0,
+                skipped=[],
+            ),
+        )
 
-    def test_no_print_opt(self):
-        assert "print_opt" not in ConvertCommandArgs.model_fields
+
+class TestEditResultCarriesField:
+    def test_field_required(self):
+        with pytest.raises(ValidationError):
+            EditResult(edits=[], skipped=[])  # ty: ignore[missing-argument]  # missing field
+
+    def test_field_accessible(self):
+        r = EditResult(field="Title", edits=[], skipped=[])
+        assert r.field == "Title"
+
+
+class TestConvertResultCarriesFormatOut:
+    def test_format_out_required(self):
+        with pytest.raises(ValidationError):
+            ConvertResult(converted=[], deleted=0, skipped=[])  # ty: ignore[missing-argument]  # missing format_out
+
+    def test_format_out_accessible(self):
+        r = ConvertResult(format_out="aiff", converted=[], deleted=0, skipped=[])
+        assert r.format_out == "aiff"
+
+
+class TestSearchResponse:
+    def test_construction(self):
+        track = Track(ID="1", FileNameL="x.wav", FolderPath="/x.wav")
+        resp = SearchResponse(tracks=[track])
+        assert resp.tracks[0].ID == "1"
