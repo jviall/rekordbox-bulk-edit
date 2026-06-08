@@ -1,16 +1,13 @@
-"""Shared CLI utilities: stdin handling, scripting guards, confirmation flows."""
+"""CLI-private helpers: stdin handling, scripting guards, args narrowing, print emitters."""
 
-import json
 import logging
 import sys
+from copy import copy
 
 import click
+from pydantic import BaseModel
 
 from rekordbox_edit._click import PrintChoice
-from rekordbox_edit.api.convert import ConvertPlan
-from rekordbox_edit.api.edit import EditPlan
-from rekordbox_edit.models import ConvertCommandArgs, EditCommandArgs, Track
-from rekordbox_edit.utils import UserQuit, confirm
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +29,7 @@ def _handle_stdin(args) -> bool:
 
 
 def _validate_scripting_preconditions(print_opt, args, piped_stdin: bool) -> None:
-    """Raise UsageError for invalid scripting mode combinations."""
+    """Raise UsageError for invalid scripting-mode combinations."""
     if print_opt in SCRIPTING_MODES and not (args.dry_run or args.yes):
         raise click.UsageError(
             "--print=ids, --print=silent, or --print=json requires --dry-run or --yes to skip confirmation"
@@ -41,77 +38,42 @@ def _validate_scripting_preconditions(print_opt, args, piped_stdin: bool) -> Non
         raise click.UsageError("Piping track IDs requires --dry-run or --yes")
 
 
-def _print_ids(print_opt, ids: list[str]) -> None:
-    """Print space-separated IDs if print_opt is IDS."""
-    if print_opt is PrintChoice.IDS:
-        print(" ".join(ids))
+def _narrow_to_track_ids(args, ids: list[str]):
+    """Return a new args of the same type with track_ids=ids and all other
+    FilterArgs criteria cleared, preserving command-specific fields.
+
+    Used when the CLI's interactive mode has trimmed the planned operation
+    to a user-selected subset. The narrowed args is passed to the real-run
+    call so the second pass only considers the chosen track IDs.
+    """
+    narrowed = copy(args)
+    for field_name in (
+        "track_id",
+        "track_ids",
+        "title",
+        "exact_title",
+        "playlist",
+        "exact_playlist",
+        "artist",
+        "exact_artist",
+        "album",
+        "exact_album",
+        "path",
+        "exact_path",
+        "format",
+    ):
+        if hasattr(narrowed, field_name):
+            setattr(narrowed, field_name, [])
+    narrowed.track_ids = list(ids)
+    narrowed.match_all = False
+    return narrowed
 
 
-def _print_tracks_json(print_opt, tracks: list[Track]) -> None:
-    """Print tracks as a single JSON array if print_opt is JSON."""
-    if print_opt is PrintChoice.JSON:
-        print(json.dumps([t.model_dump(mode="json") for t in tracks]))
+def _print_response_ids(response) -> None:
+    """Print space-separated IDs from response.tracks."""
+    print(" ".join(t.ID for t in response.tracks))
 
 
-def _confirm_edits(plan: EditPlan, args: EditCommandArgs) -> EditPlan | None:
-    """Gate the edit plan through user confirmation. Returns None if cancelled."""
-    if args.yes:
-        return plan
-    if args.interactive:
-        return _interactive_filter_edits(plan)
-    try:
-        if not confirm(f"Apply {len(plan.edits)} edit(s)?", default=True):
-            logger.info("Cancelled.")
-            return None
-    except UserQuit:
-        return None
-    return plan
-
-
-def _interactive_filter_edits(plan: EditPlan) -> EditPlan:
-    """Prompt for each edit individually and return a plan with only confirmed edits."""
-    confirmed = []
-    for track, new_val in plan.edits:
-        try:
-            if confirm(f"  Edit {track.ID}?", default=True):
-                confirmed.append((track, new_val))
-        except UserQuit:
-            break
-    return EditPlan(field=plan.field, edits=confirmed)
-
-
-def _confirm_converts(
-    plan: ConvertPlan, args: ConvertCommandArgs
-) -> ConvertPlan | None:
-    """Gate the convert plan through user confirmation. Returns None if cancelled."""
-    if args.yes:
-        return plan
-    if args.interactive:
-        return _interactive_filter_converts(plan)
-    try:
-        if not confirm(
-            f"Convert {len(plan.files)} files to {plan.format_out.upper()}?",
-            default=True,
-        ):
-            logger.info("Cancelled.")
-            return None
-    except UserQuit:
-        return None
-    return plan
-
-
-def _interactive_filter_converts(plan: ConvertPlan) -> ConvertPlan:
-    """Prompt for each file individually and return a plan with only confirmed files."""
-    confirmed = []
-    for track in plan.files:
-        try:
-            if confirm(f"  Convert {track.FileNameL}?", default=True):
-                confirmed.append(track)
-        except UserQuit:
-            break
-    return ConvertPlan(
-        files=confirmed,
-        skipped=plan.skipped,
-        should_delete=plan.should_delete,
-        format_out=plan.format_out,
-    )
+def _print_response_json(response: BaseModel) -> None:
+    """Print the response envelope as JSON."""
+    print(response.model_dump_json())

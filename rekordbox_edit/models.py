@@ -1,28 +1,36 @@
-"""Pydantic models for the public API and CLI argument groups.
+"""Pydantic models for the public API.
 
-Four layers:
+Three layers:
 
-- **Component models** (`FilterArgs`, `ConfirmationArgs`, `EditArgs`,
-  `ConvertArgs`) declare cohesive subsets of inputs.
-- **API contract types** (`EditPlanArgs`, `ConvertPlanArgs`) compose
-  component models into the typed inputs that `plan_edit` and `plan_convert`
-  accept. They contain no CLI-specific fields.
-- **Command models** (`EditCommandArgs`, `ConvertCommandArgs`) extend the
-  API types with `ConfirmationArgs` for CLI use.
-- **Domain model** (`Track`) is the sole return type of the API layer.
-  Field names mirror DjmdContent column names so conversion is mechanical.
+- **Filter base** (`FilterArgs`) declares track-selection criteria shared by all
+  commands.
+- **Command args** (`SearchArgs`, `EditArgs`, `ConvertArgs`) extend `FilterArgs`
+  with command-specific fields.
+- **Domain types** (`Track`, `EditOp`, `ConvertOp`, `SkippedTrack`) and
+  **response envelopes** (`SearchResponse`, `EditResponse`, `ConvertResponse`)
+  describe what each command returns.
+
+Envelope semantics:
+
+- `tracks` always reflects the **current DB state** at the moment the response
+  was built. Pre-execute for dry-runs, post-execute for write runs.
+- `result` summarizes what happened (or would happen in a dry-run). Result
+  envelopes carry operation identity (the field name for edit, the target
+  format for convert) so a response is fully self-describing.
+- `tracks` and `result.edits` / `result.converted` align 1:1 by index;
+  validators enforce equal lengths.
 """
 
-from pydantic import BaseModel, ConfigDict
+from typing import Literal, TypeAlias
+
+from pydantic import BaseModel, ConfigDict, model_validator
+
+
+# ── Filter base ───────────────────────────────────────────────────────────
 
 
 class FilterArgs(BaseModel):
-    """Filter inputs forwarded to `get_filtered_content`.
-
-    Field names mirror the Click parameter names: `track_ids` holds the
-    positional TRACK_IDS argument (variadic), `track_id` holds the values of
-    the repeated `--track-id` option.
-    """
+    """Track-selection criteria shared by all commands."""
 
     model_config = ConfigDict(extra="forbid")
 
@@ -42,31 +50,20 @@ class FilterArgs(BaseModel):
     match_all: bool = False
 
 
-class ConfirmationArgs(BaseModel):
-    """How the user gates a side effect before it lands.
+# ── Command args ──────────────────────────────────────────────────────────
 
-    `dry_run` skips the change entirely. `yes` skips confirmation and applies
-    the batch. `interactive` prompts per item. With all three false, the
-    caller is expected to prompt once for the batch.
+
+class SearchArgs(FilterArgs):
+    """Inputs for search().
+
+    Currently equivalent to FilterArgs. Kept as a distinct type so the public
+    signature reads `search(db, SearchArgs)` and so search-specific fields
+    can be added later without changing the call surface.
     """
 
-    model_config = ConfigDict(extra="forbid")
 
-    dry_run: bool = False
-    yes: bool = False
-    interactive: bool = False
-
-
-class EditArgs(BaseModel):
-    """Edit-command inputs that describe what to change.
-
-    `field` names a column from `FIELD_COLUMNS` in `api/edit.py`.
-    `match_pattern` is the optional substring to find within the current value;
-    when omitted, the whole value is replaced. `multi` allows the edit to
-    apply to more than one matched track.
-    """
-
-    model_config = ConfigDict(extra="forbid")
+class EditArgs(FilterArgs):
+    """Inputs for edit()."""
 
     field: str
     replace_value: str
@@ -74,30 +71,25 @@ class EditArgs(BaseModel):
     multi: bool = False
 
 
-class ConvertArgs(BaseModel):
-    """Convert-command inputs that describe the output and conflict policy.
+class ConvertArgs(FilterArgs):
+    """Inputs for convert().
 
-    `delete` is tri-state: `None` defers to a per-format default in
-    `plan_convert`, while `True` / `False` are explicit.
+    `delete` is tri-state: None defers to a per-format default in convert()
+    (True for lossless, False for MP3).
     """
-
-    model_config = ConfigDict(extra="forbid")
 
     format_out: str = "aiff"
     delete: bool | None = None
     overwrite: bool = False
 
 
+# ── Domain types ──────────────────────────────────────────────────────────
+
+
 class Track(BaseModel):
-    """Domain model for a Rekordbox track.
+    """A Rekordbox track. Field names mirror DjmdContent column names.
 
-    Field names mirror DjmdContent column names so conversion is a mechanical
-    field copy with no translation. This type is the sole return type of the
-    API layer — ORM objects never cross the API boundary.
-
-    `extra="allow"` lets `_track_from_content` bulk-copy every DjmdContent
-    column without enumerating each one; the declared fields below stay typed
-    and validated, undeclared columns ride along as untyped attributes.
+    `extra="allow"` lets undeclared columns ride along as untyped attributes.
     """
 
     model_config = ConfigDict(extra="allow")
@@ -125,22 +117,80 @@ class Track(BaseModel):
     TrackNo: int | None = None
 
 
-class EditPlanArgs(FilterArgs, EditArgs):
-    """Inputs for `plan_edit`: filter criteria plus edit specification."""
+SkipReason: TypeAlias = Literal[
+    "no_change", "already_target_format", "output_file_exists"
+]
 
 
-class ConvertPlanArgs(FilterArgs, ConvertArgs):
-    """Inputs for `plan_convert`: filter criteria plus conversion specification."""
+class SkippedTrack(BaseModel):
+    """A track the command declined to operate on."""
+
+    id: str
+    reason: SkipReason
 
 
-class EditCommandArgs(EditPlanArgs, ConfirmationArgs):
-    """All inputs the edit CLI command accepts.
+class EditOp(BaseModel):
+    """A planned or performed edit: track ID + the value it would / did become."""
 
-    Inherits via Pydantic model inheritance: every field of every parent
-    appears flat in this model. An `EditCommandArgs` can be passed anywhere
-    an `EditPlanArgs` or `FilterArgs` is expected.
-    """
+    id: str
+    new_value: str
 
 
-class ConvertCommandArgs(ConvertPlanArgs, ConfirmationArgs):
-    """All inputs the convert CLI command accepts."""
+class ConvertOp(BaseModel):
+    """A planned or performed conversion: track ID + source/output paths."""
+
+    id: str
+    source_path: str
+    output_path: str
+
+
+# ── Response envelopes ────────────────────────────────────────────────────
+
+
+class SearchResponse(BaseModel):
+    tracks: list[Track]
+
+
+class EditResult(BaseModel):
+    """Result payload for edit(). `edits` aligns 1:1 with response.tracks."""
+
+    field: str
+    edits: list[EditOp]
+    skipped: list[SkippedTrack]
+
+
+class EditResponse(BaseModel):
+    tracks: list[Track]
+    result: EditResult
+
+    @model_validator(mode="after")
+    def _check_edit_alignment(self) -> "EditResponse":
+        if len(self.tracks) != len(self.result.edits):
+            raise ValueError(
+                f"tracks ({len(self.tracks)}) and result.edits "
+                f"({len(self.result.edits)}) must align 1:1"
+            )
+        return self
+
+
+class ConvertResult(BaseModel):
+    """Result payload for convert(). `converted` aligns 1:1 with response.tracks."""
+
+    format_out: str
+    converted: list[ConvertOp]
+    deleted: int
+    skipped: list[SkippedTrack]
+
+
+class ConvertResponse(BaseModel):
+    tracks: list[Track]
+    result: ConvertResult
+
+    @model_validator(mode="after")
+    def _check_convert_alignment(self) -> "ConvertResponse":
+        if len(self.tracks) != len(self.result.converted):
+            raise ValueError(
+                f"tracks ({len(self.tracks)}) and result.converted "
+                f"({len(self.result.converted)}) must align 1:1"
+            )
+        return self

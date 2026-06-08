@@ -8,13 +8,18 @@ from typing import Tuple
 
 import ffmpeg
 from ffmpeg import Error as FfmpegError
-from pydantic import BaseModel
 from pyrekordbox import Rekordbox6Database
 from pyrekordbox.db6 import DjmdContent
 from sqlalchemy import select
 
-from rekordbox_edit.api._utils import _track_from_content
-from rekordbox_edit.models import ConvertPlanArgs, Track
+from rekordbox_edit.api._utils import _order_tracks_by_op
+from rekordbox_edit.models import (
+    ConvertArgs,
+    ConvertOp,
+    ConvertResponse,
+    ConvertResult,
+    SkippedTrack,
+)
 from rekordbox_edit.query import get_filtered_content
 from rekordbox_edit.utils import (
     OutputFormats,
@@ -26,7 +31,7 @@ from rekordbox_edit.utils import (
 logger = logging.getLogger(__name__)
 
 
-# ── Helpers  ──────────────────────────────────────────────────────────────
+# ── ffmpeg helpers ────────────────────────────────────────────────────────
 
 
 def convert_to_lossless(input_path, output_path, output_format):
@@ -62,12 +67,10 @@ def convert_to_lossless(input_path, output_path, output_format):
 
     logger.debug(f"Selected codec: {codec} (bit_depth={bit_depth})")
 
-    output_options = {"acodec": codec, "map_metadata": 0, "write_id3v2": 1}
-
     try:
         (
             ffmpeg.input(input_path)
-            .output(output_path, **output_options)
+            .output(output_path, acodec=codec, map_metadata=0, write_id3v2=1)
             .overwrite_output()
             .run(capture_stdout=True, capture_stderr=True)
         )
@@ -92,24 +95,18 @@ def convert_to_mp3(input_path, mp3_path):
         raise Exception(f"FFmpeg not found in PATH.{get_ffmpeg_directions()}")
 
     try:
-        acodec = "libmp3lame"
-        audio_bitrate = "320k"
-        map_metadata = 0
-        write_id3v2 = 1
-
         (
             ffmpeg.input(input_path)
             .output(
                 mp3_path,
-                acodec=acodec,
-                audio_bitrate=audio_bitrate,
-                map_metadata=map_metadata,
-                write_id3v2=write_id3v2,
+                acodec="libmp3lame",
+                audio_bitrate="320k",
+                map_metadata=0,
+                write_id3v2=1,
             )
             .overwrite_output()
             .run(capture_stdout=True, capture_stderr=True)
         )
-
         logger.debug(f"Conversion to mp3 succeeded: {mp3_path}")
         return True
     except FfmpegError as e:
@@ -146,17 +143,14 @@ def update_database_record(
     if output_format.upper() in ["AIFF", "FLAC", "WAV"]:
         converted_bit_depth = converted_audio_info["bit_depth"]
         database_bit_depth = getattr(content, "BitDepth", None)
-        logger.debug(
-            f"Bit depth check: database={database_bit_depth}, file={converted_bit_depth}"
-        )
-
         if (
             database_bit_depth
             and converted_bit_depth
             and converted_bit_depth != database_bit_depth
         ):
             raise Exception(
-                f"Bit depth mismatch for lossless transcode: database={database_bit_depth}, file={converted_bit_depth}"
+                f"Bit depth mismatch for lossless transcode: "
+                f"database={database_bit_depth}, file={converted_bit_depth}"
             )
 
     content.FileNameL = new_filename
@@ -166,28 +160,22 @@ def update_database_record(
     # FLAC stores bitrate as 0 in Rekordbox to represent VBR
     if output_format.upper() == "FLAC":
         content.BitRate = 0
-        logger.debug(
-            f"Set FileType={file_type}, BitRate=0 (FLAC), FolderPath={converted_full_path}"
-        )
     else:
         content.BitRate = converted_bitrate
-        logger.debug(
-            f"Set FileType={file_type}, BitRate={converted_bitrate}, FolderPath={converted_full_path}"
-        )
 
 
-def cleanup_converted_files(converted_files) -> None:
-    """Clean up converted files on error or rollback."""
+def cleanup_converted_files(converted_ops: list[ConvertOp]) -> None:
+    """Clean up converted output files on error or rollback."""
     logger.debug("Cleaning up converted files due to aborted conversion.")
-    for file_info in converted_files:
+    for op in converted_ops:
         try:
-            os.remove(file_info["output_path"])
-            logger.debug(f"Cleaned up {file_info['output_path']}")
+            os.remove(op.output_path)
+            logger.debug(f"Cleaned up {op.output_path}")
         except Exception:
             pass
 
 
-def rollback_and_cleanup(db, converted_files) -> None:
+def rollback_and_cleanup(db, converted_ops: list[ConvertOp]) -> None:
     """Roll back the database session and clean up any converted files."""
     logger.debug("Attempting DB session rollback.")
     rollback_error = None
@@ -200,10 +188,8 @@ def rollback_and_cleanup(db, converted_files) -> None:
                 "Check the state of your rekordbox library and consider reverting to a backup database if something's not right"
             )
             rollback_error = e
-    else:
-        logger.debug("No DB session to rollback.")
-    if converted_files:
-        cleanup_converted_files(converted_files)
+    if converted_ops:
+        cleanup_converted_files(converted_ops)
     if rollback_error:
         raise rollback_error
 
@@ -220,149 +206,188 @@ def get_output_path(content, output_format) -> Tuple[str, str, str]:
     return output_path, output_filename, src_dirname
 
 
-# ── Result types ──────────────────────────────────────────────────────────
+# ── Classifier ────────────────────────────────────────────────────────────
 
 
-class ConvertPlan(BaseModel):
-    files: list[Track]
-    skipped: list[Track]  # files skipped due to existing output (no overwrite)
-    should_delete: bool
-    format_out: str
-
-
-class ConvertResult(BaseModel):
-    converted: list[dict]  # {source_path, output_path, content_id}
-    deleted: int
-
-
-# ── API functions ─────────────────────────────────────────────────────────
-
-
-def plan_convert(db: Rekordbox6Database, args: ConvertPlanArgs) -> ConvertPlan:
-    """Determine which tracks need conversion and resolve delete behaviour."""
-    should_delete = (
-        args.delete if args.delete is not None else args.format_out.upper() != "MP3"
-    )
-
-    result = get_filtered_content(db, args)
-    filtered_content = result.scalars().all()
-
-    target_file_type = get_file_type_for_format(args.format_out)
-    mp3_type = get_file_type_for_format("MP3")
-    m4a_type = get_file_type_for_format("M4A")
-
-    needs_conversion = [
-        c
-        for c in filtered_content
-        if c.FileType != target_file_type
-        and c.FileType != mp3_type
-        and c.FileType != m4a_type
-    ]
-
-    if args.overwrite:
-        files = needs_conversion
-        skipped = []
-    else:
-        files, skipped = [], []
-        for content in needs_conversion:
-            output_path, _, _ = get_output_path(content, args.format_out)
-            if os.path.exists(output_path):
-                skipped.append(content)
-            else:
-                files.append(content)
-
-    logger.debug(
-        f"plan_convert: {len(files)} to convert, {len(skipped)} skipped (conflict)"
-    )
-
-    return ConvertPlan(
-        files=[_track_from_content(c) for c in files],
-        skipped=[_track_from_content(c) for c in skipped],
-        should_delete=should_delete,
-        format_out=args.format_out,
+def _classify_convert(content, args: ConvertArgs) -> ConvertOp | SkippedTrack:
+    """Return ConvertOp if this track should be converted, or SkippedTrack with
+    reason if not."""
+    target = get_file_type_for_format(args.format_out)
+    mp3 = get_file_type_for_format("MP3")
+    m4a = get_file_type_for_format("M4A")
+    if content.FileType in (target, mp3, m4a):
+        logger.debug(
+            f"skip convert id={content.ID} reason=already_target_format "
+            f"file_type={content.FileType} target={target}"
+        )
+        return SkippedTrack(id=str(content.ID), reason="already_target_format")
+    output_path, _, _ = get_output_path(content, args.format_out)
+    if not args.overwrite and os.path.exists(output_path):
+        logger.debug(
+            f"skip convert id={content.ID} reason=output_file_exists path={output_path}"
+        )
+        return SkippedTrack(id=str(content.ID), reason="output_file_exists")
+    return ConvertOp(
+        id=str(content.ID),
+        source_path=content.FolderPath or "",
+        output_path=output_path,
     )
 
 
-def convert(db: Rekordbox6Database, plan: ConvertPlan) -> ConvertResult:
-    """Execute a ConvertPlan: convert files and update the database.
+# ── Public API ────────────────────────────────────────────────────────────
 
-    Uses try/except BaseException so KeyboardInterrupt triggers rollback before
-    the exception propagates to the caller.
+
+def convert(
+    db: Rekordbox6Database,
+    args: ConvertArgs,
+    *,
+    dry_run: bool = False,
+) -> ConvertResponse:
+    """Convert audio files to a target format and update the Rekordbox database.
+
+    With `dry_run=True`, returns the planned conversions without any ffmpeg or
+    DB writes. With `dry_run=False` (default), commits the changes.
+
+    The rollback block protects only pre-commit work; once commit lands, the
+    transaction is honoured even if the delete-originals loop or response
+    re-query later fails.
     """
     from rekordbox_edit.utils import ffmpeg_in_path, get_ffmpeg_directions
 
-    if not plan.files:
-        return ConvertResult(converted=[], deleted=0)
+    logger.debug(f"convert start format_out={args.format_out} dry_run={dry_run}")
 
     if not ffmpeg_in_path():
+        logger.debug("convert aborted: FFmpeg not in PATH")
         raise RuntimeError(
             f"FFmpeg is required but not found in PATH.{get_ffmpeg_directions()}"
         )
 
+    contents = get_filtered_content(db, args).scalars().all()
+    logger.debug(f"convert fetched {len(contents)} candidate(s) from filter")
+
+    ops: list[ConvertOp] = []
+    skipped: list[SkippedTrack] = []
+    for c in contents:
+        result = _classify_convert(c, args)
+        if isinstance(result, ConvertOp):
+            ops.append(result)
+        else:
+            skipped.append(result)
+    logger.debug(f"convert classified ops={len(ops)} skipped={len(skipped)}")
+
+    if dry_run:
+        logger.debug(f"convert dry-run return with {len(ops)} planned conversion(s)")
+        return ConvertResponse(
+            tracks=_order_tracks_by_op(contents, ops),
+            result=ConvertResult(
+                format_out=args.format_out,
+                converted=ops,
+                deleted=0,
+                skipped=skipped,
+            ),
+        )
+
+    if not ops:
+        return ConvertResponse(
+            tracks=[],
+            result=ConvertResult(
+                format_out=args.format_out,
+                converted=[],
+                deleted=0,
+                skipped=skipped,
+            ),
+        )
+
     assert db.session is not None
 
-    ids = [t.ID for t in plan.files]
-    contents = (
-        db.session.execute(select(DjmdContent).where(DjmdContent.ID.in_(ids)))
-        .scalars()
-        .all()
+    should_delete = (
+        args.delete if args.delete is not None else args.format_out.upper() != "MP3"
     )
+    logger.debug(
+        f"convert should_delete={should_delete} "
+        f"(args.delete={args.delete}, format_out={args.format_out})"
+    )
+
+    # content_map enables per-op live FolderPath / FileNameL reads in the loop.
     content_map = {str(c.ID): c for c in contents}
-
-    converted_files: list[dict] = []
+    converted_ops: list[ConvertOp] = []
     try:
-        for i, track in enumerate(plan.files, 1):
-            content = content_map[track.ID]
-            src_folder_path = content.FolderPath or ""
-            output_path, output_filename, src_dirname = get_output_path(
-                content, plan.format_out
-            )
+        for i, op in enumerate(ops, 1):
+            content = content_map[op.id]
+            src = content.FolderPath or ""
+            logger.info(f"[{i}/{len(ops)}] {content.FileNameL}")
 
-            logger.info(f"[{i}/{len(plan.files)}] {content.FileNameL}")
+            if not os.path.exists(src):
+                raise RuntimeError(f"Source not found: {src}")
 
-            if not os.path.exists(src_folder_path):
-                raise RuntimeError(f"Source not found: {src_folder_path}")
-
-            if plan.format_out.upper() == "MP3":
-                success = convert_to_mp3(src_folder_path, output_path)
+            if args.format_out.upper() == "MP3":
+                success = convert_to_mp3(src, op.output_path)
             else:
                 success = convert_to_lossless(
-                    src_folder_path, output_path, OutputFormats(plan.format_out.lower())
+                    src, op.output_path, OutputFormats(args.format_out.lower())
                 )
 
             if not success:
-                raise RuntimeError(f"Conversion failed for {src_folder_path}")
-
-            if not os.path.exists(output_path):
-                raise RuntimeError(f"Output file not created: {output_path}")
+                raise RuntimeError(f"Conversion failed for {src}")
+            if not os.path.exists(op.output_path):
+                raise RuntimeError(f"Output file not created: {op.output_path}")
 
             update_database_record(
-                db, content.ID, output_filename, src_dirname, plan.format_out.upper()
+                db,
+                op.id,
+                os.path.basename(op.output_path),
+                os.path.dirname(op.output_path),
+                args.format_out.upper(),
             )
-            converted_files.append(
-                {
-                    "source_path": src_folder_path,
-                    "output_path": output_path,
-                    "content_id": content.ID,
-                }
+            converted_ops.append(
+                ConvertOp(id=op.id, source_path=src, output_path=op.output_path)
             )
 
         db.session.commit()
         logger.info(
-            f"\nConverted {len(converted_files)} files to {plan.format_out.upper()}"
+            f"\nConverted {len(converted_ops)} files to {args.format_out.upper()}"
         )
-
-        deleted = 0
-        if plan.should_delete:
-            for file_info in converted_files:
-                try:
-                    os.remove(file_info["source_path"])
-                    deleted += 1
-                except Exception as e:
-                    logger.warning(f"Failed to delete {file_info['source_path']}: {e}")
-
-        return ConvertResult(converted=converted_files, deleted=deleted)
-
+        logger.debug(f"convert committed {len(converted_ops)} conversion(s)")
     except BaseException:
-        rollback_and_cleanup(db, converted_files)
+        logger.debug(
+            f"convert rolling back after {len(converted_ops)} partial conversion(s)"
+        )
+        rollback_and_cleanup(db, converted_ops)
         raise
+
+    deleted = 0
+    if should_delete:
+        for op in converted_ops:
+            try:
+                os.remove(op.source_path)
+                deleted += 1
+            except Exception as e:
+                logger.warning(f"Failed to delete {op.source_path}: {e}")
+        logger.debug(f"convert deleted {deleted}/{len(converted_ops)} source file(s)")
+
+    converted_ids = [op.id for op in converted_ops]
+    try:
+        post_contents = (
+            db.session.execute(
+                select(DjmdContent).where(DjmdContent.ID.in_(converted_ids))
+            )
+            .scalars()
+            .all()
+        )
+        logger.debug(
+            f"convert post-commit re-query returned {len(post_contents)} track(s)"
+        )
+        tracks = _order_tracks_by_op(post_contents, converted_ops)
+    except Exception as e:
+        logger.warning(f"Failed to re-query tracks after commit: {e}")
+        tracks = []
+
+    return ConvertResponse(
+        tracks=tracks,
+        result=ConvertResult(
+            format_out=args.format_out,
+            converted=converted_ops,
+            deleted=deleted,
+            skipped=skipped,
+        ),
+    )
