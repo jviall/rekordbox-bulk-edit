@@ -67,7 +67,6 @@ def edit_command(**kwargs):
 
     db = Rekordbox6Database()
 
-    # --yes or --dry-run: one call, no preview prompt.
     if yes or dry_run:
         try:
             response = edit(db, args, dry_run=dry_run)
@@ -78,7 +77,7 @@ def edit_command(**kwargs):
             logger.info("No changes to make.")
             return
 
-        _render_edit_response(response, print_opt, dry_run=dry_run)
+        _print_edit_result(response, print_opt, dry_run=dry_run)
         return
 
     # Default / interactive: preview first.
@@ -120,10 +119,10 @@ def edit_command(**kwargs):
             return
         response = edit(db, args)
 
-    _render_edit_response(response, print_opt, dry_run=False)
+    _print_edit_result(response, print_opt, dry_run=False)
 
 
-def _render_edit_response(response, print_opt, *, dry_run: bool) -> None:
+def _print_edit_result(response, print_opt, *, dry_run: bool) -> None:
     if not dry_run:
         logger.info(f"Applied {len(response.result.edits)} edit(s).")
     if print_opt == PrintChoice.IDS:
