@@ -379,8 +379,13 @@ def convert(
         )
         tracks = _order_tracks_by_op(post_contents, converted_ops)
     except Exception as e:
-        logger.warning(f"Failed to re-query tracks after commit: {e}")
-        tracks = []
+        # Fall back to pre-mutation snapshots so the response stays valid;
+        # the commit succeeded, the caller should not see an alignment error.
+        logger.warning(
+            f"Failed to re-query tracks after commit; falling back to "
+            f"pre-mutation snapshots: {e}"
+        )
+        tracks = _order_tracks_by_op(list(content_map.values()), converted_ops)
 
     return ConvertResponse(
         tracks=tracks,

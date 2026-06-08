@@ -74,6 +74,10 @@ def edit_command(**kwargs):
         except ValueError as e:
             raise click.UsageError(str(e)) from e
 
+        if not response.result.edits and not dry_run:
+            logger.info("No changes to make.")
+            return
+
         _render_edit_response(response, print_opt, dry_run=dry_run)
         return
 
