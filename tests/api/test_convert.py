@@ -385,6 +385,47 @@ class TestConvertRealRun:
         assert [op.id for op in response.result.converted] == ["A", "B", "C"]
         assert [t.ID for t in response.tracks] == ["A", "B", "C"]
 
+    @patch("rekordbox_edit.api.convert.update_database_record")
+    @patch("rekordbox_edit.api.convert.convert_to_lossless", return_value=True)
+    @patch("rekordbox_edit.api.convert.os.path.exists", return_value=True)
+    @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=True)
+    @patch("rekordbox_edit.api.convert.get_output_path")
+    @patch("rekordbox_edit.api.convert.get_file_type_for_format")
+    @patch("rekordbox_edit.api.convert.get_filtered_content")
+    def test_post_commit_requery_failure_falls_back_to_pre_mutation(
+        self,
+        mock_gfc,
+        mock_get_type,
+        mock_get_output,
+        _ffmpeg,
+        mock_exists,
+        mock_lossless,
+        mock_update,
+        mock_db,
+        make_djmd_content_item,
+    ):
+        mock_get_type.side_effect = lambda fmt: {"AIFF": 1, "MP3": 5, "M4A": 6}.get(
+            fmt.upper(), 99
+        )
+        mock_get_output.return_value = ("/out.aif", "out.aif", "/")
+        content = make_djmd_content_item(ID="1", FileType=11, FolderPath="/in.wav")
+        _seed_filter(mock_gfc, content)
+        # Mock the post-commit select to raise
+        mock_db.session.execute.side_effect = RuntimeError("post-commit query failed")
+
+        response = convert(
+            mock_db, ConvertArgs(format_out="aiff", delete=False, overwrite=True)
+        )
+
+        # Commit happened
+        mock_db.session.commit.assert_called_once()
+        # Response built successfully (no ValidationError raised)
+        assert len(response.result.converted) == 1
+        assert response.result.converted[0].id == "1"
+        # tracks came from the pre-commit fallback
+        assert len(response.tracks) == 1
+        assert response.tracks[0].ID == "1"
+
     @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=True)
     @patch("rekordbox_edit.api.convert.os.path.exists", return_value=True)
     @patch("rekordbox_edit.api.convert.get_output_path")

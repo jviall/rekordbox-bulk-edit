@@ -138,8 +138,6 @@ def convert_command(**kwargs):
             return
         response = convert(db, args)
 
-    if response.result.deleted:
-        logger.info(f"Deleted {response.result.deleted} original file(s)")
     _render_convert_response(response, print_opt, scripting_mode, dry_run=False)
 
 
