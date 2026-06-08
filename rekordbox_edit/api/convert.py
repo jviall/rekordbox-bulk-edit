@@ -34,7 +34,7 @@ logger = logging.getLogger(__name__)
 # ── ffmpeg helpers ────────────────────────────────────────────────────────
 
 
-def convert_to_lossless(input_path, output_path, output_format):
+def _convert_to_lossless(input_path, output_path, output_format):
     """Convert lossless file to another lossless format, preserving bit depth."""
     from rekordbox_edit.utils import ffmpeg_in_path, get_ffmpeg_directions
 
@@ -87,7 +87,7 @@ def convert_to_lossless(input_path, output_path, output_format):
         raise e
 
 
-def convert_to_mp3(input_path, mp3_path):
+def _convert_to_mp3(input_path, mp3_path):
     """Convert lossless file to MP3 320kbps CBR."""
     from rekordbox_edit.utils import ffmpeg_in_path, get_ffmpeg_directions
 
@@ -120,7 +120,7 @@ def convert_to_mp3(input_path, mp3_path):
         raise e
 
 
-def update_database_record(
+def _update_database_record(
     db, content_id, new_filename, new_folder, output_format
 ) -> None:
     """Update database record with new file information."""
@@ -164,7 +164,7 @@ def update_database_record(
         content.BitRate = converted_bitrate
 
 
-def cleanup_converted_files(converted_ops: list[ConvertOp]) -> None:
+def _cleanup_converted_files(converted_ops: list[ConvertOp]) -> None:
     """Clean up converted output files on error or rollback."""
     logger.debug("Cleaning up converted files due to aborted conversion.")
     for op in converted_ops:
@@ -175,7 +175,7 @@ def cleanup_converted_files(converted_ops: list[ConvertOp]) -> None:
             pass
 
 
-def rollback_and_cleanup(db, converted_ops: list[ConvertOp]) -> None:
+def _rollback_and_cleanup(db, converted_ops: list[ConvertOp]) -> None:
     """Roll back the database session and clean up any converted files."""
     logger.debug("Attempting DB session rollback.")
     rollback_error = None
@@ -189,12 +189,12 @@ def rollback_and_cleanup(db, converted_ops: list[ConvertOp]) -> None:
             )
             rollback_error = e
     if converted_ops:
-        cleanup_converted_files(converted_ops)
+        _cleanup_converted_files(converted_ops)
     if rollback_error:
         raise rollback_error
 
 
-def get_output_path(content, output_format) -> Tuple[str, str, str]:
+def _get_output_path(content, output_format) -> Tuple[str, str, str]:
     """Calculate output path for a content item."""
     src_folder_path = os.path.normpath(content.FolderPath or "")
     src_file_name = content.FileNameL or ""
@@ -221,7 +221,7 @@ def _classify_convert(content, args: ConvertArgs) -> ConvertOp | SkippedTrack:
             f"file_type={content.FileType} target={target}"
         )
         return SkippedTrack(id=str(content.ID), reason="already_target_format")
-    output_path, _, _ = get_output_path(content, args.format_out)
+    output_path, _, _ = _get_output_path(content, args.format_out)
     if not args.overwrite and os.path.exists(output_path):
         logger.debug(
             f"skip convert id={content.ID} reason=output_file_exists path={output_path}"
@@ -321,9 +321,9 @@ def convert(
                 raise RuntimeError(f"Source not found: {src}")
 
             if args.format_out.upper() == "MP3":
-                success = convert_to_mp3(src, op.output_path)
+                success = _convert_to_mp3(src, op.output_path)
             else:
-                success = convert_to_lossless(
+                success = _convert_to_lossless(
                     src, op.output_path, OutputFormats(args.format_out.lower())
                 )
 
@@ -332,7 +332,7 @@ def convert(
             if not os.path.exists(op.output_path):
                 raise RuntimeError(f"Output file not created: {op.output_path}")
 
-            update_database_record(
+            _update_database_record(
                 db,
                 op.id,
                 os.path.basename(op.output_path),
@@ -352,7 +352,7 @@ def convert(
         logger.debug(
             f"convert rolling back after {len(converted_ops)} partial conversion(s)"
         )
-        rollback_and_cleanup(db, converted_ops)
+        _rollback_and_cleanup(db, converted_ops)
         raise
 
     deleted = 0

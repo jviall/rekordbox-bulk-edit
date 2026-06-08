@@ -86,11 +86,10 @@ def convert_command(**kwargs):
 
     db = Rekordbox6Database()
 
-    # --yes or --dry-run: one call.
     if yes or dry_run:
         response = convert(db, args, dry_run=dry_run)
         _report_skips(response.result.skipped)
-        _render_convert_response(response, print_opt, scripting_mode, dry_run=dry_run)
+        _print_convert_result(response, print_opt, scripting_mode, dry_run=dry_run)
         return
 
     # Default / interactive: preview first.
@@ -138,7 +137,7 @@ def convert_command(**kwargs):
             return
         response = convert(db, args)
 
-    _render_convert_response(response, print_opt, scripting_mode, dry_run=False)
+    _print_convert_result(response, print_opt, scripting_mode, dry_run=False)
 
 
 def _report_skips(skipped) -> None:
@@ -152,7 +151,7 @@ def _report_skips(skipped) -> None:
         )
 
 
-def _render_convert_response(
+def _print_convert_result(
     response, print_opt, scripting_mode, *, dry_run: bool
 ) -> None:
     if not dry_run:
