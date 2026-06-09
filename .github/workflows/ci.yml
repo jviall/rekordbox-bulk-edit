@@ -76,10 +76,12 @@ jobs:
       matrix:
         os: ["macos-latest", "windows-latest"]
         python-version: ["3.11", "3.14"]
+        rb-version: ["6.8.6"]
     runs-on: ${{ matrix.os }}
     env:
       OS: ${{ matrix.os }}
       PYTHON: ${{ matrix.python-version }}
+      RBE_DB_VERSION: ${{ matrix.rb-version }}
 
     steps:
       - name: Checkout code

@@ -63,19 +63,24 @@ def _e2e_preconditions() -> None:
     db_dir = DB_DIR_BY_PLATFORM.get(sys.platform)
     if db_dir is None:
         pytest.fail(f"no e2e DB fixture mapped for sys.platform={sys.platform!r}")
-    dbs = sorted(db_dir.glob("master*.db"))
-    if not dbs:
-        pytest.fail(f"no master*.db under {db_dir}")
+    version = os.environ.get("RBE_DB_VERSION")
+    if not version:
+        pytest.fail(
+            "RBE_DB_VERSION must be set to a Rekordbox DB version (e.g. 6.8.6)."
+        )
+    if not (db_dir / f"master.{version}.db").is_file():
+        pytest.fail(f"no master.{version}.db under {db_dir}")
 
 
 @pytest.fixture(scope="session")
 def _db_source() -> Path:
-    """Pick the highest-numbered master.*.db fixture for the current platform.
+    """Locate the fixture DB for the requested Rekordbox version.
 
-    When additional DB versions land (e.g. master.7.x.y.db), sorted picks the
-    newest by lexicographic order, which matches semver for our naming.
+    Version comes from the RBE_DB_VERSION env var so the CI matrix and local
+    Docker runs can pin one DB at a time without filesystem ordering games.
     """
-    return sorted(DB_DIR_BY_PLATFORM[sys.platform].glob("master*.db"))[-1]
+    version = os.environ["RBE_DB_VERSION"]
+    return DB_DIR_BY_PLATFORM[sys.platform] / f"master.{version}.db"
 
 
 @pytest.fixture(scope="session")

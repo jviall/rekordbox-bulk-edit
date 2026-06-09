@@ -5,6 +5,7 @@ services:
       dockerfile: tests/e2e/Dockerfile
     environment:
       RBE_RUN_E2E: "1"
+      RBE_DB_VERSION: "${RBE_DB_VERSION:?RBE_DB_VERSION must be set (e.g. 6.8.6)}"
     volumes:
       # Mount the source tree so generated snapshots flow back to the host;
       # uv.lock is read from the image's pre-built .venv at /app/.venv.
