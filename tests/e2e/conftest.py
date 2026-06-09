@@ -13,6 +13,7 @@ from collections.abc import Callable, Iterator
 from pathlib import Path
 
 import pytest
+from syrupy.extensions.json import JSONSnapshotExtension
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 AUDIO_DIR = REPO_ROOT / "tests/e2e/fixtures/audio"
@@ -131,3 +132,13 @@ def normalize(db_path: Path) -> Callable[[str], str]:
     regression we want to catch.
     """
     return lambda text: text.replace(str(db_path), "<DB>")
+
+
+@pytest.fixture
+def snapshot_json(snapshot):
+    """Snapshot fixture that pretty-prints dict/list inputs as JSON.
+
+    Stored as .json files under __snapshots__/, one per test, so diffs after a
+    contract change land line-by-line instead of as a single mega-line.
+    """
+    return snapshot.use_extension(JSONSnapshotExtension)
