@@ -134,9 +134,9 @@ def cli(db_path: Path) -> CliRun:
                 *args,
             ],
             input=stdin,
-            text=True,
             capture_output=True,
             check=False,
+            encoding="utf-8",
         )
 
     return _run
