@@ -20,15 +20,29 @@ AUDIO_DIR = REPO_ROOT / "tests/e2e/fixtures/audio"
 DB_DIR_BY_PLATFORM = {
     "darwin": REPO_ROOT / "tests/e2e/fixtures/macos",
     "win32": REPO_ROOT / "tests/e2e/fixtures/windows",
-    # Docker leg (PR #7) reuses the macOS fixture under Linux.
+    # Docker leg reuses the macOS fixture under Linux.
     "linux": REPO_ROOT / "tests/e2e/fixtures/macos",
 }
-# Canonical path the fixture master.db references for every track's FolderPath.
-# macOS resolves /tmp to /private/tmp before storing in the DB, so Rekordbox
-# imports recorded under /tmp end up under /private/tmp. The literal path here
-# satisfies both macOS (/tmp is a symlink to /private/tmp) and the Linux Docker
-# leg (which has no such symlink and needs the exact path created).
-STAGED_AUDIO_DIR = Path("/private/tmp/rbedit-e2e/music")
+# Canonical path each fixture DB records for every track's FolderPath. Audio
+# must be staged here so the CLI's path resolution matches what Rekordbox wrote.
+# macOS: /tmp is a symlink to /private/tmp, and Rekordbox stores the resolved
+# form. Linux Docker has no such symlink — the literal /private/tmp path is
+# created. Windows: the C:/rbedit-e2e tree was chosen by the fixture author.
+STAGED_AUDIO_DIR_BY_PLATFORM = {
+    "darwin": Path("/private/tmp/rbedit-e2e/music"),
+    "linux": Path("/private/tmp/rbedit-e2e/music"),
+    "win32": Path("C:/rbedit-e2e/music"),
+}
+STAGED_AUDIO_DIR = STAGED_AUDIO_DIR_BY_PLATFORM.get(sys.platform, Path("/tmp"))
+
+# Snapshot key identifies which fixture DB is in play, not the host platform —
+# the Docker (Linux) leg reuses the macOS DB and must match the same snapshot.
+SNAPSHOT_KEY_BY_PLATFORM = {
+    "darwin": "macos",
+    "linux": "macos",
+    "win32": "windows",
+}
+SNAPSHOT_KEY = SNAPSHOT_KEY_BY_PLATFORM.get(sys.platform, "unsupported")
 
 
 @pytest.fixture(scope="session", autouse=True)

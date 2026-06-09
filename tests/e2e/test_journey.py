@@ -11,7 +11,7 @@ import subprocess
 
 import pytest
 
-from tests.e2e.conftest import STAGED_AUDIO_DIR
+from tests.e2e.conftest import SNAPSHOT_KEY, STAGED_AUDIO_DIR
 
 pytestmark = pytest.mark.e2e
 
@@ -103,16 +103,18 @@ def test_search_unicode_title_substring(cli):
 def test_search_full_json_snapshot(cli, snapshot_json):
     """Locks the search JSON contract: row count, field set, ordering.
 
-    The parsed object is snapshot'd as pretty-printed JSON so contract drift
-    shows as a clean per-field diff rather than a single mega-line.
+    Snapshot is keyed by sys.platform because IDs and FolderPath both differ
+    between the macOS and Windows fixture DBs.
     """
     payload = json.loads(cli("search", "--print", "json").stdout)
-    assert payload == snapshot_json
+    assert payload == snapshot_json(name=SNAPSHOT_KEY)
 
 
 def test_search_ids_snapshot(cli, normalize, snapshot):
-    """Locks the `--print ids` pipe contract."""
-    assert normalize(cli("search", "--print", "ids").stdout) == snapshot
+    """Locks the `--print ids` pipe contract. Per-DB: IDs differ by fixture."""
+    assert normalize(cli("search", "--print", "ids").stdout) == snapshot(
+        name=SNAPSHOT_KEY
+    )
 
 
 # ── Group 2: stdin pipe + dry-run + roundtrip (edit) ───────────────────────
