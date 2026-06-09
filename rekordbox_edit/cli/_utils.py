@@ -1,13 +1,17 @@
 """CLI-private helpers: stdin handling, scripting guards, args narrowing, print emitters."""
 
+import functools
 import logging
 import sys
 from copy import copy
 
 import click
 from pydantic import BaseModel
+from pyrekordbox import Rekordbox6Database
+from pyrekordbox.utils import get_rekordbox_pid
 
-from rekordbox_edit._click import PrintChoice
+from rekordbox_edit._click import PrintChoice, database_path_option
+from rekordbox_edit.utils import UserQuit, confirm
 
 logger = logging.getLogger(__name__)
 
@@ -77,3 +81,47 @@ def _print_response_ids(response) -> None:
 def _print_response_json(response: BaseModel) -> None:
     """Print the response envelope as JSON."""
     print(response.model_dump_json())
+
+
+def _rekordbox_running_confirm(print_opt) -> bool:
+    rekordbox_pid = get_rekordbox_pid()
+    if not rekordbox_pid:
+        return True
+    if print_opt in SCRIPTING_MODES:
+        logger.error(
+            f"Rekordbox is running (PID {rekordbox_pid}). Cannot proceed in scripting mode."
+        )
+        sys.exit(1)
+    logger.warning(
+        f"Rekordbox is running (PID {rekordbox_pid}). Modifying the database while "
+        "Rekordbox is open can cause conflicts."
+    )
+    try:
+        return confirm("Continue anyway?", default=False)
+    except UserQuit:
+        return False
+
+
+def with_database(*, writes: bool = False):
+    """Inject an opened Rekordbox6Database as `db` and close it on exit.
+
+    Pass writes=True for commands that modify the DB: the wrapper aborts when
+    Rekordbox is running (or prompts to continue in interactive modes).
+    """
+
+    def decorator(func):
+        @database_path_option
+        @functools.wraps(func)
+        def wrapper(**kwargs):
+            if writes and not _rekordbox_running_confirm(kwargs.get("print_opt")):
+                return
+            database_path: str | None = kwargs.pop("database_path", None)
+            db = Rekordbox6Database(path=database_path)  # ty: ignore[invalid-argument-type]
+            try:
+                return func(db=db, **kwargs)
+            finally:
+                db.close()
+
+        return wrapper
+
+    return decorator

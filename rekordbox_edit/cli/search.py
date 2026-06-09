@@ -3,7 +3,6 @@
 import logging
 
 import click
-from pyrekordbox import Rekordbox6Database
 
 from rekordbox_edit._click import (
     PrintChoice,
@@ -17,6 +16,7 @@ from rekordbox_edit.cli._utils import (
     _handle_stdin,
     _print_response_ids,
     _print_response_json,
+    with_database,
 )
 from rekordbox_edit.display import print_track_info
 from rekordbox_edit.logger import get_debug_file_path, set_level
@@ -29,14 +29,14 @@ logger = logging.getLogger(__name__)
     epilog=f"Debug logs for each run can be found at:\n{get_debug_file_path().parent}"
 )
 @add_click_options([*global_click_filters, print_option, track_ids_argument])
-def search_command(**kwargs):
+@with_database()
+def search_command(db, **kwargs):
     """Search the RekordBox database."""
     print_opt = kwargs.pop("print_opt", None)
     args = SearchArgs(**kwargs)
     set_level(print_opt)
     _handle_stdin(args)
 
-    db = Rekordbox6Database()
     response = search(db, args)
 
     if print_opt is PrintChoice.SILENT:

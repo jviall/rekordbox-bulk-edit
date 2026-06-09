@@ -1,11 +1,8 @@
 """Convert CLI command."""
 
 import logging
-import sys
 
 import click
-from pyrekordbox import Rekordbox6Database
-from pyrekordbox.utils import get_rekordbox_pid
 
 from rekordbox_edit._click import (
     PrintChoice,
@@ -24,6 +21,7 @@ from rekordbox_edit.cli._utils import (
     _print_response_ids,
     _print_response_json,
     _validate_scripting_preconditions,
+    with_database,
 )
 from rekordbox_edit.display import PrintableField, print_track_info
 from rekordbox_edit.logger import get_debug_file_path, set_level
@@ -45,7 +43,8 @@ logger = logging.getLogger(__name__)
         track_ids_argument,
     ]
 )
-def convert_command(**kwargs):
+@with_database(writes=True)
+def convert_command(db, **kwargs):
     """Convert lossless audio files between formats and update RekordBox database.
 
     Supports conversion from any lossless format (FLAC, AIFF, WAV) to:
@@ -66,25 +65,6 @@ def convert_command(**kwargs):
     )
 
     scripting_mode = print_opt in SCRIPTING_MODES
-
-    rekordbox_pid = get_rekordbox_pid()
-    if rekordbox_pid:
-        if scripting_mode:
-            logger.error(
-                f"Rekordbox is running (PID {rekordbox_pid}). Cannot proceed in scripting mode."
-            )
-            sys.exit(1)
-        logger.warning(
-            f"Rekordbox is running (PID {rekordbox_pid}). Modifying the database while "
-            "Rekordbox is open can cause conflicts."
-        )
-        try:
-            if not confirm("Continue anyway?", default=False):
-                return
-        except UserQuit:
-            return
-
-    db = Rekordbox6Database()
 
     if yes or dry_run:
         response = convert(db, args, dry_run=dry_run)
