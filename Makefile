@@ -3,14 +3,16 @@
 test:
 	uv run pytest tests
 
+RBE_DB_VERSION ?= 6.8.6
+
 test-e2e:
-	uv run pytest tests/e2e --snapshot-warn-unused
+	RBE_DB_VERSION=$(RBE_DB_VERSION) uv run pytest tests/e2e --snapshot-warn-unused
 
 test-e2e-docker:
-	docker compose run --rm e2e
+	RBE_DB_VERSION=$(RBE_DB_VERSION) docker compose run --rm e2e
 
 test-e2e-snapshot-update:
-	docker compose run --rm e2e uv run pytest tests/e2e --snapshot-update
+	RBE_DB_VERSION=$(RBE_DB_VERSION) docker compose run --rm e2e uv run pytest tests/e2e --snapshot-update
 
 watch:
 	uv run ptw .
