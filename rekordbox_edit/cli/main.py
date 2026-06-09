@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Command line interface for rekordbox-edit."""
 
+import io
 import logging
 import sys
 
@@ -30,6 +31,12 @@ cli.add_command(convert_command)
 
 def main():
     """Entry point for the CLI."""
+    # Force UTF-8 on the standard streams so non-ASCII titles, paths, and
+    # artist names survive piping on Windows (default cp1252 mangles them to
+    # '?'). This is the in-script equivalent of running with PYTHONUTF8=1.
+    for stream in (sys.stdin, sys.stdout, sys.stderr):
+        if isinstance(stream, io.TextIOWrapper):
+            stream.reconfigure(encoding="utf-8")
     try:
         setup_logging()
         logger.debug(f"Running with input: {' '.join(sys.argv)}")
