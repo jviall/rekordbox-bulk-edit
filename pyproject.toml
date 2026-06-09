@@ -31,7 +31,14 @@ dev = [
     "pytest-watcher>=0.6.3,<1",
     "callee>=0.3.1,<1",
     "ty>=0.0.1,<1",
+    "syrupy>=5,<6",
 ]
+
+[tool.pytest.ini_options]
+markers = [
+    "e2e: end-to-end tests requiring audio fixtures and RBE_RUN_E2E=1",
+]
+norecursedirs = ["tests/e2e"]
 
 [project.urls]
 Homepage = "https://github.com/jviall/rekordbox-edit"
