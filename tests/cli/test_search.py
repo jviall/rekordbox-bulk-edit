@@ -22,7 +22,7 @@ def _response(*tracks):
 class TestSearchCommand:
     @patch("rekordbox_edit.cli.search.print_track_info")
     @patch("rekordbox_edit.cli.search.search")
-    @patch("rekordbox_edit.cli.search.Rekordbox6Database")
+    @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
     def test_calls_print_track_info_by_default(
         self, mock_db_class, mock_search, mock_print, make_track
     ):
@@ -35,7 +35,7 @@ class TestSearchCommand:
         mock_print.assert_called_once()
 
     @patch("rekordbox_edit.cli.search.search")
-    @patch("rekordbox_edit.cli.search.Rekordbox6Database")
+    @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
     def test_print_ids(self, mock_db_class, mock_search, make_track):
         mock_db_class.return_value = Mock(session=Mock())
         mock_search.return_value = _response(make_track(ID="A"), make_track(ID="B"))
@@ -46,7 +46,7 @@ class TestSearchCommand:
         assert "A B" in result.output
 
     @patch("rekordbox_edit.cli.search.search")
-    @patch("rekordbox_edit.cli.search.Rekordbox6Database")
+    @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
     def test_print_json_emits_envelope(self, mock_db_class, mock_search, make_track):
         import json
 
@@ -60,7 +60,7 @@ class TestSearchCommand:
         assert payload["tracks"][0]["ID"] == "A"
 
     @patch("rekordbox_edit.cli.search.search")
-    @patch("rekordbox_edit.cli.search.Rekordbox6Database")
+    @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
     def test_print_silent_produces_no_output(
         self, mock_db_class, mock_search, make_track
     ):

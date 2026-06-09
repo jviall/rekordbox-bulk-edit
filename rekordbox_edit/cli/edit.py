@@ -3,7 +3,6 @@
 import logging
 
 import click
-from pyrekordbox import Rekordbox6Database
 
 from rekordbox_edit._click import (
     PrintChoice,
@@ -22,6 +21,7 @@ from rekordbox_edit.cli._utils import (
     _print_response_ids,
     _print_response_json,
     _validate_scripting_preconditions,
+    with_database,
 )
 from rekordbox_edit.display import PrintableField, print_track_info
 from rekordbox_edit.logger import get_debug_file_path, set_level
@@ -47,7 +47,8 @@ logger = logging.getLogger(__name__)
     "field",
     type=click.Choice(list(FIELD_COLUMNS.keys()), case_sensitive=False),
 )
-def edit_command(**kwargs):
+@with_database(writes=True)
+def edit_command(db, **kwargs):
     """Edit a metadata field on tracks in the RekordBox database."""
     print_opt = kwargs.pop("print_opt", None)
     # CLI-only flags pulled out of kwargs before constructing EditArgs.
@@ -64,8 +65,6 @@ def edit_command(**kwargs):
         type("_S", (), {"dry_run": dry_run, "yes": yes})(),
         piped_stdin,
     )
-
-    db = Rekordbox6Database()
 
     if yes or dry_run:
         try:

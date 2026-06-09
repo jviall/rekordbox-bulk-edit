@@ -29,7 +29,7 @@ def _response(tracks=None, edits=None, skipped=None):
 
 class TestEditCommand:
     @patch("rekordbox_edit.cli.edit.edit")
-    @patch("rekordbox_edit.cli.edit.Rekordbox6Database")
+    @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
     def test_yes_calls_edit_once(self, mock_db_class, mock_edit):
         mock_db_class.return_value = Mock(session=Mock())
         mock_edit.return_value = _response()
@@ -44,7 +44,7 @@ class TestEditCommand:
         assert mock_edit.call_args.kwargs.get("dry_run", False) is False
 
     @patch("rekordbox_edit.cli.edit.edit")
-    @patch("rekordbox_edit.cli.edit.Rekordbox6Database")
+    @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
     def test_dry_run_passes_flag_through(self, mock_db_class, mock_edit):
         mock_db_class.return_value = Mock(session=Mock())
         mock_edit.return_value = _response()
@@ -58,7 +58,7 @@ class TestEditCommand:
         assert mock_edit.call_args.kwargs.get("dry_run") is True
 
     @patch("rekordbox_edit.cli.edit.edit")
-    @patch("rekordbox_edit.cli.edit.Rekordbox6Database")
+    @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
     def test_empty_result_exits_cleanly(self, mock_db_class, mock_edit):
         mock_db_class.return_value = Mock(session=Mock())
         mock_edit.return_value = _response(tracks=[], edits=[])
@@ -70,7 +70,7 @@ class TestEditCommand:
         assert result.exit_code == 0
 
     @patch("rekordbox_edit.cli.edit.edit")
-    @patch("rekordbox_edit.cli.edit.Rekordbox6Database")
+    @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
     def test_value_error_becomes_usage_error(self, mock_db_class, mock_edit):
         mock_db_class.return_value = Mock(session=Mock())
         mock_edit.side_effect = ValueError("Found 2 tracks that would be edited")
@@ -83,7 +83,7 @@ class TestEditCommand:
         assert "Error" in result.output
 
     @patch("rekordbox_edit.cli.edit.edit")
-    @patch("rekordbox_edit.cli.edit.Rekordbox6Database")
+    @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
     def test_print_ids_outputs_ids(self, mock_db_class, mock_edit):
         mock_db_class.return_value = Mock(session=Mock())
         track = Track(ID="AAA", FileNameL="x.wav", FolderPath="/x.wav")
@@ -99,7 +99,7 @@ class TestEditCommand:
         assert "AAA" in result.output
 
     @patch("rekordbox_edit.cli.edit.edit")
-    @patch("rekordbox_edit.cli.edit.Rekordbox6Database")
+    @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
     def test_print_json_outputs_envelope(self, mock_db_class, mock_edit):
         import json
 
@@ -121,7 +121,7 @@ class TestEditCommand:
     @patch("rekordbox_edit.cli.edit.print_track_info")
     @patch("rekordbox_edit.cli.edit.confirm", return_value=True)
     @patch("rekordbox_edit.cli.edit.edit")
-    @patch("rekordbox_edit.cli.edit.Rekordbox6Database")
+    @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
     def test_default_flow_previews_then_commits(
         self, mock_db_class, mock_edit, mock_confirm, _print
     ):
@@ -138,7 +138,7 @@ class TestEditCommand:
     @patch("rekordbox_edit.cli.edit.print_track_info")
     @patch("rekordbox_edit.cli.edit.confirm", return_value=False)
     @patch("rekordbox_edit.cli.edit.edit")
-    @patch("rekordbox_edit.cli.edit.Rekordbox6Database")
+    @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
     def test_default_flow_user_declines_skips_commit(
         self, mock_db_class, mock_edit, mock_confirm, _print
     ):
@@ -154,7 +154,7 @@ class TestEditCommand:
     @patch("rekordbox_edit.cli.edit.confirm", side_effect=UserQuit)
     @patch("rekordbox_edit.cli.edit.print_track_info")
     @patch("rekordbox_edit.cli.edit.edit")
-    @patch("rekordbox_edit.cli.edit.Rekordbox6Database")
+    @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
     def test_default_flow_user_quit_skips_commit(
         self, mock_db_class, mock_edit, _print, _confirm
     ):
@@ -168,7 +168,7 @@ class TestEditCommand:
 
     @patch("rekordbox_edit.cli.edit.print_track_info")
     @patch("rekordbox_edit.cli.edit.edit")
-    @patch("rekordbox_edit.cli.edit.Rekordbox6Database")
+    @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
     def test_default_flow_empty_preview_exits_cleanly(
         self, mock_db_class, mock_edit, _print
     ):
@@ -186,7 +186,7 @@ class TestEditCommand:
     @patch("rekordbox_edit.cli.edit.print_track_info")
     @patch("rekordbox_edit.cli.edit.confirm")
     @patch("rekordbox_edit.cli.edit.edit")
-    @patch("rekordbox_edit.cli.edit.Rekordbox6Database")
+    @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
     def test_interactive_narrows_to_confirmed_tracks(
         self, mock_db_class, mock_edit, mock_confirm, _print
     ):
@@ -215,7 +215,7 @@ class TestEditCommand:
     @patch("rekordbox_edit.cli.edit.print_track_info")
     @patch("rekordbox_edit.cli.edit.confirm", side_effect=UserQuit)
     @patch("rekordbox_edit.cli.edit.edit")
-    @patch("rekordbox_edit.cli.edit.Rekordbox6Database")
+    @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
     def test_interactive_user_quit_skips_commit(
         self, mock_db_class, mock_edit, _confirm, _print
     ):

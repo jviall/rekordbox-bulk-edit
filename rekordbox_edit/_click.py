@@ -1,4 +1,5 @@
 from enum import Enum
+from pathlib import Path
 
 import click
 
@@ -161,6 +162,15 @@ convert_click_options = [
         help="Output format (default: aiff)",
     ),
 ]
+
+
+database_path_option = click.option(
+    "--database-path",
+    type=click.Path(exists=True, path_type=Path),
+    default=None,
+    envvar="RBE_DATABASE_PATH",
+    help="Path to master.db. Bypasses Rekordbox installation discovery.",
+)
 
 
 def add_click_options(options):
