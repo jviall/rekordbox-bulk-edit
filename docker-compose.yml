@@ -1,0 +1,12 @@
+services:
+  e2e:
+    build:
+      context: .
+      dockerfile: tests/e2e/Dockerfile
+    environment:
+      RBE_RUN_E2E: "1"
+    volumes:
+      # Mount the source tree so generated snapshots flow back to the host;
+      # uv.lock is read from the image's pre-built .venv at /app/.venv.
+      - .:/app
+      - /app/.venv

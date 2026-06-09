@@ -1,7 +1,16 @@
-.PHONY: test coverage lint format typecheck install-hooks run-hooks
+.PHONY: test test-e2e test-e2e-docker test-e2e-snapshot-update coverage lint format typecheck install-hooks run-hooks
 
 test:
 	uv run pytest tests
+
+test-e2e:
+	uv run pytest tests/e2e
+
+test-e2e-docker:
+	docker compose run --rm e2e
+
+test-e2e-snapshot-update:
+	docker compose run --rm e2e uv run pytest tests/e2e --snapshot-update
 
 watch:
 	uv run ptw .
