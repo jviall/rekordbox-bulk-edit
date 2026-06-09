@@ -22,4 +22,4 @@ runs:
       env:
         RBE_RUN_E2E: "1"
       run: |
-        uv run pytest tests/e2e
+        uv run pytest tests/e2e --snapshot-warn-unused

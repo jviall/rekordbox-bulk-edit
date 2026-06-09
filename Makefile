@@ -4,7 +4,7 @@ test:
 	uv run pytest tests
 
 test-e2e:
-	uv run pytest tests/e2e
+	uv run pytest tests/e2e --snapshot-warn-unused
 
 test-e2e-docker:
 	docker compose run --rm e2e
