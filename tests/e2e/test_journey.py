@@ -100,9 +100,14 @@ def test_search_unicode_title_substring(cli):
     assert len(matches) == 1
 
 
-def test_search_full_json_snapshot(cli, normalize, snapshot):
-    """Locks the search JSON contract: row count, field set, ordering."""
-    assert normalize(cli("search", "--print", "json").stdout) == snapshot
+def test_search_full_json_snapshot(cli, snapshot_json):
+    """Locks the search JSON contract: row count, field set, ordering.
+
+    The parsed object is snapshot'd as pretty-printed JSON so contract drift
+    shows as a clean per-field diff rather than a single mega-line.
+    """
+    payload = json.loads(cli("search", "--print", "json").stdout)
+    assert payload == snapshot_json
 
 
 def test_search_ids_snapshot(cli, normalize, snapshot):
