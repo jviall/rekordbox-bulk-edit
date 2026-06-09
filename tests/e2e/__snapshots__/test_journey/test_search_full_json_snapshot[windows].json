@@ -71,7 +71,7 @@
       "TrackNo": 0,
       "UUID": "caafc88c-1724-4538-9d83-bb6a124f18ba",
       "VideoAssociate": "0",
-      "created_at": "2026-06-08T23:35:45.446000",
+      "created_at": "2026-06-09T06:35:45.446000",
       "rb_LocalFolderPath": null,
       "rb_data_status": 0,
       "rb_file_id": "4785074604361496",
@@ -79,7 +79,7 @@
       "rb_local_deleted": 0,
       "rb_local_synced": 0,
       "rb_local_usn": 580,
-      "updated_at": "2026-06-09T14:55:57.972000",
+      "updated_at": "2026-06-09T21:55:57.972000",
       "usn": null
     },
     {
@@ -153,7 +153,7 @@
       "TrackNo": 0,
       "UUID": "a993a396-5f3e-4b89-a58b-c422fc409dff",
       "VideoAssociate": "0",
-      "created_at": "2026-06-08T23:35:45.449000",
+      "created_at": "2026-06-09T06:35:45.449000",
       "rb_LocalFolderPath": null,
       "rb_data_status": 0,
       "rb_file_id": "4503599627650899",
@@ -161,7 +161,7 @@
       "rb_local_deleted": 0,
       "rb_local_synced": 0,
       "rb_local_usn": 595,
-      "updated_at": "2026-06-09T14:55:58.013000",
+      "updated_at": "2026-06-09T21:55:58.013000",
       "usn": null
     },
     {
@@ -235,7 +235,7 @@
       "TrackNo": 0,
       "UUID": "134b4cd9-0e92-4490-be83-95a4b3c919d6",
       "VideoAssociate": "0",
-      "created_at": "2026-06-08T23:35:45.419000",
+      "created_at": "2026-06-09T06:35:45.419000",
       "rb_LocalFolderPath": null,
       "rb_data_status": 0,
       "rb_file_id": "10977524091996057",
@@ -243,7 +243,7 @@
       "rb_local_deleted": 0,
       "rb_local_synced": 0,
       "rb_local_usn": 463,
-      "updated_at": "2026-06-09T14:55:57.478000",
+      "updated_at": "2026-06-09T21:55:57.478000",
       "usn": null
     },
     {
@@ -317,7 +317,7 @@
       "TrackNo": 0,
       "UUID": "77cb635a-669a-4cd2-a0b0-3c16bd1e49c1",
       "VideoAssociate": "0",
-      "created_at": "2026-06-08T23:35:45.423000",
+      "created_at": "2026-06-09T06:35:45.423000",
       "rb_LocalFolderPath": null,
       "rb_data_status": 0,
       "rb_file_id": "16325548649498533",
@@ -325,7 +325,7 @@
       "rb_local_deleted": 0,
       "rb_local_synced": 0,
       "rb_local_usn": 475,
-      "updated_at": "2026-06-09T14:55:57.515000",
+      "updated_at": "2026-06-09T21:55:57.515000",
       "usn": null
     },
     {
@@ -399,7 +399,7 @@
       "TrackNo": 0,
       "UUID": "806e455d-c791-4f4e-8f66-959f984f43dd",
       "VideoAssociate": "0",
-      "created_at": "2026-06-08T23:35:45.426000",
+      "created_at": "2026-06-09T06:35:45.426000",
       "rb_LocalFolderPath": null,
       "rb_data_status": 0,
       "rb_file_id": "4785074604361647",
@@ -407,7 +407,7 @@
       "rb_local_deleted": 0,
       "rb_local_synced": 0,
       "rb_local_usn": 608,
-      "updated_at": "2026-06-09T14:58:45.439000",
+      "updated_at": "2026-06-09T21:58:45.439000",
       "usn": null
     },
     {
@@ -481,7 +481,7 @@
       "TrackNo": 0,
       "UUID": "84a656da-b8d1-4481-9e52-9c21bff6803e",
       "VideoAssociate": "0",
-      "created_at": "2026-06-08T23:35:45.428000",
+      "created_at": "2026-06-09T06:35:45.428000",
       "rb_LocalFolderPath": null,
       "rb_data_status": 0,
       "rb_file_id": "53480245575305141",
@@ -489,7 +489,7 @@
       "rb_local_deleted": 0,
       "rb_local_synced": 0,
       "rb_local_usn": 505,
-      "updated_at": "2026-06-09T14:55:57.592000",
+      "updated_at": "2026-06-09T21:55:57.592000",
       "usn": null
     },
     {
@@ -563,7 +563,7 @@
       "TrackNo": 0,
       "UUID": "508b5e39-20ff-41e4-a1a0-34b768fcf47b",
       "VideoAssociate": "0",
-      "created_at": "2026-06-08T23:35:45.432000",
+      "created_at": "2026-06-09T06:35:45.432000",
       "rb_LocalFolderPath": null,
       "rb_data_status": 0,
       "rb_file_id": "8162774324889598",
@@ -571,7 +571,7 @@
       "rb_local_deleted": 0,
       "rb_local_synced": 0,
       "rb_local_usn": 519,
-      "updated_at": "2026-06-09T14:55:57.691000",
+      "updated_at": "2026-06-09T21:55:57.691000",
       "usn": null
     },
     {
@@ -645,7 +645,7 @@
       "TrackNo": 0,
       "UUID": "0568cd1e-40b7-4b66-aa03-4311016ef7f8",
       "VideoAssociate": "0",
-      "created_at": "2026-06-08T23:35:45.436000",
+      "created_at": "2026-06-09T06:35:45.436000",
       "rb_LocalFolderPath": null,
       "rb_data_status": 0,
       "rb_file_id": "7599824371468314",
@@ -653,7 +653,7 @@
       "rb_local_deleted": 0,
       "rb_local_synced": 0,
       "rb_local_usn": 531,
-      "updated_at": "2026-06-09T14:55:57.728000",
+      "updated_at": "2026-06-09T21:55:57.728000",
       "usn": null
     },
     {
@@ -727,7 +727,7 @@
       "TrackNo": 0,
       "UUID": "383762ac-64ba-4b9d-9e3e-bcf655a94d49",
       "VideoAssociate": "0",
-      "created_at": "2026-06-08T23:35:45.439000",
+      "created_at": "2026-06-09T06:35:45.439000",
       "rb_LocalFolderPath": null,
       "rb_data_status": 0,
       "rb_file_id": "7318349394757821",
@@ -735,7 +735,7 @@
       "rb_local_deleted": 0,
       "rb_local_synced": 0,
       "rb_local_usn": 545,
-      "updated_at": "2026-06-09T14:55:57.769000",
+      "updated_at": "2026-06-09T21:55:57.769000",
       "usn": null
     },
     {
@@ -745,7 +745,7 @@
       "AnalysisDataPath": "/PIONEER/USBANLZ/3b8/4e988-b648-4e6a-a32f-c30f9e1dae20/ANLZ0000.DAT",
       "AnalysisUpdated": "1",
       "ArtistID": "2781576744",
-      "ArtistName": "Théta",
+      "ArtistName": "Th\u00e9ta",
       "BPM": 0,
       "BitDepth": 16,
       "BitRate": 0,
@@ -762,11 +762,11 @@
       "DisableQuantize": null,
       "DiscNo": 0,
       "ExtInfo": "null",
-      "FileNameL": "10-üñîcödé-flac-44_1k-16b.flac",
+      "FileNameL": "10-\u00fc\u00f1\u00eec\u00f6d\u00e9-flac-44_1k-16b.flac",
       "FileNameS": "",
       "FileSize": 34708,
       "FileType": 5,
-      "FolderPath": "C:/rbedit-e2e/music/10-üñîcödé-flac-44_1k-16b.flac",
+      "FolderPath": "C:/rbedit-e2e/music/10-\u00fc\u00f1\u00eec\u00f6d\u00e9-flac-44_1k-16b.flac",
       "GenreID": null,
       "HotCueAutoLoad": "on",
       "ID": "158539556",
@@ -804,12 +804,12 @@
       "StockDate": "2026-06-08",
       "Subtitle": "",
       "Tag": null,
-      "Title": "Üñîcödé Mañana",
+      "Title": "\u00dc\u00f1\u00eec\u00f6d\u00e9 Ma\u00f1ana",
       "TrackInfoUpdated": "2",
       "TrackNo": 0,
       "UUID": "3b84e988-b648-4e6a-a32f-c30f9e1dae20",
       "VideoAssociate": "0",
-      "created_at": "2026-06-08T23:35:45.443000",
+      "created_at": "2026-06-09T06:35:45.443000",
       "rb_LocalFolderPath": null,
       "rb_data_status": 0,
       "rb_file_id": "5629499534493925",
@@ -817,7 +817,7 @@
       "rb_local_deleted": 0,
       "rb_local_synced": 0,
       "rb_local_usn": 561,
-      "updated_at": "2026-06-09T14:55:57.859000",
+      "updated_at": "2026-06-09T21:55:57.859000",
       "usn": null
     }
   ]
