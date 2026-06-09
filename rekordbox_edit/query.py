@@ -240,6 +240,8 @@ class CollectionQuery:
                 combined_condition = or_(*self._conditions)
             stmt = stmt.where(combined_condition)
 
+        stmt = stmt.order_by(DjmdContent.FolderPath.asc(), DjmdContent.ID.asc())
+
         if self._limit_count is not None:
             logger.debug(f"Query limit: {self._limit_count}")
             stmt = stmt.limit(self._limit_count)

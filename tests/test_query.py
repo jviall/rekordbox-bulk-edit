@@ -410,6 +410,19 @@ class TestCollectionQuery:
         stmt_str = str(query._get_full_statement()).lower()
         assert "where" not in stmt_str
 
+    def test_get_full_statement_orders_by_folder_then_id(self):
+        """Every statement orders by FolderPath then ID ascending. FolderPath
+        groups tracks by directory for readable search output; ID is the
+        tiebreaker that keeps results deterministic (snapshot/pipe contracts
+        depend on this)."""
+        unfiltered = str(CollectionQuery()._get_full_statement()).lower()
+        filtered = str(CollectionQuery().by_title("A")._get_full_statement()).lower()
+        for stmt_str in (unfiltered, filtered):
+            assert "order by" in stmt_str
+            assert '"djmdcontent"."folderpath" asc' in stmt_str
+            assert '"djmdcontent"."id" asc' in stmt_str
+            assert stmt_str.index('"folderpath"') < stmt_str.rindex('"id" asc')
+
     def test_get_full_statement_or_logic(self):
         """Multiple conditions with default OR logic produces OR in the WHERE clause."""
         query = CollectionQuery().by_title("A").by_title("B")
