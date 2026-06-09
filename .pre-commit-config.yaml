@@ -7,7 +7,9 @@ repos:
     rev: v6.0.0
     hooks:
     -   id: trailing-whitespace
+        exclude: '^tests/e2e/__snapshots__/'
     -   id: end-of-file-fixer
+        exclude: '^tests/e2e/__snapshots__/'
     -   id: check-yaml
     -   id: check-added-large-files
         args: [--maxkb=1024]
