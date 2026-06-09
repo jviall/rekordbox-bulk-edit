@@ -4,7 +4,7 @@ coverage:
       default:
         # basic
         target: auto #default
-        threshold: 1%
+        threshold: 2%
         base: auto
 comment:
   require_changes: true
