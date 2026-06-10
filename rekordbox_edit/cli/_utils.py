@@ -115,8 +115,8 @@ def with_database(*, writes: bool = False):
         def wrapper(**kwargs):
             if writes and not _rekordbox_running_confirm(kwargs.get("print_opt")):
                 return
-            database_path: str | None = kwargs.pop("database_path", None)
-            db = Rekordbox6Database(path=database_path)  # ty: ignore[invalid-argument-type]
+            kwargs.pop("database_path", None)
+            db = Rekordbox6Database()
             try:
                 return func(db=db, **kwargs)
             finally:
