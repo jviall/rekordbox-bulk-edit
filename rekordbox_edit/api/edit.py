@@ -6,7 +6,7 @@ from pyrekordbox import Rekordbox6Database
 
 from rekordbox_edit.api._utils import _order_tracks_by_op
 from rekordbox_edit.models import (
-    EditArgs,
+    EditRequest,
     EditOp,
     EditResponse,
     EditResult,
@@ -33,7 +33,7 @@ def _compute_new_value(
     return replace_value
 
 
-def _classify_edit(content, args: EditArgs) -> EditOp | SkippedTrack:
+def _classify_edit(content, args: EditRequest) -> EditOp | SkippedTrack:
     """Return EditOp if this track should be edited, or SkippedTrack with
     reason if not."""
     col_name = FIELD_COLUMNS[args.field]
@@ -50,7 +50,7 @@ def _classify_edit(content, args: EditArgs) -> EditOp | SkippedTrack:
 
 def edit(
     db: Rekordbox6Database,
-    args: EditArgs,
+    args: EditRequest,
     *,
     dry_run: bool = False,
 ) -> EditResponse:

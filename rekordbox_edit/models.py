@@ -4,7 +4,7 @@ Three layers:
 
 - **Filter base** (`FilterArgs`) declares track-selection criteria shared by all
   commands.
-- **Command args** (`SearchArgs`, `EditArgs`, `ConvertArgs`) extend `FilterArgs`
+- **Command args** (`SearchRequest`, `EditRequest`, `ConvertRequest`) extend `FilterArgs`
   with command-specific fields.
 - **Domain types** (`Track`, `EditOp`, `ConvertOp`, `SkippedTrack`) and
   **response envelopes** (`SearchResponse`, `EditResponse`, `ConvertResponse`)
@@ -60,11 +60,11 @@ class FilterArgs(BaseModel):
 # ── Command args ──────────────────────────────────────────────────────────
 
 
-class SearchArgs(FilterArgs):
+class SearchRequest(FilterArgs):
     """Inputs for search(): the shared track filters, with no search-specific fields."""
 
 
-class EditArgs(FilterArgs):
+class EditRequest(FilterArgs):
     """Inputs for edit(): the shared track filters plus the field to change and its new value."""
 
     field: str
@@ -73,7 +73,7 @@ class EditArgs(FilterArgs):
     multi: bool = False
 
 
-class ConvertArgs(FilterArgs):
+class ConvertRequest(FilterArgs):
     """Inputs for convert(): the shared track filters plus output format and original-file handling."""
 
     format_out: str = "aiff"

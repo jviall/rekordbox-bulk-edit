@@ -15,7 +15,7 @@ from rekordbox_edit.api.convert import (
     convert,
 )
 from rekordbox_edit.models import (
-    ConvertArgs,
+    ConvertRequest,
     ConvertOp,
     ConvertResponse,
     SkippedTrack,
@@ -31,7 +31,7 @@ class TestClassifyConvert:
         )
         content = make_djmd_content_item(ID="1", FileType=1)  # already AIFF
 
-        result = _classify_convert(content, ConvertArgs(format_out="aiff"))
+        result = _classify_convert(content, ConvertRequest(format_out="aiff"))
 
         assert isinstance(result, SkippedTrack)
         assert result.reason == "already_target_format"
@@ -43,7 +43,7 @@ class TestClassifyConvert:
         )
         content = make_djmd_content_item(ID="2", FileType=5)  # MP3
 
-        result = _classify_convert(content, ConvertArgs(format_out="aiff"))
+        result = _classify_convert(content, ConvertRequest(format_out="aiff"))
 
         assert isinstance(result, SkippedTrack)
         assert result.reason == "already_target_format"
@@ -61,7 +61,7 @@ class TestClassifyConvert:
         content = make_djmd_content_item(ID="3", FileType=11)  # WAV
 
         result = _classify_convert(
-            content, ConvertArgs(format_out="aiff", overwrite=False)
+            content, ConvertRequest(format_out="aiff", overwrite=False)
         )
 
         assert isinstance(result, SkippedTrack)
@@ -80,7 +80,7 @@ class TestClassifyConvert:
         content = make_djmd_content_item(ID="3", FileType=11, FolderPath="/in.wav")
 
         result = _classify_convert(
-            content, ConvertArgs(format_out="aiff", overwrite=True)
+            content, ConvertRequest(format_out="aiff", overwrite=True)
         )
 
         assert isinstance(result, ConvertOp)
@@ -101,7 +101,7 @@ class TestClassifyConvert:
             ID="4", FileType=11, FolderPath="/music/song.wav"
         )
 
-        result = _classify_convert(content, ConvertArgs(format_out="aiff"))
+        result = _classify_convert(content, ConvertRequest(format_out="aiff"))
 
         assert isinstance(result, ConvertOp)
         assert result.id == "4"
@@ -143,7 +143,7 @@ class TestConvertDryRun:
         content = make_djmd_content_item(ID="1", FileType=11, FolderPath="/in.wav")
         _seed_filter(mock_gfc, content)
 
-        response = convert(mock_db, ConvertArgs(format_out="aiff"), dry_run=True)
+        response = convert(mock_db, ConvertRequest(format_out="aiff"), dry_run=True)
 
         assert isinstance(response, ConvertResponse)
         assert response.result.format_out == "aiff"
@@ -169,7 +169,7 @@ class TestConvertDryRun:
         content = make_djmd_content_item(ID="1", FileType=1)  # already AIFF
         _seed_filter(mock_gfc, content)
 
-        response = convert(mock_db, ConvertArgs(format_out="aiff"), dry_run=True)
+        response = convert(mock_db, ConvertRequest(format_out="aiff"), dry_run=True)
 
         assert response.result.converted == []
         assert response.tracks == []
@@ -181,7 +181,7 @@ class TestConvertRealRun:
     @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=False)
     def test_no_ffmpeg_raises_immediately(self, _, mock_db):
         with pytest.raises(RuntimeError, match="FFmpeg"):
-            convert(mock_db, ConvertArgs(format_out="aiff"))
+            convert(mock_db, ConvertRequest(format_out="aiff"))
 
     @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=True)
     @patch("rekordbox_edit.api.convert.get_filtered_content")
@@ -190,7 +190,7 @@ class TestConvertRealRun:
     ):
         _seed_filter(mock_gfc)
 
-        response = convert(mock_db, ConvertArgs(format_out="aiff"))
+        response = convert(mock_db, ConvertRequest(format_out="aiff"))
 
         assert response.result.converted == []
         assert response.tracks == []
@@ -224,7 +224,7 @@ class TestConvertRealRun:
         _seed_db(mock_db, content)  # post-commit re-query returns the same row
 
         response = convert(
-            mock_db, ConvertArgs(format_out="aiff", delete=False, overwrite=True)
+            mock_db, ConvertRequest(format_out="aiff", delete=False, overwrite=True)
         )
 
         mock_lossless.assert_called_once_with("/in.wav", "/out.aif", OutputFormats.AIFF)
@@ -264,7 +264,7 @@ class TestConvertRealRun:
         _seed_db(mock_db, content)
 
         response = convert(
-            mock_db, ConvertArgs(format_out="aiff", delete=True, overwrite=True)
+            mock_db, ConvertRequest(format_out="aiff", delete=True, overwrite=True)
         )
 
         mock_remove.assert_called_once_with("/in.wav")
@@ -297,7 +297,7 @@ class TestConvertRealRun:
         _seed_filter(mock_gfc, content)
 
         with pytest.raises(RuntimeError, match="Conversion failed"):
-            convert(mock_db, ConvertArgs(format_out="aiff", overwrite=True))
+            convert(mock_db, ConvertRequest(format_out="aiff", overwrite=True))
 
         mock_rollback.assert_called_once()
 
@@ -336,7 +336,7 @@ class TestConvertRealRun:
 
         with pytest.raises(KeyboardInterrupt):
             convert(
-                mock_db, ConvertArgs(format_out="aiff", delete=True, overwrite=True)
+                mock_db, ConvertRequest(format_out="aiff", delete=True, overwrite=True)
             )
 
         mock_db.session.commit.assert_called_once()
@@ -380,7 +380,7 @@ class TestConvertRealRun:
         _seed_db(mock_db, contents[2], contents[0], contents[1])
 
         response = convert(
-            mock_db, ConvertArgs(format_out="aiff", delete=False, overwrite=True)
+            mock_db, ConvertRequest(format_out="aiff", delete=False, overwrite=True)
         )
 
         assert [op.id for op in response.result.converted] == ["A", "B", "C"]
@@ -415,7 +415,7 @@ class TestConvertRealRun:
         mock_db.session.execute.side_effect = RuntimeError("post-commit query failed")
 
         response = convert(
-            mock_db, ConvertArgs(format_out="aiff", delete=False, overwrite=True)
+            mock_db, ConvertRequest(format_out="aiff", delete=False, overwrite=True)
         )
 
         # Commit happened
@@ -450,7 +450,7 @@ class TestConvertRealRun:
         _seed_filter(mock_gfc, content)
 
         # Default overwrite=False with output path existing -> classifier should skip.
-        response = convert(mock_db, ConvertArgs(format_out="aiff"))
+        response = convert(mock_db, ConvertRequest(format_out="aiff"))
 
         assert response.result.converted == []
         assert len(response.result.skipped) == 1
@@ -482,7 +482,7 @@ class TestConvertRealRun:
         _seed_filter(mock_gfc, content)
 
         with pytest.raises(RuntimeError, match="Source not found"):
-            convert(mock_db, ConvertArgs(format_out="aiff", overwrite=True))
+            convert(mock_db, ConvertRequest(format_out="aiff", overwrite=True))
         mock_rollback.assert_called_once()
 
     @patch("rekordbox_edit.api.convert._rollback_and_cleanup")
@@ -517,7 +517,7 @@ class TestConvertRealRun:
         _seed_filter(mock_gfc, content)
 
         with pytest.raises(RuntimeError, match="DB error"):
-            convert(mock_db, ConvertArgs(format_out="aiff", overwrite=True))
+            convert(mock_db, ConvertRequest(format_out="aiff", overwrite=True))
         mock_rollback.assert_called_once()
 
     @patch("rekordbox_edit.api.convert._update_database_record")
@@ -547,7 +547,7 @@ class TestConvertRealRun:
         _seed_filter(mock_gfc, content)
         _seed_db(mock_db, content)
 
-        convert(mock_db, ConvertArgs(format_out="mp3", overwrite=True))
+        convert(mock_db, ConvertRequest(format_out="mp3", overwrite=True))
 
         mock_mp3.assert_called_once_with("/in.wav", "/out.mp3")
 
@@ -581,7 +581,7 @@ class TestConvertRealRun:
         _seed_db(mock_db, content)
 
         response = convert(
-            mock_db, ConvertArgs(format_out="aiff", delete=False, overwrite=True)
+            mock_db, ConvertRequest(format_out="aiff", delete=False, overwrite=True)
         )
 
         mock_remove.assert_not_called()

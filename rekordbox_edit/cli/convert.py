@@ -26,7 +26,7 @@ from rekordbox_edit.cli._utils import (
 )
 from rekordbox_edit.display import PrintableField, print_track_info
 from rekordbox_edit.logger import get_debug_file_path, set_level
-from rekordbox_edit.models import ConvertArgs
+from rekordbox_edit.models import ConvertRequest
 from rekordbox_edit.utils import UserQuit, confirm
 
 logger = logging.getLogger(__name__)
@@ -56,7 +56,7 @@ def convert_command(db, **kwargs):
     dry_run = kwargs.pop("dry_run", False)
     yes = kwargs.pop("yes", False)
     interactive = kwargs.pop("interactive", False)
-    args = _build_args(ConvertArgs, kwargs)
+    args = _build_args(ConvertRequest, kwargs)
     set_level(print_opt)
     piped_stdin = _handle_stdin(args)
     _validate_scripting_preconditions(

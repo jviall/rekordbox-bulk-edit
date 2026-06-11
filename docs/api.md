@@ -5,10 +5,10 @@ Everything the CLI does is available from Python. The public surface is the thre
 ```python
 from pyrekordbox import Rekordbox6Database
 from rekordbox_edit.api import search
-from rekordbox_edit.models import SearchArgs
+from rekordbox_edit.models import SearchRequest
 
 db = Rekordbox6Database()
-response = search(db, SearchArgs(artist=["Daft Punk"], format=["flac"], match_all=True))
+response = search(db, SearchRequest(artist=["Daft Punk"], format=["flac"], match_all=True))
 for track in response.tracks:
     print(track.ID, track.Title)
 ```

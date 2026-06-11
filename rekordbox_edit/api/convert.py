@@ -14,7 +14,7 @@ from sqlalchemy import select
 
 from rekordbox_edit.api._utils import _order_tracks_by_op
 from rekordbox_edit.models import (
-    ConvertArgs,
+    ConvertRequest,
     ConvertOp,
     ConvertResponse,
     ConvertResult,
@@ -209,7 +209,7 @@ def _get_output_path(content, output_format) -> Tuple[str, str, str]:
 # ── Classifier ────────────────────────────────────────────────────────────
 
 
-def _classify_convert(content, args: ConvertArgs) -> ConvertOp | SkippedTrack:
+def _classify_convert(content, args: ConvertRequest) -> ConvertOp | SkippedTrack:
     """Return ConvertOp if this track should be converted, or SkippedTrack with
     reason if not."""
     target = get_file_type_for_format(args.format_out)
@@ -239,7 +239,7 @@ def _classify_convert(content, args: ConvertArgs) -> ConvertOp | SkippedTrack:
 
 def convert(
     db: Rekordbox6Database,
-    args: ConvertArgs,
+    args: ConvertRequest,
     *,
     dry_run: bool = False,
 ) -> ConvertResponse:
