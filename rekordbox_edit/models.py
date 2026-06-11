@@ -25,7 +25,6 @@ from typing import Literal, TypeAlias
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-
 # ── Filter base ───────────────────────────────────────────────────────────
 
 
@@ -62,16 +61,11 @@ class FilterArgs(BaseModel):
 
 
 class SearchArgs(FilterArgs):
-    """Inputs for search().
-
-    Currently equivalent to FilterArgs. Kept as a distinct type so the public
-    signature reads `search(db, SearchArgs)` and so search-specific fields
-    can be added later without changing the call surface.
-    """
+    """Inputs for search(): the shared track filters, with no search-specific fields."""
 
 
 class EditArgs(FilterArgs):
-    """Inputs for edit()."""
+    """Inputs for edit(): the shared track filters plus the field to change and its new value."""
 
     field: str
     replace_value: str
@@ -80,14 +74,13 @@ class EditArgs(FilterArgs):
 
 
 class ConvertArgs(FilterArgs):
-    """Inputs for convert().
-
-    `delete` is tri-state: None defers to a per-format default in convert()
-    (True for lossless, False for MP3).
-    """
+    """Inputs for convert(): the shared track filters plus output format and original-file handling."""
 
     format_out: str = "aiff"
     delete: bool | None = None
+    """Whether to delete the original files after conversion: True deletes them,
+    False keeps them, and None applies the per-format default (delete for
+    lossless output, keep for MP3)."""
     overwrite: bool = False
 
 
@@ -95,9 +88,10 @@ class ConvertArgs(FilterArgs):
 
 
 class Track(BaseModel):
-    """A Rekordbox track. Field names mirror DjmdContent column names.
-
-    `extra="allow"` lets undeclared columns ride along as untyped attributes.
+    """A Rekordbox track.
+    Field names mirror the [DjmdContent](https://pyrekordbox.readthedocs.io/en/latest/formats/db6.html#djmdcontent) table's column names,
+    except where additional derived fields have been added for convenience. All database columns are silently included in each object
+    for convenience, but what's defined here is just what RBE cares about.
     """
 
     model_config = ConfigDict(extra="allow")

@@ -29,10 +29,14 @@ plugins:
       handlers:
         python:
           options:
-            filters: ["!^_"]
+            filters: ["!^_", "!^model_config$"]
             show_root_heading: true
             show_source: false
             members_order: source
+            show_if_no_docstring: true
+            show_signature_annotations: true
+            separate_signature: true
+            docstring_section_style: table
 
 markdown_extensions:
   - admonition

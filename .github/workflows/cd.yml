@@ -10,6 +10,7 @@ on:
       - ".agent-style"
       - "logos/**"
       - "**/*.md"
+      - "mkdocs.yml"
       - ".pre-commit-config.yaml"
       - ".readthedocs.yaml"
       - "renovate.json5"
