@@ -6,12 +6,14 @@
 [![Platforms](https://img.shields.io/badge/platform-win%20%7C%20osx-blue?style=flat)](https://pypi.org/project/rekordbox-edit/)
 [![License](https://img.shields.io/pypi/l/rekordbox-edit?color=lightgrey)](https://github.com/jviall/rekordbox-edit/blob/main/LICENSE)
 
-A command-line tool for bulk operations on your Rekordbox library. Convert audio formats, search tracks, and update your database while preserving all your cues, analysis, and metadata.
+A command-line tool for bulk operations on your Rekordbox library. Search tracks, edit metadata, and convert audio formats — updating your database while preserving all your cues, analysis, and metadata.
 
 > [!CAUTION]
 > This tool can modify your Rekordbox database and audio files. Always back up your data first.
 > No warranty is provided--you assume all risk and liability of data loss in using this.
-> See [Safety & Best Practices](#safety--best-practices)
+> See [Safety and Best Practices](#safety-and-best-practices)
+
+**Full documentation: [rekordbox-edit.readthedocs.io](https://rekordbox-edit.readthedocs.io/)**
 
 ## Installation
 
@@ -29,8 +31,15 @@ pip install rekordbox-edit
 Search your library:
 
 ```bash
-rekordbox-edit search --artist "Daft Punk" --format flac
+rbe search --artist "Daft Punk" --format flac
 rbe search --playlist "House Favorites"
+```
+
+Edit track metadata:
+
+```bash
+# Fix a typo across every matching title (previews and confirms first)
+rbe edit --title "Teh" Title --match "Teh" --replace "The" --multi
 ```
 
 Convert audio files:
@@ -41,175 +50,11 @@ rbe convert --artist "Daft Punk" --dry-run
 
 # Convert all FLAC or WAV files to AIFF (default output format)
 rbe convert --format flac --format wav --yes
-
-# Convert all AIFF files in the playlist named 'ConvertMe' to MP3 without asking for confirmation
-rbe convert --format AIFF --exact-playlist "ConvertMe" --match-all --out-format mp3 --yes
 ```
 
-## Commands
+See the [documentation](https://rekordbox-edit.readthedocs.io/) for every command, the full filtering language, and scripting recipes.
 
-### search
-
-Find and display information on tracks in your Rekordbox database.
-
-```bash
-rbe search [OPTIONS]
-```
-
-**Examples:**
-
-```bash
-# Show all FLAC tracks by artist
-rbe search --artist "Aphex Twin" --format flac
-
-# Get all the track IDs in a playlist
-rbe search --playlist "Techno" --print ids
-
-# Find tracks matching ALL filters (AND logic)
-rbe search --artist "Burial" --album "Untrue" --match-all
-```
-
-### convert
-
-Convert audio files between formats and update the Rekordbox database. Your cues, analysis, beatgrids, and all metadata are preserved.
-
-```bash
-rbe convert [OPTIONS]
-```
-
-#### Supported formats
-
-- Input: FLAC, AIFF, WAV
-- Output: AIFF, FLAC, WAV, ALAC or MP3 (320kbps CBR)
-
-#### options
-
-- `--format-out [aiff|flac|wav|alac|mp3]`: Output format (default: aiff)
-- `--dry-run`: Preview changes without converting.
-- `--yes, -y`: Skip confirmation prompt
-- `--interactive, -i`: Confirm each file individually
-- `--delete`: Delete original files after conversion (default for lossless output)
-- `--keep`: Keep original files after conversion (default for MP3 output)
-- `--overwrite`: Replace existing output files instead of skipping
-
-By default the original files will be kept when performing a lossy conversion to mp3, and deleted when performing a lossless conversion (since you can always convert back).
-You can override this behavior with `--delete` or `--keep`.
-
-**Examples:**
-
-```bash
-# Preview conversion
-rbe convert --format-out aiff --format flac --dry-run
-
-# Convert and skip confirmation
-rbe convert --format-out wav --artist "Burial" --yes
-
-# Convert to MP3 but delete originals
-rbe convert --format-out mp3 --playlist "Export" --yes --delete
-
-# Keep originals when converting to AIFF
-rbe convert --format-out aiff --format flac --yes --keep
-
-# Get just the IDs of files that would be converted
-rbe convert --format-out aiff --format flac --print ids --dry-run
-
-# Convert and get the IDs of converted tracks
-rbe convert --format-out aiff --format flac --print ids --yes
-```
-
-## Filters & Options
-
-Both commands support all filters. Multiple values create an OR filter unless `--match-all` is used.
-
-**Track filters:**
-
-- `--track-id ID`: Filter by database track ID
-- `--title TEXT`: Track title contains TEXT
-- `--exact-title TEXT`: Track title exactly matches TEXT
-- `--artist TEXT`: Artist name contains TEXT
-- `--exact-artist TEXT`: Artist name exactly matches TEXT
-- `--album TEXT`: Album name contains TEXT
-- `--exact-album TEXT`: Album name exactly matches TEXT
-- `--playlist TEXT`: Playlist name contains TEXT
-- `--exact-playlist TEXT`: Playlist name exactly matches TEXT
-- `--format [mp3|flac|aiff|wav|m4a]`: File format matches
-- `--path TEXT`: File path contains TEXT (matched as a substring against the folder path, filename, or both)
-- `--exact-path TEXT`: File path exactly matches TEXT (resolved to an absolute path before matching)
-- `--first N`: Return only the first N results
-- `--last N`: Return only the last N results
-- `--match-all`: Use AND logic (all filters must match)
-- `ids` args: Specifying any other input to a command that is not a defined option is interpreted as one or more Track IDs. This is useful for scripting.
-
-**Examples:**
-
-```bash
-# Get tracks by multiple artists
-rbe search --artist "Daft Punk" --artist "Justice"
-
-# Get tracks matching artist AND format
-rbe search --artist "Aphex Twin" --format flac --match-all
-
-# Get all the songs in this playlist
-rbe search --exact-playlist "Main Room 2024"
-
-# Get all the songs in all my "house" or "disco" playlists
-rbe search --playlist "house" --playlist "disco"
-
-# Find all the songs in all my "house" or "disco" playlists
-rbe search --playlist "house" --playlist "disco"
-
-# Find all the songs in my library that aren't in any playlist
-rbe search --playlist ""
-
-# Find tracks whose path contains a folder or filename substring
-rbe search --path "Favorites/" --path "track.wav"
-rbe search --path "Music/Artist/song.mp3"
-
-# Find a track at an exact location
-rbe search --exact-path "/Users/djmustard/Music/banger.mp3"
-rbe search --exact-path "../Artist/track.mp3"
-```
-
-## Output
-
-All commands support all levels of output. These generally control how much information is printed out to the screen, and also offer some options useful for scripting.
-
-Output levels are configured with the `--print` option:
-
-- `--print [ids|silent|info|debug]`: Control output format
-
-> [!NOTE]
-> When specifying `--print silent` or `--print ids`, you must also explicitly provide either the `--yes` or the `--dry-run` flag, since any prompts would contradict the spirit of those print options.
-
-### Scripting
-
-The `--print ids` option is especially interesting when used in conjunction with the `ids` arguments. By specifying `--print ids` you can use the output of one `rbe` command as the input to a second, e.g.:
-
-```bash
-# Convert all of the items found by the initial search command
-rbe search --artist "Lauren Hill" --print ids | rbe convert
-```
-
-This example is a bit contrived, but this method of piping can be used to combine OR and AND logic that couldn't otherwise be expressed in a single command:
-
-**AND-narrowing** — pipe a broad OR result into a second command with `--match-all` to intersect:
-
-```bash
-# (Daft Punk OR Justice) AND flac
-rbe search --artist "Daft Punk" --artist "Justice" --print ids \
-  | rbe search --format flac --match-all
-```
-
-**OR between AND-groups** — merge results from two commands using a subshell:
-
-```bash
-# (Daft Punk AND flac) OR (Justice AND aiff)
-{ rbe search --artist "Daft Punk" --format flac --match-all --print ids; \
-  rbe search --artist "Justice" --format aiff --match-all --print ids; } \
-  | rbe convert --format-out mp3 --dry-run
-```
-
-## Safety & Best Practices
+## Safety and Best Practices
 
 **Before using this tool:**
 
@@ -241,4 +86,4 @@ I built this tool to help correct my own bad habits and missteps in managing and
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, testing, and contribution guidelines.
+See [CONTRIBUTING.md](https://github.com/jviall/rekordbox-edit/blob/main/CONTRIBUTING.md) for development setup, testing, and contribution guidelines.
