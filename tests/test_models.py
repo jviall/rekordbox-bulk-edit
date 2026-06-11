@@ -45,6 +45,18 @@ class TestFilterArgs:
         with pytest.raises(ValidationError):
             FilterArgs.model_validate({"unknown": "x"})
 
+    def test_first_defaults_to_none(self):
+        assert FilterArgs().first is None
+
+    def test_first_accepts_positive_int(self):
+        assert FilterArgs(first=5).first == 5
+
+    def test_first_rejects_zero_and_negative(self):
+        with pytest.raises(ValidationError):
+            FilterArgs(first=0)
+        with pytest.raises(ValidationError):
+            FilterArgs(first=-3)
+
 
 class TestSearchArgs:
     def test_is_filter_args(self):

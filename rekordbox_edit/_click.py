@@ -96,6 +96,12 @@ global_click_filters = [
         help="Find tracks of this format",
     ),
     click.option(
+        "--first",
+        type=click.IntRange(min=1),
+        default=None,
+        help="Return only the first N results",
+    ),
+    click.option(
         "--match-all",
         type=bool,
         is_flag=True,

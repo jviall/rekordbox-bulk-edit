@@ -23,7 +23,7 @@ Envelope semantics:
 
 from typing import Literal, TypeAlias
 
-from pydantic import BaseModel, ConfigDict, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 # ── Filter base ───────────────────────────────────────────────────────────
@@ -47,6 +47,7 @@ class FilterArgs(BaseModel):
     path: list[str] = []
     exact_path: list[str] = []
     format: list[str] = []
+    first: int | None = Field(default=None, gt=0)
     match_all: bool = False
 
 
