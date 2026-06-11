@@ -49,3 +49,6 @@ Thumbs.db
 
 .claude
 docs/superpowers
+
+# MkDocs build output
+site/
