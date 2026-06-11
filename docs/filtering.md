@@ -71,7 +71,7 @@ All commands take `--print [silent|ids|info|debug|json]`:
 - `debug`: adds application state detail; debug logs for every run are also written to a log file (the path is shown in `--help`)
 - `silent`: no output
 - `ids`: print only the matching track IDs, space-separated — designed for piping
-- `json`: dump the full response envelope as JSON — a list of `Track` records plus a result summary (see the response models in the API Reference)
+- `json`: dump the full response envelope as JSON — a list of [`Track`][rekordbox_edit.models.Track] records plus a result summary (see the response models in the [API Reference](api.md))
 
 !!! note
 
