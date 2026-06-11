@@ -25,6 +25,7 @@ theme:
 
 plugins:
   - search
+  - open-in-new-tab
   - mkdocstrings:
       handlers:
         python:
@@ -47,6 +48,9 @@ markdown_extensions:
       base_path: ["."]
       check_paths: true
   - pymdownx.superfences
+
+extra_css:
+  - stylesheets/extra.css
 
 nav:
   - Getting Started: index.md
