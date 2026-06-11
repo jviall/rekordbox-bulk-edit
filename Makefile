@@ -1,4 +1,4 @@
-.PHONY: test test-e2e test-e2e-docker test-e2e-snapshot-update coverage lint format typecheck install-hooks run-hooks
+.PHONY: test test-e2e test-e2e-docker test-e2e-snapshot-update coverage lint format typecheck install-hooks run-hooks docs docs-build
 
 test:
 	uv run pytest tests
@@ -34,3 +34,9 @@ install-hooks:
 
 run-hooks:
 	uv run pre-commit run --all-files
+
+docs:
+	uv run --group docs mkdocs serve
+
+docs-build:
+	uv run --group docs mkdocs build --strict
