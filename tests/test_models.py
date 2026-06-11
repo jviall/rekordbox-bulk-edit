@@ -57,6 +57,22 @@ class TestFilterArgs:
         with pytest.raises(ValidationError):
             FilterArgs(first=-3)
 
+    def test_last_defaults_to_none(self):
+        assert FilterArgs().last is None
+
+    def test_last_accepts_positive_int(self):
+        assert FilterArgs(last=3).last == 3
+
+    def test_last_rejects_zero_and_negative(self):
+        with pytest.raises(ValidationError):
+            FilterArgs(last=0)
+        with pytest.raises(ValidationError):
+            FilterArgs(last=-1)
+
+    def test_first_and_last_mutually_exclusive(self):
+        with pytest.raises(ValidationError, match="mutually exclusive"):
+            FilterArgs(first=2, last=3)
+
 
 class TestSearchArgs:
     def test_is_filter_args(self):

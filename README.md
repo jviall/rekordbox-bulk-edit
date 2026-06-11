@@ -136,6 +136,7 @@ Both commands support all filters. Multiple values create an OR filter unless `-
 - `--path TEXT`: File path contains TEXT (matched as a substring against the folder path, filename, or both)
 - `--exact-path TEXT`: File path exactly matches TEXT (resolved to an absolute path before matching)
 - `--first N`: Return only the first N results
+- `--last N`: Return only the last N results
 - `--match-all`: Use AND logic (all filters must match)
 - `ids` args: Specifying any other input to a command that is not a defined option is interpreted as one or more Track IDs. This is useful for scripting.
 

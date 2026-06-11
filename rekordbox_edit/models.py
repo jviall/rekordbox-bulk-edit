@@ -48,7 +48,14 @@ class FilterArgs(BaseModel):
     exact_path: list[str] = []
     format: list[str] = []
     first: int | None = Field(default=None, gt=0)
+    last: int | None = Field(default=None, gt=0)
     match_all: bool = False
+
+    @model_validator(mode="after")
+    def _check_first_last_exclusive(self) -> "FilterArgs":
+        if self.first is not None and self.last is not None:
+            raise ValueError("'first' and 'last' are mutually exclusive")
+        return self
 
 
 # ── Command args ──────────────────────────────────────────────────────────
