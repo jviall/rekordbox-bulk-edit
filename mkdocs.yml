@@ -46,3 +46,4 @@ markdown_extensions:
 
 nav:
   - Getting Started: index.md
+  - Filtering: filtering.md
