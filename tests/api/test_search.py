@@ -1,7 +1,7 @@
 from unittest.mock import Mock, patch
 
 from rekordbox_edit.api.search import search
-from rekordbox_edit.models import SearchArgs, SearchResponse, Track
+from rekordbox_edit.models import SearchRequest, SearchResponse, Track
 
 
 class TestSearch:
@@ -12,7 +12,7 @@ class TestSearch:
         mock_result.scalars.return_value.all.return_value = [content]
         mock_gfc.return_value = mock_result
 
-        response = search(mock_db, SearchArgs())
+        response = search(mock_db, SearchRequest())
 
         assert isinstance(response, SearchResponse)
         assert len(response.tracks) == 1
@@ -25,7 +25,7 @@ class TestSearch:
         mock_result.scalars.return_value.all.return_value = []
         mock_gfc.return_value = mock_result
 
-        response = search(mock_db, SearchArgs())
+        response = search(mock_db, SearchRequest())
 
         assert response.tracks == []
 
@@ -35,7 +35,7 @@ class TestSearch:
         mock_result.scalars.return_value.all.return_value = []
         mock_gfc.return_value = mock_result
 
-        args = SearchArgs(artist=["Daft Punk"], match_all=True)
+        args = SearchRequest(artist=["Daft Punk"], match_all=True)
         search(mock_db, args)
 
         mock_gfc.assert_called_once_with(mock_db, args)

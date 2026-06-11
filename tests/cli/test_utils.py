@@ -12,15 +12,15 @@ from rekordbox_edit.cli._utils import (
     _validate_scripting_preconditions,
 )
 from rekordbox_edit.models import (
-    ConvertArgs,
+    ConvertRequest,
     ConvertOp,
     ConvertResponse,
     ConvertResult,
-    EditArgs,
+    EditRequest,
     EditOp,
     EditResponse,
     EditResult,
-    SearchArgs,
+    SearchRequest,
     SearchResponse,
     Track,
 )
@@ -88,7 +88,7 @@ class TestValidateScriptingPreconditions:
 
 class TestNarrowToTrackIds:
     def test_clears_other_filter_criteria(self):
-        args = ConvertArgs(
+        args = ConvertRequest(
             artist=["X"],
             format=["flac"],
             format_out="aiff",
@@ -107,7 +107,7 @@ class TestNarrowToTrackIds:
         assert narrowed.delete is True
 
     def test_works_for_edit_args(self):
-        args = EditArgs(
+        args = EditRequest(
             artist=["X"],
             field="Title",
             replace_value="N",
@@ -126,7 +126,7 @@ class TestNarrowToTrackIds:
         assert narrowed.multi is True
 
     def test_clears_first(self):
-        args = SearchArgs(first=2)
+        args = SearchRequest(first=2)
 
         narrowed = _narrow_to_track_ids(args, ["a", "b", "c"])
 
@@ -134,7 +134,7 @@ class TestNarrowToTrackIds:
         assert narrowed.track_ids == ["a", "b", "c"]
 
     def test_clears_last(self):
-        args = SearchArgs(last=2)
+        args = SearchRequest(last=2)
 
         narrowed = _narrow_to_track_ids(args, ["a"])
 

@@ -21,7 +21,7 @@ from rekordbox_edit.cli._utils import (
 )
 from rekordbox_edit.display import print_track_info
 from rekordbox_edit.logger import get_debug_file_path, set_level
-from rekordbox_edit.models import SearchArgs
+from rekordbox_edit.models import SearchRequest
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +34,7 @@ logger = logging.getLogger(__name__)
 def search_command(db, **kwargs):
     """Search the RekordBox database."""
     print_opt = kwargs.pop("print_opt", None)
-    args = _build_args(SearchArgs, kwargs)
+    args = _build_args(SearchRequest, kwargs)
     set_level(print_opt)
     _handle_stdin(args)
 

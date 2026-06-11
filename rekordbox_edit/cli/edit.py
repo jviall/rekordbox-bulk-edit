@@ -26,7 +26,7 @@ from rekordbox_edit.cli._utils import (
 )
 from rekordbox_edit.display import PrintableField, print_track_info
 from rekordbox_edit.logger import get_debug_file_path, set_level
-from rekordbox_edit.models import EditArgs
+from rekordbox_edit.models import EditRequest
 from rekordbox_edit.utils import UserQuit, confirm
 
 logger = logging.getLogger(__name__)
@@ -52,11 +52,11 @@ logger = logging.getLogger(__name__)
 def edit_command(db, **kwargs):
     """Edit a metadata field on tracks in the RekordBox database."""
     print_opt = kwargs.pop("print_opt", None)
-    # CLI-only flags pulled out of kwargs before constructing EditArgs.
+    # CLI-only flags pulled out of kwargs before constructing EditRequest.
     dry_run = kwargs.pop("dry_run", False)
     yes = kwargs.pop("yes", False)
     interactive = kwargs.pop("interactive", False)
-    args = _build_args(EditArgs, kwargs)
+    args = _build_args(EditRequest, kwargs)
     set_level(print_opt)
     piped_stdin = _handle_stdin(args)
 

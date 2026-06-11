@@ -4,16 +4,16 @@ import pytest
 from pydantic import ValidationError
 
 from rekordbox_edit.models import (
-    ConvertArgs,
+    ConvertRequest,
     ConvertOp,
     ConvertResponse,
     ConvertResult,
-    EditArgs,
+    EditRequest,
     EditOp,
     EditResponse,
     EditResult,
     FilterArgs,
-    SearchArgs,
+    SearchRequest,
     SearchResponse,
     SkippedTrack,
     Track,
@@ -74,16 +74,16 @@ class TestFilterArgs:
             FilterArgs(first=2, last=3)
 
 
-class TestSearchArgs:
+class TestSearchRequest:
     def test_is_filter_args(self):
-        args = SearchArgs(artist=["X"])
+        args = SearchRequest(artist=["X"])
         assert isinstance(args, FilterArgs)
         assert args.artist == ["X"]
 
 
-class TestEditArgs:
+class TestEditRequest:
     def test_has_filter_and_edit_fields(self):
-        args = EditArgs(field="Title", replace_value="New", artist=["X"])
+        args = EditRequest(field="Title", replace_value="New", artist=["X"])
         assert isinstance(args, FilterArgs)
         assert args.field == "Title"
         assert args.replace_value == "New"
@@ -91,9 +91,9 @@ class TestEditArgs:
         assert args.multi is False
 
 
-class TestConvertArgs:
+class TestConvertRequest:
     def test_has_filter_and_convert_fields(self):
-        args = ConvertArgs(format_out="mp3", overwrite=True, artist=["X"])
+        args = ConvertRequest(format_out="mp3", overwrite=True, artist=["X"])
         assert isinstance(args, FilterArgs)
         assert args.format_out == "mp3"
         assert args.overwrite is True
