@@ -47,3 +47,5 @@ markdown_extensions:
 nav:
   - Getting Started: index.md
   - Filtering: filtering.md
+  - Commands:
+      - search: commands/search.md
