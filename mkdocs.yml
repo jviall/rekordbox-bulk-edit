@@ -49,3 +49,4 @@ nav:
   - Filtering: filtering.md
   - Commands:
       - search: commands/search.md
+      - edit: commands/edit.md
