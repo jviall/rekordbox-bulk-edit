@@ -303,4 +303,7 @@ def get_filtered_content(
     if filters.match_all:
         query = query.match_all()
 
+    if filters.first is not None:
+        query = query.limit(filters.first)
+
     return query.execute(db)

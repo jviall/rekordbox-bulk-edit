@@ -70,6 +70,7 @@ def _narrow_to_track_ids(args, ids: list[str]):
             setattr(narrowed, field_name, [])
     narrowed.track_ids = list(ids)
     narrowed.match_all = False
+    narrowed.first = None
     return narrowed
 
 

@@ -594,6 +594,7 @@ def mock_query(mocker):
         "by_format",
         "match_all",
         "match_any",
+        "limit",
     ]:
         getattr(instance, method).return_value = instance
     mocker.patch("rekordbox_edit.query.CollectionQuery", return_value=instance)
@@ -714,6 +715,14 @@ class TestGetFilteredContent:
         mock_query.by_track_ids.assert_called_once_with(track_ids=["123"])
         mock_query.by_artist.assert_called_once_with("Justice")
         mock_query.match_all.assert_not_called()
+
+    def test_first(self, mock_db, mock_query):
+        get_filtered_content(mock_db, FilterArgs(first=5))
+        mock_query.limit.assert_called_once_with(5)
+
+    def test_no_first_skips_limit(self, mock_db, mock_query):
+        get_filtered_content(mock_db, FilterArgs())
+        mock_query.limit.assert_not_called()
 
     def test_no_session_raises(self, mock_db):
         """get_filtered_content raises RuntimeError when db has no session."""

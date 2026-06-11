@@ -20,6 +20,7 @@ from rekordbox_edit.models import (
     EditOp,
     EditResponse,
     EditResult,
+    SearchArgs,
     SearchResponse,
     Track,
 )
@@ -123,6 +124,14 @@ class TestNarrowToTrackIds:
         assert narrowed.replace_value == "N"
         assert narrowed.match_pattern == "O"
         assert narrowed.multi is True
+
+    def test_clears_first(self):
+        args = SearchArgs(first=2)
+
+        narrowed = _narrow_to_track_ids(args, ["a", "b", "c"])
+
+        assert narrowed.first is None
+        assert narrowed.track_ids == ["a", "b", "c"]
 
 
 class TestPrintResponseIds:

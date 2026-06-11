@@ -59,6 +59,30 @@ class TestSearchCommand:
         payload = json.loads(result.output)
         assert payload["tracks"][0]["ID"] == "A"
 
+    @patch("rekordbox_edit.cli.search.print_track_info")
+    @patch("rekordbox_edit.cli.search.search")
+    @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
+    def test_first_option_passed_to_args(
+        self, mock_db_class, mock_search, mock_print, make_track
+    ):
+        mock_db_class.return_value = Mock(session=Mock())
+        mock_search.return_value = _response(make_track(ID="A"))
+
+        result = CliRunner().invoke(search_command, ["--first", "5"])
+
+        assert result.exit_code == 0
+        args = mock_search.call_args.args[1]
+        assert args.first == 5
+
+    @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
+    def test_first_rejects_zero(self, mock_db_class):
+        mock_db_class.return_value = Mock(session=Mock())
+
+        result = CliRunner().invoke(search_command, ["--first", "0"])
+
+        assert result.exit_code != 0
+        assert "Invalid value" in result.output
+
     @patch("rekordbox_edit.cli.search.search")
     @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
     def test_print_silent_produces_no_output(

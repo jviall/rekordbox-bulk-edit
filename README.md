@@ -135,6 +135,7 @@ Both commands support all filters. Multiple values create an OR filter unless `-
 - `--format [mp3|flac|aiff|wav|m4a]`: File format matches
 - `--path TEXT`: File path contains TEXT (matched as a substring against the folder path, filename, or both)
 - `--exact-path TEXT`: File path exactly matches TEXT (resolved to an absolute path before matching)
+- `--first N`: Return only the first N results
 - `--match-all`: Use AND logic (all filters must match)
 - `ids` args: Specifying any other input to a command that is not a defined option is interpreted as one or more Track IDs. This is useful for scripting.
 
@@ -221,7 +222,7 @@ rbe search --artist "Daft Punk" --artist "Justice" --print ids \
 
    If you don't have a back up already it's a very worthwhile investment, even if you don't plan to use this tool! Find yourself a cheap external drive, you won't regret it.
 
-And generally limit the potential impact of a mistake by using filters to target a few tracks at a time e.g. `--artist "Crazy Frog" --limit 5` before targeting a larger set, and always run with `--dry-run` first.
+And generally limit the potential impact of a mistake by using filters to target a few tracks at a time e.g. `--artist "Crazy Frog" --first 5` before targeting a larger set, and always run with `--dry-run` first.
 
 ## AI Usage
 
