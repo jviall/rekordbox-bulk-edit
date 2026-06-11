@@ -74,6 +74,30 @@ class TestSearchCommand:
         args = mock_search.call_args.args[1]
         assert args.first == 5
 
+    @patch("rekordbox_edit.cli.search.print_track_info")
+    @patch("rekordbox_edit.cli.search.search")
+    @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
+    def test_last_option_passed_to_args(
+        self, mock_db_class, mock_search, mock_print, make_track
+    ):
+        mock_db_class.return_value = Mock(session=Mock())
+        mock_search.return_value = _response(make_track(ID="A"))
+
+        result = CliRunner().invoke(search_command, ["--last", "3"])
+
+        assert result.exit_code == 0
+        args = mock_search.call_args.args[1]
+        assert args.last == 3
+
+    @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
+    def test_first_and_last_together_is_usage_error(self, mock_db_class):
+        mock_db_class.return_value = Mock(session=Mock())
+
+        result = CliRunner().invoke(search_command, ["--first", "2", "--last", "3"])
+
+        assert result.exit_code == 2
+        assert "mutually exclusive" in result.output
+
     @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
     def test_first_rejects_zero(self, mock_db_class):
         mock_db_class.return_value = Mock(session=Mock())

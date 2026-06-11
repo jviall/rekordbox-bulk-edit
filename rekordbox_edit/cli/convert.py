@@ -16,6 +16,7 @@ from rekordbox_edit._click import (
 from rekordbox_edit.api.convert import convert
 from rekordbox_edit.cli._utils import (
     SCRIPTING_MODES,
+    _build_args,
     _handle_stdin,
     _narrow_to_track_ids,
     _print_response_ids,
@@ -55,7 +56,7 @@ def convert_command(db, **kwargs):
     dry_run = kwargs.pop("dry_run", False)
     yes = kwargs.pop("yes", False)
     interactive = kwargs.pop("interactive", False)
-    args = ConvertArgs(**kwargs)
+    args = _build_args(ConvertArgs, kwargs)
     set_level(print_opt)
     piped_stdin = _handle_stdin(args)
     _validate_scripting_preconditions(

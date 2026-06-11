@@ -404,6 +404,37 @@ class TestCollectionQuery:
         stmt_str = str(query._get_full_statement()).lower()
         assert "limit" in stmt_str
 
+    def test_last(self):
+        """last() sets _last_count and returns a new instance."""
+        query = CollectionQuery()
+        new_query = query.last(10)
+
+        assert new_query is not query
+        assert new_query._last_count == 10
+        assert query._last_count is None
+
+    def test_copy_preserves_last(self):
+        query = CollectionQuery().last(4)
+        assert query._copy()._last_count == 4
+
+    def test_last_in_sql(self):
+        """last() wraps the statement in a desc-ordered LIMIT subquery and
+        re-orders the outer select ascending, so the tail N rows come back in
+        canonical FolderPath/ID order."""
+        stmt_str = str(CollectionQuery().last(5)._get_full_statement()).lower()
+        assert "limit" in stmt_str
+        assert "desc" in stmt_str
+        # Outer select re-orders the subquery rows ascending.
+        assert stmt_str.rindex(" asc") > stmt_str.rindex("desc")
+
+    def test_last_keeps_conditions(self):
+        """Filter conditions apply inside the tail subquery."""
+        stmt_str = str(
+            CollectionQuery().by_title("A").last(5)._get_full_statement()
+        ).lower()
+        assert "where" in stmt_str
+        assert "desc" in stmt_str
+
     def test_get_full_statement_no_conditions(self):
         """No conditions produces a statement with no WHERE clause."""
         query = CollectionQuery()
@@ -595,6 +626,7 @@ def mock_query(mocker):
         "match_all",
         "match_any",
         "limit",
+        "last",
     ]:
         getattr(instance, method).return_value = instance
     mocker.patch("rekordbox_edit.query.CollectionQuery", return_value=instance)
@@ -723,6 +755,14 @@ class TestGetFilteredContent:
     def test_no_first_skips_limit(self, mock_db, mock_query):
         get_filtered_content(mock_db, FilterArgs())
         mock_query.limit.assert_not_called()
+
+    def test_last(self, mock_db, mock_query):
+        get_filtered_content(mock_db, FilterArgs(last=3))
+        mock_query.last.assert_called_once_with(3)
+
+    def test_no_last_skips_last(self, mock_db, mock_query):
+        get_filtered_content(mock_db, FilterArgs())
+        mock_query.last.assert_not_called()
 
     def test_no_session_raises(self, mock_db):
         """get_filtered_content raises RuntimeError when db has no session."""

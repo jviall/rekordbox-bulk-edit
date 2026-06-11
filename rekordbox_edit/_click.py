@@ -102,6 +102,12 @@ global_click_filters = [
         help="Return only the first N results",
     ),
     click.option(
+        "--last",
+        type=click.IntRange(min=1),
+        default=None,
+        help="Return only the last N results",
+    ),
+    click.option(
         "--match-all",
         type=bool,
         is_flag=True,

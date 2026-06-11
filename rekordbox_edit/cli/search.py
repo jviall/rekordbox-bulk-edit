@@ -13,6 +13,7 @@ from rekordbox_edit._click import (
 )
 from rekordbox_edit.api.search import search
 from rekordbox_edit.cli._utils import (
+    _build_args,
     _handle_stdin,
     _print_response_ids,
     _print_response_json,
@@ -33,7 +34,7 @@ logger = logging.getLogger(__name__)
 def search_command(db, **kwargs):
     """Search the RekordBox database."""
     print_opt = kwargs.pop("print_opt", None)
-    args = SearchArgs(**kwargs)
+    args = _build_args(SearchArgs, kwargs)
     set_level(print_opt)
     _handle_stdin(args)
 

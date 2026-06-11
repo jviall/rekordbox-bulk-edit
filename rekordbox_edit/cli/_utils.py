@@ -4,9 +4,10 @@ import functools
 import logging
 import sys
 from copy import copy
+from typing import TypeVar
 
 import click
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 from pyrekordbox import Rekordbox6Database
 from pyrekordbox.utils import get_rekordbox_pid
 
@@ -16,6 +17,16 @@ from rekordbox_edit.utils import UserQuit, confirm
 logger = logging.getLogger(__name__)
 
 SCRIPTING_MODES = (PrintChoice.IDS, PrintChoice.SILENT, PrintChoice.JSON)
+
+_ArgsT = TypeVar("_ArgsT", bound=BaseModel)
+
+
+def _build_args(model_cls: type[_ArgsT], kwargs: dict) -> _ArgsT:
+    """Construct the command's args model, surfacing validation failures as usage errors."""
+    try:
+        return model_cls(**kwargs)
+    except ValidationError as e:
+        raise click.UsageError("; ".join(err["msg"] for err in e.errors())) from e
 
 
 def _handle_stdin(args) -> bool:
@@ -71,6 +82,7 @@ def _narrow_to_track_ids(args, ids: list[str]):
     narrowed.track_ids = list(ids)
     narrowed.match_all = False
     narrowed.first = None
+    narrowed.last = None
     return narrowed
 
 

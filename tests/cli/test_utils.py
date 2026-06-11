@@ -133,6 +133,13 @@ class TestNarrowToTrackIds:
         assert narrowed.first is None
         assert narrowed.track_ids == ["a", "b", "c"]
 
+    def test_clears_last(self):
+        args = SearchArgs(last=2)
+
+        narrowed = _narrow_to_track_ids(args, ["a"])
+
+        assert narrowed.last is None
+
 
 class TestPrintResponseIds:
     def test_prints_space_separated_ids(self, capsys):

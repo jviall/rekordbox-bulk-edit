@@ -23,6 +23,7 @@ class CollectionQuery:
         self._stmt = select(DjmdContent)
         self._conditions: list[ColumnElement[bool]] = []
         self._limit_count = None
+        self._last_count = None
         self._match_all = match_all
 
     def _copy(self) -> "CollectionQuery":
@@ -31,6 +32,7 @@ class CollectionQuery:
         new_inst._stmt = self._stmt._clone()
         new_inst._conditions = self._conditions.copy()
         new_inst._limit_count = self._limit_count
+        new_inst._last_count = self._last_count
         new_inst._match_all = self._match_all
         return new_inst
 
@@ -205,6 +207,12 @@ class CollectionQuery:
         new_inst._limit_count = count
         return new_inst
 
+    def last(self, count: int) -> "CollectionQuery":
+        """Limit query results to the last {count} items, kept in canonical order."""
+        new_inst = self._copy()
+        new_inst._last_count = count
+        return new_inst
+
     def count(self, db: Rekordbox6Database) -> int:
         """Get a count of the query's results on the given database instance."""
         if not db.session:
@@ -239,6 +247,18 @@ class CollectionQuery:
             else:
                 combined_condition = or_(*self._conditions)
             stmt = stmt.where(combined_condition)
+
+        if self._last_count is not None:
+            logger.debug(f"Query last: {self._last_count}")
+            tail = (
+                stmt.order_by(DjmdContent.FolderPath.desc(), DjmdContent.ID.desc())
+                .limit(self._last_count)
+                .subquery()
+            )
+            tail_content = aliased(DjmdContent, tail)
+            return select(tail_content).order_by(
+                tail_content.FolderPath.asc(), tail_content.ID.asc()
+            )
 
         stmt = stmt.order_by(DjmdContent.FolderPath.asc(), DjmdContent.ID.asc())
 
@@ -305,5 +325,8 @@ def get_filtered_content(
 
     if filters.first is not None:
         query = query.limit(filters.first)
+
+    if filters.last is not None:
+        query = query.last(filters.last)
 
     return query.execute(db)
