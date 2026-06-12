@@ -38,16 +38,32 @@ class TestClassifyConvert:
         assert result.reason == "already_target_format"
 
     @patch("rekordbox_edit.api.convert.get_file_type_for_format")
-    def test_skips_lossy_formats(self, mock_get_type, make_djmd_content_item):
+    def test_skips_lossy_source_as_unsupported(
+        self, mock_get_type, make_djmd_content_item
+    ):
         mock_get_type.side_effect = lambda fmt: {"AIFF": 1, "MP3": 5, "M4A": 6}.get(
             fmt.upper(), 99
         )
-        content = make_djmd_content_item(ID="2", FileType=5)  # MP3
+        content = make_djmd_content_item(ID="2", FileType=4)  # M4A: lossy source
 
         result = _classify_convert(content, ConvertRequest(format_out="aiff"))
 
         assert isinstance(result, SkippedTrack)
-        assert result.reason == "already_target_format"
+        assert result.reason == "unsupported_source_format"
+
+    @patch("rekordbox_edit.api.convert.get_file_type_for_format")
+    def test_skips_unmapped_source_as_unsupported(
+        self, mock_get_type, make_djmd_content_item
+    ):
+        mock_get_type.side_effect = lambda fmt: {"AIFF": 1, "MP3": 5, "M4A": 6}.get(
+            fmt.upper(), 99
+        )
+        content = make_djmd_content_item(ID="9", FileType=20)  # e.g. a video file
+
+        result = _classify_convert(content, ConvertRequest(format_out="aiff"))
+
+        assert isinstance(result, SkippedTrack)
+        assert result.reason == "unsupported_source_format"
 
     @patch("rekordbox_edit.api.convert.os.path.exists", return_value=False)
     @patch("rekordbox_edit.api.convert._get_output_path")

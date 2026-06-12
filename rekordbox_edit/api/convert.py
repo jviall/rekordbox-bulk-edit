@@ -22,6 +22,7 @@ from rekordbox_edit.models import (
 )
 from rekordbox_edit.query import get_filtered_content
 from rekordbox_edit.utils import (
+    InputFormats,
     OutputFormats,
     get_audio_info,
     get_extension_for_format,
@@ -33,6 +34,9 @@ logger = logging.getLogger(__name__)
 
 TARGET_BIT_DEPTH = 16
 TARGET_SAMPLE_RATE = 44100
+
+# Rekordbox FileType codes RBE converts from: the hi-res lossless whitelist.
+_INPUT_FILE_TYPES = {get_file_type_for_format(fmt.value) for fmt in InputFormats}
 
 _HI_RES_CODECS = {
     "aiff": "pcm_s16be",
@@ -252,14 +256,18 @@ def _classify_convert(content, args: ConvertRequest) -> ConvertOp | SkippedTrack
     """Return ConvertOp if this track should be converted, or SkippedTrack with
     reason if not."""
     target = get_file_type_for_format(args.format_out)
-    mp3 = get_file_type_for_format("MP3")
-    m4a = get_file_type_for_format("M4A")
-    if content.FileType in (target, mp3, m4a):
+    if content.FileType == target:
         logger.debug(
             f"skip convert id={content.ID} reason=already_target_format "
             f"file_type={content.FileType} target={target}"
         )
         return SkippedTrack(id=str(content.ID), reason="already_target_format")
+    if content.FileType not in _INPUT_FILE_TYPES:
+        logger.debug(
+            f"skip convert id={content.ID} reason=unsupported_source_format "
+            f"file_type={content.FileType}"
+        )
+        return SkippedTrack(id=str(content.ID), reason="unsupported_source_format")
     output_path, _, _ = _get_output_path(content, args.format_out)
     if not args.overwrite and os.path.exists(output_path):
         logger.debug(
