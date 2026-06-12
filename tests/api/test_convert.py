@@ -8,10 +8,11 @@ from rekordbox_edit.api.convert import (
     _classify_convert,
     _classify_source_fidelity,
     _cleanup_converted_files,
-    _convert_to_hi_res,
-    _convert_to_mp3,
     _get_output_path,
+    _hi_res_output_kwargs,
+    _mp3_output_kwargs,
     _rollback_and_cleanup,
+    _run_ffmpeg,
     _update_database_record,
     convert,
 )
@@ -315,7 +316,7 @@ class TestConvertRealRun:
         return_value=("lossless", 44100),
     )
     @patch("rekordbox_edit.api.convert._update_database_record")
-    @patch("rekordbox_edit.api.convert._convert_to_hi_res", return_value=True)
+    @patch("rekordbox_edit.api.convert._run_ffmpeg", return_value=True)
     @patch("rekordbox_edit.api.convert.os.path.exists", return_value=True)
     @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=True)
     @patch("rekordbox_edit.api.convert._get_output_path")
@@ -328,7 +329,7 @@ class TestConvertRealRun:
         mock_get_output,
         _ffmpeg,
         mock_exists,
-        mock_hi_res,
+        mock_run,
         mock_update,
         _fidelity,
         mock_db,
@@ -347,8 +348,11 @@ class TestConvertRealRun:
             ConvertRequest(format_out="aiff", delete_originals="none", overwrite=True),
         )
 
-        mock_hi_res.assert_called_once_with(
-            "/in.wav", "/out.aif", OutputFormats.AIFF, 44100
+        mock_run.assert_called_once_with(
+            "/in.wav",
+            "/out.aif",
+            _hi_res_output_kwargs(OutputFormats.AIFF, 44100),
+            "aiff",
         )
         mock_update.assert_called_once()
         mock_db.session.commit.assert_called_once()
@@ -369,7 +373,7 @@ class TestConvertRealRun:
     )
     @patch("rekordbox_edit.api.convert.os.remove")
     @patch("rekordbox_edit.api.convert._update_database_record")
-    @patch("rekordbox_edit.api.convert._convert_to_hi_res", return_value=True)
+    @patch("rekordbox_edit.api.convert._run_ffmpeg", return_value=True)
     @patch("rekordbox_edit.api.convert.os.path.exists", return_value=True)
     @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=True)
     @patch("rekordbox_edit.api.convert._get_output_path")
@@ -411,7 +415,7 @@ class TestConvertRealRun:
     )
     @patch("rekordbox_edit.api.convert.os.remove")
     @patch("rekordbox_edit.api.convert._update_database_record")
-    @patch("rekordbox_edit.api.convert._convert_to_hi_res", return_value=True)
+    @patch("rekordbox_edit.api.convert._run_ffmpeg", return_value=True)
     @patch("rekordbox_edit.api.convert.os.path.exists", return_value=True)
     @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=True)
     @patch("rekordbox_edit.api.convert._get_output_path")
@@ -457,7 +461,7 @@ class TestConvertRealRun:
     )
     @patch("rekordbox_edit.api.convert.os.remove")
     @patch("rekordbox_edit.api.convert._update_database_record")
-    @patch("rekordbox_edit.api.convert._convert_to_hi_res", return_value=True)
+    @patch("rekordbox_edit.api.convert._run_ffmpeg", return_value=True)
     @patch("rekordbox_edit.api.convert.os.path.exists", return_value=True)
     @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=True)
     @patch("rekordbox_edit.api.convert._get_output_path")
@@ -499,7 +503,7 @@ class TestConvertRealRun:
     )
     @patch("rekordbox_edit.api.convert.os.remove")
     @patch("rekordbox_edit.api.convert._update_database_record")
-    @patch("rekordbox_edit.api.convert._convert_to_hi_res", return_value=True)
+    @patch("rekordbox_edit.api.convert._run_ffmpeg", return_value=True)
     @patch("rekordbox_edit.api.convert.os.path.exists", return_value=True)
     @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=True)
     @patch("rekordbox_edit.api.convert._get_output_path")
@@ -542,7 +546,7 @@ class TestConvertRealRun:
         return_value=("lossless", 22050),
     )
     @patch("rekordbox_edit.api.convert._update_database_record")
-    @patch("rekordbox_edit.api.convert._convert_to_hi_res", return_value=True)
+    @patch("rekordbox_edit.api.convert._run_ffmpeg", return_value=True)
     @patch("rekordbox_edit.api.convert.os.path.exists", return_value=True)
     @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=True)
     @patch("rekordbox_edit.api.convert._get_output_path")
@@ -555,7 +559,7 @@ class TestConvertRealRun:
         mock_get_output,
         _ffmpeg,
         mock_exists,
-        mock_hi_res,
+        mock_run,
         mock_update,
         _fidelity,
         mock_db,
@@ -574,8 +578,11 @@ class TestConvertRealRun:
 
         response = convert(mock_db, ConvertRequest(format_out="aiff", overwrite=True))
 
-        mock_hi_res.assert_called_once_with(
-            "/in.wav", "/out.aif", OutputFormats.AIFF, 22050
+        mock_run.assert_called_once_with(
+            "/in.wav",
+            "/out.aif",
+            _hi_res_output_kwargs(OutputFormats.AIFF, 22050),
+            "aiff",
         )
         op = response.result.converted[0]
         assert op.output_sample_rate == 22050
@@ -583,7 +590,7 @@ class TestConvertRealRun:
 
     @patch("rekordbox_edit.api.convert.os.remove")
     @patch("rekordbox_edit.api.convert._update_database_record")
-    @patch("rekordbox_edit.api.convert._convert_to_mp3", return_value=True)
+    @patch("rekordbox_edit.api.convert._run_ffmpeg", return_value=True)
     @patch("rekordbox_edit.api.convert.os.path.exists", return_value=True)
     @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=True)
     @patch("rekordbox_edit.api.convert._get_output_path")
@@ -625,7 +632,7 @@ class TestConvertRealRun:
         return_value=("lossless", 44100),
     )
     @patch("rekordbox_edit.api.convert._rollback_and_cleanup")
-    @patch("rekordbox_edit.api.convert._convert_to_hi_res", return_value=False)
+    @patch("rekordbox_edit.api.convert._run_ffmpeg", return_value=False)
     @patch("rekordbox_edit.api.convert.os.path.exists", return_value=True)
     @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=True)
     @patch("rekordbox_edit.api.convert._get_output_path")
@@ -663,7 +670,7 @@ class TestConvertRealRun:
     @patch("rekordbox_edit.api.convert._rollback_and_cleanup")
     @patch("rekordbox_edit.api.convert.os.remove", side_effect=KeyboardInterrupt)
     @patch("rekordbox_edit.api.convert._update_database_record")
-    @patch("rekordbox_edit.api.convert._convert_to_hi_res", return_value=True)
+    @patch("rekordbox_edit.api.convert._run_ffmpeg", return_value=True)
     @patch("rekordbox_edit.api.convert.os.path.exists", return_value=True)
     @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=True)
     @patch("rekordbox_edit.api.convert._get_output_path")
@@ -710,7 +717,7 @@ class TestConvertRealRun:
         return_value=("lossless", 44100),
     )
     @patch("rekordbox_edit.api.convert._update_database_record")
-    @patch("rekordbox_edit.api.convert._convert_to_hi_res", return_value=True)
+    @patch("rekordbox_edit.api.convert._run_ffmpeg", return_value=True)
     @patch("rekordbox_edit.api.convert.os.path.exists", return_value=True)
     @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=True)
     @patch("rekordbox_edit.api.convert._get_output_path")
@@ -760,7 +767,7 @@ class TestConvertRealRun:
         return_value=("lossless", 44100),
     )
     @patch("rekordbox_edit.api.convert._update_database_record")
-    @patch("rekordbox_edit.api.convert._convert_to_hi_res", return_value=True)
+    @patch("rekordbox_edit.api.convert._run_ffmpeg", return_value=True)
     @patch("rekordbox_edit.api.convert.os.path.exists", return_value=True)
     @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=True)
     @patch("rekordbox_edit.api.convert._get_output_path")
@@ -869,7 +876,7 @@ class TestConvertRealRun:
         "rekordbox_edit.api.convert._update_database_record",
         side_effect=RuntimeError("DB error"),
     )
-    @patch("rekordbox_edit.api.convert._convert_to_hi_res", return_value=True)
+    @patch("rekordbox_edit.api.convert._run_ffmpeg", return_value=True)
     @patch("rekordbox_edit.api.convert.os.path.exists", return_value=True)
     @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=True)
     @patch("rekordbox_edit.api.convert._get_output_path")
@@ -901,20 +908,20 @@ class TestConvertRealRun:
         mock_rollback.assert_called_once()
 
     @patch("rekordbox_edit.api.convert._update_database_record")
-    @patch("rekordbox_edit.api.convert._convert_to_mp3", return_value=True)
+    @patch("rekordbox_edit.api.convert._run_ffmpeg", return_value=True)
     @patch("rekordbox_edit.api.convert.os.path.exists", return_value=True)
     @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=True)
     @patch("rekordbox_edit.api.convert._get_output_path")
     @patch("rekordbox_edit.api.convert.get_file_type_for_format")
     @patch("rekordbox_edit.api.convert.get_filtered_content")
-    def test_mp3_format_uses_convert_to_mp3(
+    def test_mp3_format_runs_mp3_kwargs(
         self,
         mock_gfc,
         mock_get_type,
         mock_get_output,
         _ffmpeg,
         _exists,
-        mock_mp3,
+        mock_run,
         _update,
         mock_db,
         make_djmd_content_item,
@@ -929,7 +936,9 @@ class TestConvertRealRun:
 
         convert(mock_db, ConvertRequest(format_out="mp3", overwrite=True))
 
-        mock_mp3.assert_called_once_with("/in.wav", "/out.mp3")
+        mock_run.assert_called_once_with(
+            "/in.wav", "/out.mp3", _mp3_output_kwargs(44100), "mp3"
+        )
 
     @patch(
         "rekordbox_edit.api.convert._classify_source_fidelity",
@@ -937,7 +946,7 @@ class TestConvertRealRun:
     )
     @patch("rekordbox_edit.api.convert.os.remove")
     @patch("rekordbox_edit.api.convert._update_database_record")
-    @patch("rekordbox_edit.api.convert._convert_to_hi_res", return_value=True)
+    @patch("rekordbox_edit.api.convert._run_ffmpeg", return_value=True)
     @patch("rekordbox_edit.api.convert.os.path.exists", return_value=True)
     @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=True)
     @patch("rekordbox_edit.api.convert._get_output_path")
@@ -1003,87 +1012,29 @@ class TestClassifySourceFidelity:
         assert _classify_source_fidelity("in.flac") == expected
 
 
-class TestConvertToHiRes:
-    @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=True)
-    @patch("rekordbox_edit.api.convert.ffmpeg")
-    def test_aiff_targets_16bit_44_1khz(self, mock_ffmpeg, _ffmpeg_in_path):
-        mock_input = Mock()
-        mock_output = Mock()
-        mock_ffmpeg.input.return_value = mock_input
-        mock_input.output.return_value = mock_output
-        mock_output.overwrite_output.return_value = mock_output
-        mock_output.run.return_value = None
-
-        result = _convert_to_hi_res(
-            "input.flac", "output.aiff", OutputFormats.AIFF, 44100
-        )
-
-        assert result is True
-        mock_input.output.assert_called_once_with(
-            "output.aiff", acodec="pcm_s16be", ar=44100, map_metadata=0, write_id3v2=1
-        )
-
+class TestRunFfmpeg:
     @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=False)
     def test_ffmpeg_not_found_raises(self, _):
         with pytest.raises(Exception, match="FFmpeg not found in PATH"):
-            _convert_to_hi_res("in.flac", "out.aiff", OutputFormats.AIFF, 44100)
+            _run_ffmpeg("in.flac", "out.aiff", {"acodec": "pcm_s16be"}, "aiff")
 
     @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=True)
     @patch("rekordbox_edit.api.convert.ffmpeg")
-    def test_wav_targets_16bit_44_1khz(self, mock_ffmpeg, _ffmpeg_in_path):
+    def test_success_passes_kwargs_through(self, mock_ffmpeg, _ffmpeg_in_path):
         mock_output = Mock()
         mock_ffmpeg.input.return_value.output.return_value = mock_output
         mock_output.overwrite_output.return_value = mock_output
         mock_output.run.return_value = None
 
-        result = _convert_to_hi_res("in.flac", "out.wav", OutputFormats.WAV, 44100)
-
-        assert result is True
-        mock_ffmpeg.input.return_value.output.assert_called_once_with(
-            "out.wav", acodec="pcm_s16le", ar=44100, map_metadata=0, write_id3v2=1
+        result = _run_ffmpeg(
+            "in.flac", "out.wav", {"acodec": "pcm_s16le", "ar": 44100}, "wav"
         )
 
-    @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=True)
-    @patch("rekordbox_edit.api.convert.ffmpeg")
-    def test_encodes_at_given_sample_rate(self, mock_ffmpeg, _ffmpeg_in_path):
-        mock_output = Mock()
-        mock_ffmpeg.input.return_value.output.return_value = mock_output
-        mock_output.overwrite_output.return_value = mock_output
-        mock_output.run.return_value = None
-
-        result = _convert_to_hi_res("in.flac", "out.wav", OutputFormats.WAV, 22050)
-
         assert result is True
+        mock_ffmpeg.input.assert_called_once_with("in.flac")
         mock_ffmpeg.input.return_value.output.assert_called_once_with(
-            "out.wav", acodec="pcm_s16le", ar=22050, map_metadata=0, write_id3v2=1
+            "out.wav", acodec="pcm_s16le", ar=44100
         )
-
-    @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=True)
-    @patch("rekordbox_edit.api.convert.ffmpeg")
-    def test_flac_targets_16bit_via_sample_fmt(self, mock_ffmpeg, _ffmpeg_in_path):
-        mock_output = Mock()
-        mock_ffmpeg.input.return_value.output.return_value = mock_output
-        mock_output.overwrite_output.return_value = mock_output
-        mock_output.run.return_value = None
-
-        result = _convert_to_hi_res("in.wav", "out.flac", OutputFormats.FLAC, 44100)
-
-        assert result is True
-        mock_ffmpeg.input.return_value.output.assert_called_once_with(
-            "out.flac",
-            acodec="flac",
-            ar=44100,
-            map_metadata=0,
-            write_id3v2=1,
-            sample_fmt="s16",
-        )
-
-    @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=True)
-    def test_unsupported_format_raises(self, _ffmpeg_in_path):
-        fake_format = Mock()
-        fake_format.value = "xyz"
-        with pytest.raises(Exception, match="Unsupported hi-res format"):
-            _convert_to_hi_res("in.flac", "out.xyz", fake_format, 44100)
 
     @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=True)
     @patch("rekordbox_edit.api.convert.ffmpeg")
@@ -1093,9 +1044,7 @@ class TestConvertToHiRes:
         mock_output.overwrite_output.return_value = mock_output
         mock_output.run.side_effect = ffmpeg.Error("cmd", b"stdout", b"stderr")
 
-        result = _convert_to_hi_res("in.flac", "out.aiff", OutputFormats.AIFF, 44100)
-
-        assert result is False
+        assert _run_ffmpeg("in.flac", "out.aiff", {}, "aiff") is False
 
     @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=True)
     @patch("rekordbox_edit.api.convert.ffmpeg")
@@ -1105,9 +1054,7 @@ class TestConvertToHiRes:
         mock_output.overwrite_output.return_value = mock_output
         mock_output.run.side_effect = ffmpeg.Error("cmd", b"stdout", None)
 
-        result = _convert_to_hi_res("in.flac", "out.aiff", OutputFormats.AIFF, 44100)
-
-        assert result is False
+        assert _run_ffmpeg("in.flac", "out.aiff", {}, "aiff") is False
 
     @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=True)
     @patch("rekordbox_edit.api.convert.ffmpeg")
@@ -1118,78 +1065,54 @@ class TestConvertToHiRes:
         mock_output.run.side_effect = RuntimeError("disk full")
 
         with pytest.raises(RuntimeError, match="disk full"):
-            _convert_to_hi_res("in.flac", "out.aiff", OutputFormats.AIFF, 44100)
+            _run_ffmpeg("in.flac", "out.aiff", {}, "aiff")
 
 
-class TestConvertToMp3:
-    @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=True)
-    @patch("rekordbox_edit.api.convert.ffmpeg")
-    def test_success(self, mock_ffmpeg, _):
-        mock_input = Mock()
-        mock_output = Mock()
-        mock_ffmpeg.input.return_value = mock_input
-        mock_input.output.return_value = mock_output
-        mock_output.overwrite_output.return_value = mock_output
-        mock_output.run.return_value = None
+class TestHiResOutputKwargs:
+    def test_aiff(self):
+        assert _hi_res_output_kwargs(OutputFormats.AIFF, 44100) == {
+            "acodec": "pcm_s16be",
+            "ar": 44100,
+            "map_metadata": 0,
+            "write_id3v2": 1,
+        }
 
-        result = _convert_to_mp3("in.flac", "out.mp3")
+    def test_wav(self):
+        assert _hi_res_output_kwargs(OutputFormats.WAV, 44100) == {
+            "acodec": "pcm_s16le",
+            "ar": 44100,
+            "map_metadata": 0,
+            "write_id3v2": 1,
+        }
 
-        assert result is True
+    def test_flac_pins_bit_depth_via_sample_fmt(self):
+        kwargs = _hi_res_output_kwargs(OutputFormats.FLAC, 44100)
+        assert kwargs["acodec"] == "flac"
+        assert kwargs["sample_fmt"] == "s16"
 
-    @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=True)
-    @patch("rekordbox_edit.api.convert.ffmpeg")
-    def test_encodes_at_conversion_target(self, mock_ffmpeg, _):
-        mock_input = Mock()
-        mock_ffmpeg.input.return_value = mock_input
-        mock_output = mock_input.output.return_value
-        mock_output.overwrite_output.return_value = mock_output
-        mock_output.run.return_value = None
+    def test_uses_given_sample_rate(self):
+        assert _hi_res_output_kwargs(OutputFormats.WAV, 22050)["ar"] == 22050
 
-        _convert_to_mp3("in.flac", "out.mp3")
+    def test_unsupported_format_raises(self):
+        fake_format = Mock()
+        fake_format.value = "xyz"
+        with pytest.raises(Exception, match="Unsupported hi-res format"):
+            _hi_res_output_kwargs(fake_format, 44100)
 
-        _, kwargs = mock_input.output.call_args
-        assert kwargs["ar"] == 44100
-        assert kwargs["sample_fmt"] == "s16p"
 
-    @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=False)
-    def test_ffmpeg_not_found_raises(self, _):
-        with pytest.raises(Exception, match="FFmpeg not found in PATH"):
-            _convert_to_mp3("in.flac", "out.mp3")
+class TestMp3OutputKwargs:
+    def test_fixed_lame_settings(self):
+        assert _mp3_output_kwargs(44100) == {
+            "acodec": "libmp3lame",
+            "audio_bitrate": "320k",
+            "ar": 44100,
+            "sample_fmt": "s16p",
+            "map_metadata": 0,
+            "write_id3v2": 1,
+        }
 
-    @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=True)
-    @patch("rekordbox_edit.api.convert.ffmpeg")
-    def test_ffmpeg_error_returns_false(self, mock_ffmpeg, _):
-        mock_output = Mock()
-        mock_ffmpeg.input.return_value.output.return_value = mock_output
-        mock_output.overwrite_output.return_value = mock_output
-        mock_output.run.side_effect = ffmpeg.Error("cmd", b"stdout", b"stderr")
-
-        result = _convert_to_mp3("in.flac", "out.mp3")
-
-        assert result is False
-
-    @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=True)
-    @patch("rekordbox_edit.api.convert.ffmpeg")
-    def test_ffmpeg_error_no_stderr_returns_false(self, mock_ffmpeg, _):
-        mock_output = Mock()
-        mock_ffmpeg.input.return_value.output.return_value = mock_output
-        mock_output.overwrite_output.return_value = mock_output
-        mock_output.run.side_effect = ffmpeg.Error("cmd", b"stdout", None)
-
-        result = _convert_to_mp3("in.flac", "out.mp3")
-
-        assert result is False
-
-    @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=True)
-    @patch("rekordbox_edit.api.convert.ffmpeg")
-    def test_unexpected_exception_reraises(self, mock_ffmpeg, _):
-        mock_output = Mock()
-        mock_ffmpeg.input.return_value.output.return_value = mock_output
-        mock_output.overwrite_output.return_value = mock_output
-        mock_output.run.side_effect = RuntimeError("permission denied")
-
-        with pytest.raises(RuntimeError, match="permission denied"):
-            _convert_to_mp3("in.flac", "out.mp3")
+    def test_uses_given_sample_rate(self):
+        assert _mp3_output_kwargs(22050)["ar"] == 22050
 
 
 class TestUpdateDatabaseRecord:
