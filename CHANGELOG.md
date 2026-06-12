@@ -1,3 +1,131 @@
+## v0.6.0 (2026-06-12)
+
+
+- chore(deps): update dependency mkdocstrings to v1
+- ci: setup python via setup-uv to fix cache key collisions
+- ci: validate conventional commits always, check PR titles
+- docs: clean up documentation
+- chore(deps): update linters to v0.0.45 (#90)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+- refactor: rename CommandArgs types to CommandRequest
+- docs: open external links in a new tab with an icon
+- docs: render signatures and model fields in api reference
+- docs: add api reference page
+- docs: add convert command page
+- docs: add edit command page
+- docs: add search command page
+- docs: add filtering page
+- docs: configure read the docs build
+- docs: scaffold mkdocs material site
+- docs: trim README to overview and quick start
+- chore: add docs dependency group
+- feat: add --last filter to return only the last N results
+- feat: add --first filter to return only the first N results
+- test(e2e): update windows snapshot with unicode representation
+- test(e2e): force utf-8 encoding of stdout
+- test(e2e): align TZ to UTC
+- test(ci): parameterize the db version as an env var
+- ci(e2e): add windows-latest to the e2e matrix
+- test: add windows snapshots for e2e journey
+- test(e2e): parameterize snapshots by fixture DB
+- Routes the two contract snapshots through SNAPSHOT_KEY (macos/windows)
+so the Windows fixture can land its own snapshot alongside the macOS
+one. Docker reuses the macOS DB and therefore the macos key.
+Renames the existing snapshot entries to the [macos] variant.
+- test: adds 6.8.6 db fixture for windows
+- test(e2e): pretty-print JSON snapshots via JSONSnapshotExtension
+- The single-line raw CLI output made snapshot diffs unreadable when a contract
+field changed. Use syrupy's JSONSnapshotExtension for the search-json test:
+the parsed payload is dumped as indented JSON to its own .json file under
+__snapshots__/test_journey/, so post-update diffs land per-field.
+- The IDs snapshot stays on AmberExtension; it's already one short line.
+- ci(e2e): add macos-latest e2e job to the matrix and require it
+- Adds a new e2e-tests job to ci.yml matrix'd over macos-latest × Python
+{3.11, 3.14}, wiring it into the all-green aggregate so branch protection
+gates on it. Windows joins in a follow-up PR once a windows master.db
+fixture exists.
+- The composite action at .github/actions/e2e/ installs ffmpeg on the runner,
+sets RBE_RUN_E2E=1, and runs pytest against tests/e2e directly.
+- test(e2e): add docker leg and make targets
+- Local e2e validation runs through a Linux container; the conftest refuses to
+run on bare macOS/Windows. `make test-e2e-docker` builds the image (Python
+3.14 + ffmpeg + uv-synced project) and runs the journey suite;
+`make test-e2e-snapshot-update` regenerates snapshots inside the container so
+the host's working tree picks them up via the volume mount.
+- `make test-e2e` runs the suite directly with uv; useful inside the container
+itself or in CI runners where the platform check passes.
+- test(e2e): add journey suite, conftest, and macOS snapshots
+- A single ordered file walks search → edit → convert against the committed
+macOS master.6.8.6.db, exercising filter narrowing, dry-run safety, stdin-pipe
+edits, unicode metadata, and the convert row-swap. Snapshots lock the JSON
+and IDs print contracts for `search`.
+- The conftest gates the suite behind RBE_RUN_E2E=1 and refuses to run on
+macOS/Windows outside CI, pointing local users at the Docker leg. The
+canonical staging path is /private/tmp/rbedit-e2e/music — macOS resolves
+/tmp through that symlink, so the DB stores the canonical form.
+- Excludes tests/e2e/__snapshots__/ from the trailing-whitespace and
+end-of-file pre-commit hooks; syrupy-generated whitespace is meaningful.
+- test(e2e): register marker, exclude from default collection, add syrupy
+- Adds the `e2e` pytest marker, sets `norecursedirs` so default `make test` runs
+do not collect the suite, and pins syrupy>=5 for snapshot assertions.
+- test: add macos 6.8.6 db fixture
+- test(e2e): rename audio fixtures to property-encoded scheme
+- Filenames now describe the audio's discriminating properties
+(NN-<codec>-<rate>-<depth-or-bitrate>[-encmode].<ext>) so each file's purpose
+is obvious in a directory listing and in test code. Codec stays in the name
+even for unambiguous extensions to keep the convention uniform and to
+disambiguate ALAC vs AAC inside .m4a.
+- Required before Phase 3 (Rekordbox import) so master.db references the new
+paths. Generator script and library table updated in gist
+https://gist.github.com/jviall/18107ca35e0e7f38cf02ba50e3b9cc77
+- test(e2e): add 10-track audio fixture for end-to-end suite
+- Synthesized sine-wave audio covering FLAC (16/24-bit), ALAC, AIFF, WAV,
+MP3 (CBR + VBR), AAC, and a unicode-tagged FLAC. Used by the e2e journey
+suite (search/edit/convert) against the committed master.db fixtures.
+- Bumps pre-commit's check-added-large-files threshold to 1 MB to admit the
+WAV fixture (563 KB at 96 kHz / 24-bit / 2 s mono).
+- Generator script and Phase 3 (Rekordbox import) instructions:
+https://gist.github.com/jviall/18107ca35e0e7f38cf02ba50e3b9cc77
+- fix(query): order results by folder, then ID, for stable output
+- feat: adds global --database-path argument
+- chore(deps): update linters to v0.0.44 (#79)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+- test: restore coverage lost during api/cli redesign
+- Restore tests for ffmpeg conversion internals, post-commit/rollback
+paths, and the CLI preview-confirm-commit default flow that the
+single-function API redesign dropped. Coverage recovers from 87% to
+97% (baseline pre-redesign was 98%) and the test count from 200 to
+238.
+- refactor: privatize module-internal helpers and unify cli print helpers
+- - api/convert.py: prefix module-private helpers with underscore
+  (_convert_to_lossless, _convert_to_mp3, _update_database_record,
+  _cleanup_converted_files, _rollback_and_cleanup, _get_output_path)
+- cli/{edit,convert}.py: rename _render_*_response to _print_*_result
+- fix(api,cli): fixups post refactor
+- - convert(): on post-commit re-query failure, fall back to pre-mutation
+  snapshot tracks instead of an empty list, so the response validator
+  doesn't raise after a successful commit
+- cli/convert.py: remove duplicate "Deleted N" log in the default flow
+- cli/edit.py: log "No changes to make." in --yes path when no edits
+- Adds a regression test for the post-commit re-query fallback.
+- feat(api,cli)!: redesign around single-function commands
+- Replace the plan/execute split with one function per command that takes
+an optional dry_run kwarg. Each command (search, edit, convert) now
+returns a typed response envelope with tracks plus a command-specific
+result. CLI restructured to preview-then-commit by default and to call
+the API exactly once when --yes or --dry-run is given.
+- BREAKING CHANGE: drops plan_edit/plan_convert. The public API surface is
+now search/edit/convert; old EditPlanArgs/ConvertPlanArgs types removed.
+- feat: add new `--print json` option
+- refactor: Allow extra columns to ride with Track instances
+- chore(deps): update linters to v0.15.16 (#76)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+- fix: handle stdin BOM character on windows
+- chore(deps): update linters to v0.0.43 (#73)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+- chore(deps): update github actions to v8.2.0 (#74)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+
 ## v0.5.0 (2026-06-06)
 
 
