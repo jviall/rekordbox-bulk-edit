@@ -1205,7 +1205,11 @@ class TestUpdateDatabaseRecord:
         mock_db = Mock()
         mock_content = make_djmd_content_item(ID=123)
         mock_db.get_content().filter_by(ID=123).first.return_value = mock_content
-        mock_get_audio_info.return_value = {"bitrate": 320, "bit_depth": 16}
+        mock_get_audio_info.return_value = {
+            "bitrate": 320,
+            "bit_depth": None,
+            "sample_rate": 44100,
+        }
 
         _update_database_record(mock_db, 123, "output.mp3", "/path/to", "MP3")
 
@@ -1218,11 +1222,33 @@ class TestUpdateDatabaseRecord:
         mock_db = Mock()
         mock_content = make_djmd_content_item(ID=123)
         mock_db.get_content().filter_by(ID=123).first.return_value = mock_content
-        mock_get_audio_info.return_value = {"bitrate": None, "bit_depth": 16}
+        mock_get_audio_info.return_value = {
+            "bitrate": None,
+            "bit_depth": None,
+            "sample_rate": 44100,
+        }
 
         _update_database_record(mock_db, 123, "output.mp3", "/path/to", "MP3")
 
         assert mock_content.BitRate == 320
+
+    @patch("rekordbox_edit.api.convert.get_audio_info")
+    def test_mp3_output_updates_bit_depth_and_sample_rate(
+        self, mock_get_audio_info, make_djmd_content_item
+    ):
+        mock_db = Mock()
+        mock_content = make_djmd_content_item(ID=123, BitDepth=24, SampleRate=96000)
+        mock_db.get_content().filter_by(ID=123).first.return_value = mock_content
+        mock_get_audio_info.return_value = {
+            "bitrate": 320,
+            "bit_depth": None,
+            "sample_rate": 48000,
+        }
+
+        _update_database_record(mock_db, 123, "output.mp3", "/path/to", "MP3")
+
+        assert mock_content.BitDepth == 16
+        assert mock_content.SampleRate == 48000
 
     def test_content_not_found_raises(self):
         mock_db = Mock()
