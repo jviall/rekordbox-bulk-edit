@@ -37,6 +37,7 @@ plugins:
             show_if_no_docstring: true
             show_signature_annotations: true
             separate_signature: true
+            signature_crossrefs: true
             docstring_section_style: table
 
 markdown_extensions:

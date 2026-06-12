@@ -1,6 +1,6 @@
 # Contributing to Rekordbox Bulk Edit
 
-Thanks for your interest in contributing to this project! Python is not my expertise, so I'm eager for those more seasoned than I to weigh in. One way or another, I hope you're here as a fellow DJ looking to make managing a RekordBox library easier :)
+Thanks for your interest in contributing to this project! I think I've done a good job thus far, but Python is not my expertise so I'm eager for those more seasoned than I to weigh in. One way or another, I hope you're here as a fellow DJ looking to make managing a RekordBox library easier :)
 
 ## Development Setup
 
@@ -59,14 +59,23 @@ Thanks for your interest in contributing to this project! Python is not my exper
 # Run tests
 make test
 
+# Watch tests
+make watch 
+
 # Run tests with coverage
 make coverage
 
-# Run linting and type-checking, will auto-fix issues
+# Run linting, will auto-fix issues
 make lint
+
+# Run type-checking
+make typcheck
 
 # Run formatting
 make format
+
+# Run the docsite locally
+make docs
 
 # Run all pre-commit hooks on all files
 make run-hooks
@@ -76,7 +85,7 @@ make run-hooks
 
 This project uses and enforces [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/). The allowable types of commits are:
 
-- `BREAKING`: introduces breaking changes (major bump)
+- `BREAKING` or `feat!`: introduces breaking changes (major bump)
 - `feat`: introduces new features (minor bump)
 - `fix`: patches a bug, upgrades a dependency (minor bump)
 

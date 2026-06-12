@@ -14,8 +14,8 @@ from sqlalchemy import select
 
 from rekordbox_edit.api._utils import _order_tracks_by_op
 from rekordbox_edit.models import (
-    ConvertRequest,
     ConvertOp,
+    ConvertRequest,
     ConvertResponse,
     ConvertResult,
     SkippedTrack,
@@ -248,8 +248,8 @@ def convert(
     With `dry_run=True`, returns the planned conversions without any ffmpeg or
     DB writes. With `dry_run=False` (default), commits the changes.
 
-    The rollback block protects only pre-commit work; once commit lands, the
-    transaction is honoured even if the delete-originals loop or response
+    The rollback block protects only pre-commit work; once a database commit lands,
+    the transaction is honoured even if the delete-originals loop or response
     re-query later fails.
     """
     from rekordbox_edit.utils import ffmpeg_in_path, get_ffmpeg_directions

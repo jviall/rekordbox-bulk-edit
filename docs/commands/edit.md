@@ -6,7 +6,7 @@ Bulk-edit a metadata field on tracks in your Rekordbox database.
 rbe edit [OPTIONS] [TRACK-IDS]... FIELD
 ```
 
-`FIELD` names the metadata field to change. Currently `Title` is the only editable field; more are planned.
+`FIELD` specifies the [DjmdContent](https://pyrekordbox.readthedocs.io/en/latest/formats/db6.html#djmdcontent) column to change. Currently `Title` is the only editable field; more are planned.
 
 `--replace` supplies the new value. On its own it overwrites the whole field; add `--match PATTERN` to find that literal text within the field and replace only that portion:
 
@@ -18,11 +18,11 @@ rbe edit --exact-title "Untitled 3" Title --replace "Acid Rain"
 rbe edit --title "Teh" Title --match "Teh" --replace "The" --multi
 ```
 
-## Safety Rails
+## Guardrails
 
-- **Preview and confirm by default.** Without flags, `edit` shows every planned change and asks once before applying. `--interactive` confirms each track individually; `--dry-run` previews without writing; `--yes` skips the prompt.
-- **Single-track by default.** When filters match more than one track, `edit` refuses unless you pass `--multi`. This keeps a too-broad filter from rewriting your whole library.
-- **Rekordbox running:** editing while Rekordbox is open risks conflicts, so `edit` warns (or refuses, in scripting modes).
+- **Preview and confirm by default.** Without flags, `edit` shows every planned change and asks once before applying. `--interactive` confirms each track individually; `--dry-run` previews without writing; `--yes` confirms the default choice for all prompts without asking.
+- **Single-track by default.** When filters match more than one track, `edit` refuses unless you pass `--multi`. This prevents an unintentionally broad filter from making unintended edits across your library.
+- **Rekordbox running:** editing while Rekordbox is open risks corrupting your database. By default `edit` warns; in a non-interactive mode (e.g. `--print ids`) it throws an error.
 
 ## Examples
 

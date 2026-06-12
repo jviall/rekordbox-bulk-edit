@@ -6,12 +6,16 @@
 [![Platforms](https://img.shields.io/badge/platform-win%20%7C%20osx-blue?style=flat)](https://pypi.org/project/rekordbox-edit/)
 [![License](https://img.shields.io/pypi/l/rekordbox-edit?color=lightgrey)](https://github.com/jviall/rekordbox-edit/blob/main/LICENSE)
 
-A command-line tool for bulk operations on your Rekordbox library. Search tracks, edit metadata, and convert audio formats — updating your database while preserving all your cues, analysis, and metadata.
+A command-line tool for bulk operations on your Rekordbox library. Search tracks, edit metadata, and convert between audio formats with the benefit of database updates that preserve all your cues, analyses, and metadata.
 
 > [!CAUTION]
 > This tool can modify your Rekordbox database and audio files. Always back up your data first.
 > No warranty is provided--you assume all risk and liability of data loss in using this.
 > See [Safety and Best Practices](#safety-and-best-practices)
+
+> [!WARNING]
+> This project is in active development with no stable version released yet.
+> Breaking changes are likely to occur across version 0 releases until the API and behavior stabilizes.
 
 **Full documentation: [rekordbox-edit.readthedocs.io](https://rekordbox-edit.readthedocs.io/)**
 
@@ -38,7 +42,7 @@ rbe search --playlist "House Favorites"
 Edit track metadata:
 
 ```bash
-# Fix a typo across every matching title (previews and confirms first)
+# Fix a typo across every matching track title
 rbe edit --title "Teh" Title --match "Teh" --replace "The" --multi
 ```
 
@@ -48,8 +52,8 @@ Convert audio files:
 # Preview what would be converted
 rbe convert --artist "Daft Punk" --dry-run
 
-# Convert all FLAC or WAV files to AIFF (default output format)
-rbe convert --format flac --format wav --yes
+# Convert all FLAC or WAV files to AIFF without confirming
+rbe convert --format flac --format wav --format-out aiff --yes
 ```
 
 See the [documentation](https://rekordbox-edit.readthedocs.io/) for every command, the full filtering language, and scripting recipes.
@@ -68,21 +72,21 @@ See the [documentation](https://rekordbox-edit.readthedocs.io/) for every comman
 
    If you don't have a back up already it's a very worthwhile investment, even if you don't plan to use this tool! Find yourself a cheap external drive, you won't regret it.
 
-And generally limit the potential impact of a mistake by using filters to target a few tracks at a time e.g. `--artist "Crazy Frog" --first 5` before targeting a larger set, and always run with `--dry-run` first.
-
-## AI Usage
-
-I believe it's important to be aware of and to disclose AI usage. In many ways it's being forced upon us without us having much choice in the matter, and it's a gross and oppressive experience. While it has lots of potential to benefit the common good, mostly it's only furthered capitalist greed.
-
-I'm mostly attempting to thoughtfully disclose that generative AI _has_ been a significant tool in building out this project. I don't personally enjoy too much coding in my personal time, but I feel passionate about making `rekordbox-edit`--AI has admittedly helped me bridge that gap between my capacity and my vision. I'm a career professional software engineer who takes pride in their work, and I don't want to produce a vibe coded mess any more than you want to experience it. Please validate the quality of this project yourself--at the end of the day it's just code written by some stranger.
-
-If it's any consolation, my main test subject has been my own 10,000+ track RekordBox library--a risk I do not take lightly!
+And more generally you should limit the potential impact of a mistake by using filters to target a few tracks at a time (e.g. `--artist "Crazy Frog" --first 5`) before targeting a larger set, and always run with `--dry-run` first.
 
 ## Credits
 
-This project exists thanks to [@dylanjones](https://github.com/dylanjones), the creator of [pyrekordbox](https://github.com/dylanljones/pyrekordbox), which provides the Python API for Rekordbox databases.
+This project exists thanks to [@dylanjones](https://github.com/dylanjones), the creator of [pyrekordbox](https://github.com/dylanljones/pyrekordbox), which provides the Python API for interacting with the Rekordbox database.
 
-I built this tool to help correct my own bad habits and missteps in managing and organizing my rekordbox library. If it helps you too, great! If you find issues or have ideas, contributions are welcome.
+I built this tool to help correct my own bad habits and missteps in managing and organizing my Rekordbox library. If it helps you too, great! If you find issues or have ideas, contributions are welcome.
+
+## AI Usage
+
+I believe it's important to be aware of and to disclose AI usage. The way its presence and usage is forced on us from every direction is too often gross and oppressive, and it's used almost exclusively for capitalist profit.
+
+I'm mostly attempting to thoughtfully disclose that generative AI _has_ been a significant tool in building out this project. I don't personally enjoy too much coding in my personal time, but I feel passionate about making `rekordbox-edit`--AI has admittedly helped me bridge that gap between my capacity and my goals of completing it. This being said, I'm a career professional software engineer who takes pride in their work, and I don't want to produce a vibe-coded mess any more than you want to experience it. Please validate the quality of this project yourself--at the end of the day it's just code written by a stranger on the internet!
+
+p.s. If it's any consolation, my main test subject has been my own 10,000+ track RekordBox library--a risk I do not take lightly. :3
 
 ## Contributing
 

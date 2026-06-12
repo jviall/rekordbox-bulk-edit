@@ -35,7 +35,9 @@ rbe convert --format-out aiff --format flac --print ids --dry-run
 rbe search --artist "Lauryn Hill" --print ids | rbe convert --yes
 ```
 
-`--interactive` confirms each file individually; like `edit`, converting while Rekordbox is open triggers a warning (or a refusal in scripting modes). See [Filtering](../filtering.md) for the full filter language.
+### Guardrails
+- Without flags, `convert` shows every planned change and asks once before applying. `--interactive` confirms each track individually; `--dry-run` previews without writing; `--yes` confirms the default choice for all prompts without asking.
+- Editing while Rekordbox is open risks corrupting your database. By default `convert` warns; in a non-interactive mode (e.g. `--print ids`) it throws an error.
 
 ## Reference
 
