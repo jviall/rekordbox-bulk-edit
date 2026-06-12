@@ -147,11 +147,20 @@ class EditOp(BaseModel):
 
 
 class ConvertOp(BaseModel):
-    """A planned or performed conversion: track ID + source/output paths."""
+    """A planned or performed conversion: track ID, source/output paths, and
+    the file type, bit depth, and sample rate on each side. Source audio
+    fields mirror the database record; MP3 output leaves bit depth and sample
+    rate to the encoder, so those stay None."""
 
     id: str
     source_path: str
     output_path: str
+    source_file_type: str | None = None
+    source_bit_depth: int | None = None
+    source_sample_rate: int | None = None
+    output_file_type: str | None = None
+    output_bit_depth: int | None = None
+    output_sample_rate: int | None = None
 
 
 # ── Response envelopes ────────────────────────────────────────────────────
