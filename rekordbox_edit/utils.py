@@ -18,8 +18,14 @@ class UserQuit(Exception):
 
 
 # File type mappings for Rekordbox database
-def get_file_type_name(file_type_code: int):
-    """Get human-readable name for file type code."""
+def get_file_type_name(file_type_code: int | None) -> str | None:
+    """Map a Rekordbox FileType code to a display name, or None if unmapped.
+
+    A total display map, not a guard: Rekordbox stores many codes RBE does not
+    convert (AAC, ALAC, video). Each caller chooses its own fallback for None.
+    """
+    if file_type_code is None:
+        return None
     _get_file_type_name = {
         0: "MP3",
         1: "MP3",
@@ -28,10 +34,7 @@ def get_file_type_name(file_type_code: int):
         11: "WAV",
         12: "AIFF",
     }
-    name = _get_file_type_name.get(file_type_code)
-    if name is None:
-        raise ValueError(f"Unknown file_type: {file_type_code}")
-    return name
+    return _get_file_type_name.get(file_type_code)
 
 
 def get_file_type_for_format(format_name: str):

@@ -276,11 +276,7 @@ def _classify_convert(content, args: ConvertRequest) -> ConvertOp | SkippedTrack
         id=str(content.ID),
         source_path=content.FolderPath or "",
         output_path=output_path,
-        source_file_type=(
-            get_file_type_name(content.FileType)
-            if content.FileType is not None
-            else None
-        ),
+        source_file_type=get_file_type_name(content.FileType),
         source_bit_depth=content.BitDepth,
         source_sample_rate=content.SampleRate,
         output_file_type=args.format_out.upper(),

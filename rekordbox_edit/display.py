@@ -78,13 +78,13 @@ def _cell_value(track: Track, column: PrintableField) -> str:
     if column is PrintableField.FileType:
         if track.FileType is None:
             return ""
-        try:
-            return get_file_type_name(track.FileType)
-        except ValueError:
+        name = get_file_type_name(track.FileType)
+        if name is None:
             logger.warning(
                 f"Unexpected FileType [{track.FileType}] for track ID [{track.ID}]"
             )
             return "UNKNOWN"
+        return name
     if column is PrintableField.FolderPath:
         return os.path.dirname(track.FolderPath or "")
     value = getattr(track, column.value, None)
