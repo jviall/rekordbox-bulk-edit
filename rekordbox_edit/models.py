@@ -74,14 +74,17 @@ class EditRequest(FilterArgs):
     multi: bool = False
 
 
+DeleteOriginalsMode: TypeAlias = Literal["none", "lossless", "all"]
+
+
 class ConvertRequest(FilterArgs):
     """Inputs for convert(): the shared track filters plus output format and original-file handling."""
 
     format_out: str = "aiff"
-    delete: bool | None = None
-    """Whether to delete the original files after conversion: True deletes them,
-    False keeps them, and None applies the per-format default (delete for
-    lossless output, keep for MP3)."""
+    delete_originals: DeleteOriginalsMode = "lossless"
+    """When to delete original files after conversion: "all" always deletes
+    them, "none" never deletes them, and "lossless" (the default) deletes them
+    only when converting to a hi-res format."""
     overwrite: bool = False
 
 

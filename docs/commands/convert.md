@@ -4,14 +4,18 @@ Convert audio files between formats and update the Rekordbox database to point a
 
 ## Supported Formats
 
-- **Input:** FLAC, AIFF, WAV (lossless only — lossy sources are skipped)
-- **Output:** AIFF (default), FLAC, WAV, ALAC, or MP3 (320kbps CBR)
+- **Input:** FLAC, AIFF, WAV (hi-res only — lossy-compressed sources are skipped)
+- **Output:** AIFF (default), FLAC, WAV, or MP3 (320kbps CBR)
 
 Tracks already in the target format are skipped, as are tracks whose output file already exists (override with `--overwrite`).
 
 ## Originals: Delete or Keep
 
-After a successful conversion the original file is **deleted** for lossless output (you can always convert back) and **kept** for MP3 output (the quality loss is one-way). Override either default with `--delete` or `--keep`.
+`--delete-originals` controls what happens to the source file after a successful conversion:
+
+- `lossless` (default) — delete the original when converting to a hi-res format (you can always convert back); keep it when converting to MP3 (the quality loss is one-way)
+- `all` — always delete the original
+- `none` — never delete the original
 
 ## Examples
 
@@ -23,10 +27,10 @@ rbe convert --format-out aiff --format flac --dry-run
 rbe convert --format-out wav --artist "Burial" --yes
 
 # Convert to MP3 but delete originals
-rbe convert --format-out mp3 --playlist "Export" --yes --delete
+rbe convert --format-out mp3 --playlist "Export" --yes --delete-originals all
 
 # Keep originals when converting to AIFF
-rbe convert --format-out aiff --format flac --yes --keep
+rbe convert --format-out aiff --format flac --yes --delete-originals none
 
 # Get just the IDs of files that would be converted
 rbe convert --format-out aiff --format flac --print ids --dry-run

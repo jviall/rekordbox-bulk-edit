@@ -300,12 +300,12 @@ def convert(
 
     assert db.session is not None
 
-    should_delete = (
-        args.delete if args.delete is not None else args.format_out.upper() != "MP3"
+    should_delete = args.delete_originals == "all" or (
+        args.delete_originals == "lossless" and args.format_out.upper() != "MP3"
     )
     logger.debug(
         f"convert should_delete={should_delete} "
-        f"(args.delete={args.delete}, format_out={args.format_out})"
+        f"(delete_originals={args.delete_originals}, format_out={args.format_out})"
     )
 
     # content_map enables per-op live FolderPath / FileNameL reads in the loop.

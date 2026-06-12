@@ -224,7 +224,8 @@ class TestConvertRealRun:
         _seed_db(mock_db, content)  # post-commit re-query returns the same row
 
         response = convert(
-            mock_db, ConvertRequest(format_out="aiff", delete=False, overwrite=True)
+            mock_db,
+            ConvertRequest(format_out="aiff", delete_originals="none", overwrite=True),
         )
 
         mock_lossless.assert_called_once_with("/in.wav", "/out.aif", OutputFormats.AIFF)
@@ -242,7 +243,7 @@ class TestConvertRealRun:
     @patch("rekordbox_edit.api.convert._get_output_path")
     @patch("rekordbox_edit.api.convert.get_file_type_for_format")
     @patch("rekordbox_edit.api.convert.get_filtered_content")
-    def test_deletes_originals_when_should_delete_true(
+    def test_deletes_originals_when_mode_all(
         self,
         mock_gfc,
         mock_get_type,
@@ -264,7 +265,8 @@ class TestConvertRealRun:
         _seed_db(mock_db, content)
 
         response = convert(
-            mock_db, ConvertRequest(format_out="aiff", delete=True, overwrite=True)
+            mock_db,
+            ConvertRequest(format_out="aiff", delete_originals="all", overwrite=True),
         )
 
         mock_remove.assert_called_once_with("/in.wav")
@@ -336,7 +338,10 @@ class TestConvertRealRun:
 
         with pytest.raises(KeyboardInterrupt):
             convert(
-                mock_db, ConvertRequest(format_out="aiff", delete=True, overwrite=True)
+                mock_db,
+                ConvertRequest(
+                    format_out="aiff", delete_originals="all", overwrite=True
+                ),
             )
 
         mock_db.session.commit.assert_called_once()
@@ -380,7 +385,8 @@ class TestConvertRealRun:
         _seed_db(mock_db, contents[2], contents[0], contents[1])
 
         response = convert(
-            mock_db, ConvertRequest(format_out="aiff", delete=False, overwrite=True)
+            mock_db,
+            ConvertRequest(format_out="aiff", delete_originals="none", overwrite=True),
         )
 
         assert [op.id for op in response.result.converted] == ["A", "B", "C"]
@@ -415,7 +421,8 @@ class TestConvertRealRun:
         mock_db.session.execute.side_effect = RuntimeError("post-commit query failed")
 
         response = convert(
-            mock_db, ConvertRequest(format_out="aiff", delete=False, overwrite=True)
+            mock_db,
+            ConvertRequest(format_out="aiff", delete_originals="none", overwrite=True),
         )
 
         # Commit happened
@@ -559,7 +566,7 @@ class TestConvertRealRun:
     @patch("rekordbox_edit.api.convert._get_output_path")
     @patch("rekordbox_edit.api.convert.get_file_type_for_format")
     @patch("rekordbox_edit.api.convert.get_filtered_content")
-    def test_skips_deletion_when_should_delete_false(
+    def test_skips_deletion_when_mode_none(
         self,
         mock_gfc,
         mock_get_type,
@@ -581,7 +588,8 @@ class TestConvertRealRun:
         _seed_db(mock_db, content)
 
         response = convert(
-            mock_db, ConvertRequest(format_out="aiff", delete=False, overwrite=True)
+            mock_db,
+            ConvertRequest(format_out="aiff", delete_originals="none", overwrite=True),
         )
 
         mock_remove.assert_not_called()
