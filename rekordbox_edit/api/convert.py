@@ -78,20 +78,13 @@ def _classify_source_fidelity(
     return "lossy", effective_rate
 
 
-def _convert_to_hi_res(input_path, output_path, output_format, sample_rate):
-    """Convert a hi-res file to another hi-res format at the target bit
-    depth and the given sample rate, down-sampling higher-resolution
-    sources."""
-    from rekordbox_edit.utils import ffmpeg_in_path, get_ffmpeg_directions
-
-    if not ffmpeg_in_path():
-        raise Exception(f"FFmpeg not found in PATH.{get_ffmpeg_directions()}")
-
+def _hi_res_output_kwargs(output_format, sample_rate) -> dict:
+    """ffmpeg output kwargs for a hi-res conversion at the target bit depth and
+    the given sample rate."""
     codec = _HI_RES_CODECS.get(output_format.value)
     if codec is None:
         raise Exception(f"Unsupported hi-res format: {output_format}")
-
-    output_kwargs = {
+    kwargs = {
         "acodec": codec,
         "ar": sample_rate,
         "map_metadata": 0,
@@ -99,11 +92,30 @@ def _convert_to_hi_res(input_path, output_path, output_format, sample_rate):
     }
     # PCM codecs fix the bit depth by name; the flac encoder needs it spelled out.
     if output_format.value == "flac":
-        output_kwargs["sample_fmt"] = "s16"
+        kwargs["sample_fmt"] = "s16"
+    return kwargs
 
-    logger.debug(
-        f"Selected codec: {codec} targeting {TARGET_BIT_DEPTH}-bit/{sample_rate} Hz"
-    )
+
+def _mp3_output_kwargs(sample_rate) -> dict:
+    """ffmpeg output kwargs for MP3 320kbps CBR at the given sample rate."""
+    return {
+        "acodec": "libmp3lame",
+        "audio_bitrate": "320k",
+        "ar": sample_rate,
+        # libmp3lame takes planar input; s16p quantizes to 16-bit before encoding.
+        "sample_fmt": "s16p",
+        "map_metadata": 0,
+        "write_id3v2": 1,
+    }
+
+
+def _run_ffmpeg(input_path, output_path, output_kwargs: dict, label: str) -> bool:
+    """Run a single ffmpeg conversion. Returns True on success, False on an
+    ffmpeg error; re-raises anything else. `label` names the target for logs."""
+    from rekordbox_edit.utils import ffmpeg_in_path, get_ffmpeg_directions
+
+    if not ffmpeg_in_path():
+        raise Exception(f"FFmpeg not found in PATH.{get_ffmpeg_directions()}")
 
     try:
         (
@@ -112,45 +124,7 @@ def _convert_to_hi_res(input_path, output_path, output_format, sample_rate):
             .overwrite_output()
             .run(capture_stdout=True, capture_stderr=True)
         )
-        logger.debug(f"Conversion to {output_format.value} succeeded: {output_path}")
-        return True
-    except FfmpegError as e:
-        logger.error(f"FFmpeg conversion failed for {input_path}: {e}")
-        if e.stderr:
-            stderr = e.stderr.decode() if isinstance(e.stderr, bytes) else e.stderr
-            logger.debug(f"FFmpeg stderr:\n{stderr}")
-        return False
-    except Exception as e:
-        logger.error(f"Conversion failed for {input_path}: {e}")
-        raise e
-
-
-def _convert_to_mp3(input_path, mp3_path):
-    """Convert hi-res file to MP3 320kbps CBR at the target bit depth and
-    sample rate."""
-    from rekordbox_edit.utils import ffmpeg_in_path, get_ffmpeg_directions
-
-    if not ffmpeg_in_path():
-        raise Exception(f"FFmpeg not found in PATH.{get_ffmpeg_directions()}")
-
-    try:
-        (
-            ffmpeg.input(input_path)
-            .output(
-                mp3_path,
-                acodec="libmp3lame",
-                audio_bitrate="320k",
-                ar=TARGET_SAMPLE_RATE,
-                # libmp3lame takes planar input; s16p quantizes to 16-bit
-                # before encoding.
-                sample_fmt="s16p",
-                map_metadata=0,
-                write_id3v2=1,
-            )
-            .overwrite_output()
-            .run(capture_stdout=True, capture_stderr=True)
-        )
-        logger.debug(f"Conversion to mp3 succeeded: {mp3_path}")
+        logger.debug(f"Conversion to {label} succeeded: {output_path}")
         return True
     except FfmpegError as e:
         logger.error(f"FFmpeg conversion failed for {input_path}: {e}")
@@ -374,16 +348,19 @@ def convert(
 
             if args.format_out.upper() == "MP3":
                 output_sample_rate = TARGET_SAMPLE_RATE
-                success = _convert_to_mp3(src, op.output_path)
+                success = _run_ffmpeg(
+                    src, op.output_path, _mp3_output_kwargs(output_sample_rate), "mp3"
+                )
             else:
                 fidelity, output_sample_rate = _classify_source_fidelity(src)
                 if fidelity == "lossless":
                     lossless_op_ids.add(op.id)
-                success = _convert_to_hi_res(
+                output_format = OutputFormats(args.format_out.lower())
+                success = _run_ffmpeg(
                     src,
                     op.output_path,
-                    OutputFormats(args.format_out.lower()),
-                    output_sample_rate,
+                    _hi_res_output_kwargs(output_format, output_sample_rate),
+                    output_format.value,
                 )
 
             if not success:
