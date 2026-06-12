@@ -174,13 +174,18 @@ def _update_database_record(
     if not file_type:
         raise Exception(f"Unsupported output format: {output_format}")
 
-    if output_format.upper() in ["AIFF", "FLAC", "WAV"]:
+    converted_sample_rate = converted_audio_info["sample_rate"]
+    if converted_sample_rate:
+        content.SampleRate = converted_sample_rate
+
+    if output_format.upper() == "MP3":
+        # Rekordbox records MP3s as 16-bit (see the e2e DB fixtures); probes
+        # report no bit depth for them.
+        content.BitDepth = 16
+    else:
         converted_bit_depth = converted_audio_info["bit_depth"]
         if converted_bit_depth:
             content.BitDepth = converted_bit_depth
-        converted_sample_rate = converted_audio_info["sample_rate"]
-        if converted_sample_rate:
-            content.SampleRate = converted_sample_rate
 
     content.FileNameL = new_filename
     content.FolderPath = converted_full_path
