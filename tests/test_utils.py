@@ -26,14 +26,10 @@ class TestGetFileTypeName:
         assert get_file_type_name(12) == "AIFF"
 
     def test_get_file_type_name_unknown_types(self):
-        """Test get_file_type_name with unknown file type codes."""
-
-        with pytest.raises(ValueError, match="Unknown file_type: None"):
-            get_file_type_name(None)  # ty: ignore[invalid-argument-type]
-        with pytest.raises(ValueError, match="Unknown file_type: -1"):
-            get_file_type_name(-1)
-        with pytest.raises(ValueError, match="Unknown file_type: 99"):
-            get_file_type_name(99)
+        """Unmapped codes return None instead of raising; the map is total."""
+        assert get_file_type_name(None) is None
+        assert get_file_type_name(-1) is None
+        assert get_file_type_name(99) is None
 
 
 class TestGetFileTypeForFormat:
