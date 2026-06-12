@@ -126,7 +126,10 @@ class Track(BaseModel):
 
 
 SkipReason: TypeAlias = Literal[
-    "no_change", "already_target_format", "output_file_exists"
+    "no_change",
+    "already_target_format",
+    "unsupported_source_format",
+    "output_file_exists",
 ]
 
 

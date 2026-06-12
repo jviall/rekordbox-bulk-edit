@@ -127,9 +127,15 @@ def convert_command(db, **kwargs):
 
 def _report_skips(skipped) -> None:
     already_target = sum(1 for s in skipped if s.reason == "already_target_format")
+    unsupported = sum(1 for s in skipped if s.reason == "unsupported_source_format")
     conflicts = sum(1 for s in skipped if s.reason == "output_file_exists")
     if already_target:
         logger.warning(f"Skipping {already_target} file(s): already in target format")
+    if unsupported:
+        logger.warning(
+            f"Skipping {unsupported} file(s): unsupported source format "
+            "(only FLAC, AIFF, WAV are converted)"
+        )
     if conflicts:
         logger.warning(
             f"Skipping {conflicts} file(s): output exists (use --overwrite to convert)"

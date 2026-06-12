@@ -102,6 +102,22 @@ class TestConvertCommand:
     @patch("rekordbox_edit.cli.convert.convert")
     @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
     @patch("rekordbox_edit.cli._utils.get_rekordbox_pid", return_value=None)
+    def test_warns_unsupported_source_skip(
+        self, _pid, mock_db_class, mock_convert, mock_logger
+    ):
+        mock_db_class.return_value = Mock(session=Mock())
+        mock_convert.return_value = _response(
+            skipped=[SkippedTrack(id="2", reason="unsupported_source_format")]
+        )
+
+        CliRunner().invoke(convert_command, ["--format-out", "aiff", "--yes"])
+
+        warnings = [c.args[0] for c in mock_logger.warning.call_args_list]
+        assert any("unsupported" in w.lower() and "1" in w for w in warnings)
+
+    @patch("rekordbox_edit.cli.convert.convert")
+    @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
+    @patch("rekordbox_edit.cli._utils.get_rekordbox_pid", return_value=None)
     def test_logs_deleted_count(self, _pid, mock_db_class, mock_convert, mock_logger):
         mock_db_class.return_value = Mock(session=Mock())
         mock_convert.return_value = _response(deleted=2)
