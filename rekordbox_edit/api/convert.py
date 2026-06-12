@@ -122,7 +122,8 @@ def _convert_to_hi_res(input_path, output_path, output_format, sample_rate):
 
 
 def _convert_to_mp3(input_path, mp3_path):
-    """Convert hi-res file to MP3 320kbps CBR."""
+    """Convert hi-res file to MP3 320kbps CBR at the target bit depth and
+    sample rate."""
     from rekordbox_edit.utils import ffmpeg_in_path, get_ffmpeg_directions
 
     if not ffmpeg_in_path():
@@ -135,6 +136,10 @@ def _convert_to_mp3(input_path, mp3_path):
                 mp3_path,
                 acodec="libmp3lame",
                 audio_bitrate="320k",
+                ar=TARGET_SAMPLE_RATE,
+                # libmp3lame takes planar input; s16p quantizes to 16-bit
+                # before encoding.
+                sample_fmt="s16p",
                 map_metadata=0,
                 write_id3v2=1,
             )
@@ -261,10 +266,12 @@ def _classify_convert(content, args: ConvertRequest) -> ConvertOp | SkippedTrack
             f"skip convert id={content.ID} reason=output_file_exists path={output_path}"
         )
         return SkippedTrack(id=str(content.ID), reason="output_file_exists")
-    mp3_out = args.format_out.upper() == "MP3"
     # The DB SampleRate stands in for the probe here so dry-run previews match;
-    # the convert loop re-probes and reconciles.
-    output_sample_rate = None if mp3_out else _effective_sample_rate(content.SampleRate)
+    # the convert loop re-probes and reconciles. MP3 always encodes at the target.
+    if args.format_out.upper() == "MP3":
+        output_sample_rate = TARGET_SAMPLE_RATE
+    else:
+        output_sample_rate = _effective_sample_rate(content.SampleRate)
     return ConvertOp(
         id=str(content.ID),
         source_path=content.FolderPath or "",
@@ -277,7 +284,7 @@ def _classify_convert(content, args: ConvertRequest) -> ConvertOp | SkippedTrack
         source_bit_depth=content.BitDepth,
         source_sample_rate=content.SampleRate,
         output_file_type=args.format_out.upper(),
-        output_bit_depth=None if mp3_out else TARGET_BIT_DEPTH,
+        output_bit_depth=TARGET_BIT_DEPTH,
         output_sample_rate=output_sample_rate,
     )
 
@@ -362,7 +369,7 @@ def convert(
                 raise RuntimeError(f"Source not found: {src}")
 
             if args.format_out.upper() == "MP3":
-                output_sample_rate = None
+                output_sample_rate = TARGET_SAMPLE_RATE
                 success = _convert_to_mp3(src, op.output_path)
             else:
                 fidelity, output_sample_rate = _classify_source_fidelity(src)
