@@ -4,7 +4,7 @@ import logging
 import os
 import posixpath
 from pathlib import Path
-from typing import Tuple
+from typing import Literal, Tuple
 
 import ffmpeg
 from ffmpeg import Error as FfmpegError
@@ -30,47 +30,80 @@ from rekordbox_edit.utils import (
 
 logger = logging.getLogger(__name__)
 
+TARGET_BIT_DEPTH = 16
+TARGET_SAMPLE_RATE = 44100
+
+_HI_RES_CODECS = {
+    "aiff": "pcm_s16be",
+    "wav": "pcm_s16le",
+    "flac": "flac",
+}
+
 
 # ── ffmpeg helpers ────────────────────────────────────────────────────────
 
 
-def _convert_to_lossless(input_path, output_path, output_format):
-    """Convert lossless file to another lossless format, preserving bit depth."""
+def _effective_sample_rate(source_rate: int | None) -> int:
+    """The output sample rate for a conversion: the target, clamped to the
+    source rate so a conversion never up-samples."""
+    if source_rate and source_rate < TARGET_SAMPLE_RATE:
+        return source_rate
+    return TARGET_SAMPLE_RATE
+
+
+def _classify_source_fidelity(
+    source_path,
+) -> Tuple[Literal["lossless", "lossy"], int]:
+    """Probe a source file and return the conversion's fidelity along with
+    its effective sample rate. "lossless" means no audio information is lost:
+    the source is at the target bit depth and at or below the target sample
+    rate. An unknown bit depth counts as lossy so originals are kept when in
+    doubt.
+    """
+    audio_info = get_audio_info(source_path)
+    bit_depth = audio_info["bit_depth"]
+    sample_rate = audio_info["sample_rate"]
+    logger.debug(
+        f"Source audio: bit_depth={bit_depth}, sample_rate={sample_rate}, "
+        f"channels={audio_info.get('channels')}"
+    )
+    effective_rate = _effective_sample_rate(sample_rate)
+    if bit_depth == TARGET_BIT_DEPTH and sample_rate == effective_rate:
+        return "lossless", effective_rate
+    return "lossy", effective_rate
+
+
+def _convert_to_hi_res(input_path, output_path, output_format, sample_rate):
+    """Convert a hi-res file to another hi-res format at the target bit
+    depth and the given sample rate, down-sampling higher-resolution
+    sources."""
     from rekordbox_edit.utils import ffmpeg_in_path, get_ffmpeg_directions
 
     if not ffmpeg_in_path():
         raise Exception(f"FFmpeg not found in PATH.{get_ffmpeg_directions()}")
 
-    audio_info = get_audio_info(input_path)
-    bit_depth = audio_info["bit_depth"]
-    logger.debug(
-        f"Source audio: bit_depth={bit_depth}, sample_rate={audio_info.get('sample_rate')}, channels={audio_info.get('channels')}"
-    )
+    codec = _HI_RES_CODECS.get(output_format.value)
+    if codec is None:
+        raise Exception(f"Unsupported hi-res format: {output_format}")
 
-    codec_maps = {
-        "aiff": {16: "pcm_s16be", 24: "pcm_s24be", 32: "pcm_s32be"},
-        "wav": {16: "pcm_s16le", 24: "pcm_s24le", 32: "pcm_s32le"},
-        "flac": None,
+    output_kwargs = {
+        "acodec": codec,
+        "ar": sample_rate,
+        "map_metadata": 0,
+        "write_id3v2": 1,
     }
+    # PCM codecs fix the bit depth by name; the flac encoder needs it spelled out.
+    if output_format.value == "flac":
+        output_kwargs["sample_fmt"] = "s16"
 
-    if output_format.value not in codec_maps:
-        raise Exception(f"Unsupported lossless format: {output_format}")
-
-    codec_map = codec_maps[output_format.value]
-    if codec_map is None:
-        codec = output_format.value
-    elif bit_depth in codec_map:
-        codec = codec_map[bit_depth]
-    else:
-        codec = list(codec_map.values())[0]
-        logger.debug(f"bit_depth={bit_depth} not in codec map, falling back to {codec}")
-
-    logger.debug(f"Selected codec: {codec} (bit_depth={bit_depth})")
+    logger.debug(
+        f"Selected codec: {codec} targeting {TARGET_BIT_DEPTH}-bit/{sample_rate} Hz"
+    )
 
     try:
         (
             ffmpeg.input(input_path)
-            .output(output_path, acodec=codec, map_metadata=0, write_id3v2=1)
+            .output(output_path, **output_kwargs)
             .overwrite_output()
             .run(capture_stdout=True, capture_stderr=True)
         )
@@ -88,7 +121,7 @@ def _convert_to_lossless(input_path, output_path, output_format):
 
 
 def _convert_to_mp3(input_path, mp3_path):
-    """Convert lossless file to MP3 320kbps CBR."""
+    """Convert hi-res file to MP3 320kbps CBR."""
     from rekordbox_edit.utils import ffmpeg_in_path, get_ffmpeg_directions
 
     if not ffmpeg_in_path():
@@ -142,16 +175,11 @@ def _update_database_record(
 
     if output_format.upper() in ["AIFF", "FLAC", "WAV"]:
         converted_bit_depth = converted_audio_info["bit_depth"]
-        database_bit_depth = getattr(content, "BitDepth", None)
-        if (
-            database_bit_depth
-            and converted_bit_depth
-            and converted_bit_depth != database_bit_depth
-        ):
-            raise Exception(
-                f"Bit depth mismatch for lossless transcode: "
-                f"database={database_bit_depth}, file={converted_bit_depth}"
-            )
+        if converted_bit_depth:
+            content.BitDepth = converted_bit_depth
+        converted_sample_rate = converted_audio_info["sample_rate"]
+        if converted_sample_rate:
+            content.SampleRate = converted_sample_rate
 
     content.FileNameL = new_filename
     content.FolderPath = converted_full_path
@@ -300,17 +328,10 @@ def convert(
 
     assert db.session is not None
 
-    should_delete = args.delete_originals == "all" or (
-        args.delete_originals == "lossless" and args.format_out.upper() != "MP3"
-    )
-    logger.debug(
-        f"convert should_delete={should_delete} "
-        f"(delete_originals={args.delete_originals}, format_out={args.format_out})"
-    )
-
     # content_map enables per-op live FolderPath / FileNameL reads in the loop.
     content_map = {str(c.ID): c for c in contents}
     converted_ops: list[ConvertOp] = []
+    lossless_op_ids: set[str] = set()
     try:
         for i, op in enumerate(ops, 1):
             content = content_map[op.id]
@@ -323,8 +344,14 @@ def convert(
             if args.format_out.upper() == "MP3":
                 success = _convert_to_mp3(src, op.output_path)
             else:
-                success = _convert_to_lossless(
-                    src, op.output_path, OutputFormats(args.format_out.lower())
+                fidelity, output_sample_rate = _classify_source_fidelity(src)
+                if fidelity == "lossless":
+                    lossless_op_ids.add(op.id)
+                success = _convert_to_hi_res(
+                    src,
+                    op.output_path,
+                    OutputFormats(args.format_out.lower()),
+                    output_sample_rate,
                 )
 
             if not success:
@@ -355,15 +382,32 @@ def convert(
         _rollback_and_cleanup(db, converted_ops)
         raise
 
+    if args.delete_originals == "all":
+        deletable_ops = converted_ops
+    elif args.delete_originals == "lossless":
+        deletable_ops = [op for op in converted_ops if op.id in lossless_op_ids]
+    else:
+        deletable_ops = []
+    logger.debug(
+        f"convert delete_originals={args.delete_originals}: deleting "
+        f"{len(deletable_ops)}/{len(converted_ops)} source file(s)"
+    )
+
     deleted = 0
-    if should_delete:
-        for op in converted_ops:
-            try:
-                os.remove(op.source_path)
-                deleted += 1
-            except Exception as e:
-                logger.warning(f"Failed to delete {op.source_path}: {e}")
-        logger.debug(f"convert deleted {deleted}/{len(converted_ops)} source file(s)")
+    for op in deletable_ops:
+        try:
+            os.remove(op.source_path)
+            deleted += 1
+        except Exception as e:
+            logger.warning(f"Failed to delete {op.source_path}: {e}")
+
+    kept = len(converted_ops) - len(deletable_ops)
+    if (
+        args.delete_originals == "lossless"
+        and kept
+        and args.format_out.upper() != "MP3"
+    ):
+        logger.info(f"Kept {kept} original file(s) whose conversion was lossy")
 
     converted_ids = [op.id for op in converted_ops]
     try:

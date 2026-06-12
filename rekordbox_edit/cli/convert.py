@@ -51,6 +51,10 @@ def convert_command(db, **kwargs):
     Supports conversion from any hi-res format (FLAC, AIFF, WAV) to:
     AIFF, FLAC, WAV, or MP3. Skips lossy formats and files already in
     the target format.
+
+    Lossless conversions target 16-bit/44.1 kHz: higher-resolution sources
+    are down-sampled, and sources below the target keep their own sample
+    rate rather than being up-sampled.
     """
     print_opt = kwargs.pop("print_opt", None)
     dry_run = kwargs.pop("dry_run", False)
