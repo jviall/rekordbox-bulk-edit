@@ -35,7 +35,7 @@ dev = [
 ]
 docs = [
     "mkdocs-material>=9.5,<10",
-    "mkdocstrings[python]>=0.27,<1",
+    "mkdocstrings[python]>=1,<2",
     "mkdocs-click>=0.8,<1",
     "markdown-callouts>=0.4,<1",
     "mkdocs-open-in-new-tab>=1.0,<2",
