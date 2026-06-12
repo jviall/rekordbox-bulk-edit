@@ -4,21 +4,22 @@ Three layers:
 
 - **Filter base** (`FilterArgs`) declares track-selection criteria shared by all
   commands.
-- **Command args** (`SearchRequest`, `EditRequest`, `ConvertRequest`) extend `FilterArgs`
+- **API/Command request models** (`SearchRequest`, `EditRequest`, `ConvertRequest`) extend `FilterArgs`
   with command-specific fields.
-- **Domain types** (`Track`, `EditOp`, `ConvertOp`, `SkippedTrack`) and
-  **response envelopes** (`SearchResponse`, `EditResponse`, `ConvertResponse`)
+- **API/Command response models** (`SearchResponse`, `EditResponse`, `ConvertResponse`)
   describe what each command returns.
+- **Domain types** (`Track`, `EditOp`, `ConvertOp`, `SkippedTrack`)
+  which help describe the internals of requests/responses
 
-Envelope semantics:
+Response semantics:
 
 - `tracks` always reflects the **current DB state** at the moment the response
   was built. Pre-execute for dry-runs, post-execute for write runs.
-- `result` summarizes what happened (or would happen in a dry-run). Result
-  envelopes carry operation identity (the field name for edit, the target
-  format for convert) so a response is fully self-describing.
-- `tracks` and `result.edits` / `result.converted` align 1:1 by index;
-  validators enforce equal lengths.
+- `result` summarizes what happened (or would happen in a dry-run). Response
+  models should self describe the operation that happened (e.g. the field name
+  for edit, the target format for convert) so a response is fully self-describing.
+- `tracks` and `result.edits` / `result.converted` align 1:1 in their contents and
+  order by index;
 """
 
 from typing import Literal, TypeAlias
@@ -89,9 +90,10 @@ class ConvertRequest(FilterArgs):
 
 class Track(BaseModel):
     """A Rekordbox track.
-    Field names mirror the [DjmdContent](https://pyrekordbox.readthedocs.io/en/latest/formats/db6.html#djmdcontent) table's column names,
-    except where additional derived fields have been added for convenience. All database columns are silently included in each object
-    for convenience, but what's defined here is just what RBE cares about.
+    Field names mirror the [DjmdContent](https://pyrekordbox.readthedocs.io/en/latest/formats/db6.html#djmdcontent)
+    table's column names, except where additional derived fields have been added for convenience.
+    What's defined here are just the fields RBE cares about, but all database columns and their raw
+    are silently included in each Track instance, and are included in `--print json`.
     """
 
     model_config = ConfigDict(extra="allow")
@@ -125,7 +127,9 @@ SkipReason: TypeAlias = Literal[
 
 
 class SkippedTrack(BaseModel):
-    """A track the command declined to operate on."""
+    """A track the command declined to operate on.
+    e.g. A result in a [convert][rekordbox_edit.api.convert] command that is already the target format.
+    """
 
     id: str
     reason: SkipReason

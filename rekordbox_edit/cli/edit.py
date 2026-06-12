@@ -37,9 +37,9 @@ logger = logging.getLogger(__name__)
 )
 @add_click_options(
     [
-        *global_click_filters,
-        *global_click_confirmations,
         *edit_click_options,
+        *global_click_confirmations,
+        *global_click_filters,
         print_option,
     ]
 )
