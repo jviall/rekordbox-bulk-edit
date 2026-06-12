@@ -69,6 +69,23 @@ class TestClassifyConvert:
     @patch("rekordbox_edit.api.convert.os.path.exists", return_value=False)
     @patch("rekordbox_edit.api.convert._get_output_path")
     @patch("rekordbox_edit.api.convert.get_file_type_for_format")
+    def test_mp3_output_ignores_source_sample_rate(
+        self, mock_get_type, mock_get_output, mock_exists, make_djmd_content_item
+    ):
+        mock_get_type.side_effect = lambda fmt: {"AIFF": 1, "MP3": 5, "M4A": 6}.get(
+            fmt.upper(), 99
+        )
+        mock_get_output.return_value = ("/out.mp3", "out.mp3", "/")
+        content = make_djmd_content_item(ID="7", FileType=11, SampleRate=22050)
+
+        result = _classify_convert(content, ConvertRequest(format_out="mp3"))
+
+        assert isinstance(result, ConvertOp)
+        assert result.output_sample_rate == 44100
+
+    @patch("rekordbox_edit.api.convert.os.path.exists", return_value=False)
+    @patch("rekordbox_edit.api.convert._get_output_path")
+    @patch("rekordbox_edit.api.convert.get_file_type_for_format")
     def test_missing_db_fields_default_to_target(
         self, mock_get_type, mock_get_output, mock_exists, make_djmd_content_item
     ):
@@ -173,7 +190,7 @@ class TestClassifyConvert:
     @patch("rekordbox_edit.api.convert.os.path.exists", return_value=False)
     @patch("rekordbox_edit.api.convert._get_output_path")
     @patch("rekordbox_edit.api.convert.get_file_type_for_format")
-    def test_mp3_output_audio_fields_left_to_encoder(
+    def test_mp3_output_targets_conversion_default(
         self, mock_get_type, mock_get_output, mock_exists, make_djmd_content_item
     ):
         mock_get_type.side_effect = lambda fmt: {"AIFF": 1, "MP3": 5, "M4A": 6}.get(
@@ -186,8 +203,8 @@ class TestClassifyConvert:
 
         assert isinstance(result, ConvertOp)
         assert result.output_file_type == "MP3"
-        assert result.output_bit_depth is None
-        assert result.output_sample_rate is None
+        assert result.output_bit_depth == 16
+        assert result.output_sample_rate == 44100
 
 
 def _seed_db(mock_db, *contents):
@@ -1102,6 +1119,21 @@ class TestConvertToMp3:
         result = _convert_to_mp3("in.flac", "out.mp3")
 
         assert result is True
+
+    @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=True)
+    @patch("rekordbox_edit.api.convert.ffmpeg")
+    def test_encodes_at_conversion_target(self, mock_ffmpeg, _):
+        mock_input = Mock()
+        mock_ffmpeg.input.return_value = mock_input
+        mock_output = mock_input.output.return_value
+        mock_output.overwrite_output.return_value = mock_output
+        mock_output.run.return_value = None
+
+        _convert_to_mp3("in.flac", "out.mp3")
+
+        _, kwargs = mock_input.output.call_args
+        assert kwargs["ar"] == 44100
+        assert kwargs["sample_fmt"] == "s16p"
 
     @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=False)
     def test_ffmpeg_not_found_raises(self, _):

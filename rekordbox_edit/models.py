@@ -149,8 +149,9 @@ class EditOp(BaseModel):
 class ConvertOp(BaseModel):
     """A planned or performed conversion: track ID, source/output paths, and
     the file type, bit depth, and sample rate on each side. Source audio
-    fields mirror the database record; MP3 output leaves bit depth and sample
-    rate to the encoder, so those stay None."""
+    fields mirror the database record; output fields reflect the conversion
+    target, with the sample rate clamped to the source so a conversion never
+    up-samples."""
 
     id: str
     source_path: str

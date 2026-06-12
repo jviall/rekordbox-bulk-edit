@@ -4,18 +4,18 @@ Convert audio files between formats and update the Rekordbox database to point a
 
 ## Supported Formats
 
-- **Input:** FLAC, AIFF, WAV (hi-res only — lossy-compressed sources are skipped)
+- **Input:** FLAC, AIFF, WAV (hi-res formats only — lossy-compressed sources are skipped)
 - **Output:** AIFF (default), FLAC, WAV, or MP3 (320kbps CBR)
 
 Tracks already in the target format are skipped, as are tracks whose output file already exists (override with `--overwrite`).
 
 ## Bit Depth and Sample Rate
 
-Lossless conversions target **16-bit / 44.1 kHz**:
+All conversions target **16-bit / 44.1 kHz**, with a few nuances:
 
 - A source already at the target bit depth and sample rate converts losslessly.
 - A higher-resolution source (say 24-bit or 96 kHz) is down-sampled to the target, and is considered **lossy** even between lossless formats.
-- A source below the target keeps its own sample rate: up-sampling cannot restore resolution the file never had.
+- Other than conversion to MP3, which always encode to 44.1 kHz, a source with a lower sample rate than the target fidelity keeps its original sample rate.
 
 ## Originals: Delete or Keep
 
@@ -49,7 +49,7 @@ rbe search --artist "Lauryn Hill" --print ids | rbe convert --yes
 
 ### Guardrails
 - Without flags, `convert` shows every planned change and asks once before applying. `--interactive` confirms each track individually; `--dry-run` previews without writing; `--yes` confirms the default choice for all prompts without asking.
-- Editing while Rekordbox is open risks corrupting your database. By default `convert` warns; in a non-interactive mode (e.g. `--print ids`) it throws an error.
+- Editing while Rekordbox is open risks corrupting your database. By default `convert` warns and asks for confirmation (defaulting to no, so a `--yes` would exit); in a non-interactive mode (e.g. `--print ids`) it throws an error.
 
 ## Reference
 
