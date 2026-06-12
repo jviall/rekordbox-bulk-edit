@@ -54,7 +54,6 @@ def get_extension_for_format(format_name: str):
         "AIFF": ".aiff",
         "FLAC": ".flac",
         "WAV": ".wav",
-        "ALAC": ".m4a",
     }
     extension = _get_extension_for_format.get(format_name.upper())
     if extension is None:

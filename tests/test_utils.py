@@ -74,8 +74,6 @@ class TestGetGetExtensionForFormat:
         assert get_extension_for_format("wav") == ".wav"
         assert get_extension_for_format("AIFF") == ".aiff"
         assert get_extension_for_format("aiff") == ".aiff"
-        assert get_extension_for_format("ALAC") == ".m4a"
-        assert get_extension_for_format("alac") == ".m4a"
 
     def test_get_extension_for_format_invalid(self):
         """Test get_extension_for_format with invalid formats."""

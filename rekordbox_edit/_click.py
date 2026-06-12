@@ -158,9 +158,10 @@ edit_click_options = [
 
 convert_click_options = [
     click.option(
-        "--delete/--keep",
-        default=None,
-        help="Delete or keep original files after conversion (default: delete for lossless, keep for MP3)",
+        "--delete-originals",
+        type=click.Choice(["none", "lossless", "all"], case_sensitive=False),
+        default="lossless",
+        help="When to delete original files after conversion: 'lossless' deletes them only when converting to a hi-res format, 'all' always deletes them, 'none' never deletes them (default: lossless)",
     ),
     click.option(
         "--overwrite",
@@ -169,7 +170,7 @@ convert_click_options = [
     ),
     click.option(
         "--format-out",
-        type=click.Choice(["aiff", "flac", "wav", "alac", "mp3"], case_sensitive=False),
+        type=click.Choice(["aiff", "flac", "wav", "mp3"], case_sensitive=False),
         default="aiff",
         help="Output format (default: aiff)",
     ),

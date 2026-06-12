@@ -46,10 +46,10 @@ logger = logging.getLogger(__name__)
 )
 @with_database(writes=True)
 def convert_command(db, **kwargs):
-    """Convert lossless audio files between formats and update RekordBox database.
+    """Convert hi-res audio files between formats and update RekordBox database.
 
-    Supports conversion from any lossless format (FLAC, AIFF, WAV) to:
-    AIFF, FLAC, WAV, ALAC, or MP3. Skips lossy formats and files already in
+    Supports conversion from any hi-res format (FLAC, AIFF, WAV) to:
+    AIFF, FLAC, WAV, or MP3. Skips lossy formats and files already in
     the target format.
     """
     print_opt = kwargs.pop("print_opt", None)

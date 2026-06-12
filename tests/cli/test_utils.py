@@ -93,7 +93,7 @@ class TestNarrowToTrackIds:
             format=["flac"],
             format_out="aiff",
             overwrite=True,
-            delete=True,
+            delete_originals="all",
         )
 
         narrowed = _narrow_to_track_ids(args, ["a", "b"])
@@ -104,7 +104,7 @@ class TestNarrowToTrackIds:
         # Convert-specific fields preserved
         assert narrowed.format_out == "aiff"
         assert narrowed.overwrite is True
-        assert narrowed.delete is True
+        assert narrowed.delete_originals == "all"
 
     def test_works_for_edit_args(self):
         args = EditRequest(
