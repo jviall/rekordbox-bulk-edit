@@ -158,7 +158,9 @@ class TestEditRealRun:
         ]
         mock_gfc.return_value.scalars.return_value.all.return_value = contents
 
-        response = edit(mock_db, EditRequest(field="Title", replace_value="x", multi=True))
+        response = edit(
+            mock_db, EditRequest(field="Title", replace_value="x", multi=True)
+        )
 
         # The order of result.edits follows the classifier (i.e. the order
         # of contents). tracks aligns to edits.
