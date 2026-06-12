@@ -26,6 +26,7 @@ from rekordbox_edit.utils import (
     get_audio_info,
     get_extension_for_format,
     get_file_type_for_format,
+    get_file_type_name,
 )
 
 logger = logging.getLogger(__name__)
@@ -255,10 +256,24 @@ def _classify_convert(content, args: ConvertRequest) -> ConvertOp | SkippedTrack
             f"skip convert id={content.ID} reason=output_file_exists path={output_path}"
         )
         return SkippedTrack(id=str(content.ID), reason="output_file_exists")
+    mp3_out = args.format_out.upper() == "MP3"
+    # The DB SampleRate stands in for the probe here so dry-run previews match;
+    # the convert loop re-probes and reconciles.
+    output_sample_rate = None if mp3_out else _effective_sample_rate(content.SampleRate)
     return ConvertOp(
         id=str(content.ID),
         source_path=content.FolderPath or "",
         output_path=output_path,
+        source_file_type=(
+            get_file_type_name(content.FileType)
+            if content.FileType is not None
+            else None
+        ),
+        source_bit_depth=content.BitDepth,
+        source_sample_rate=content.SampleRate,
+        output_file_type=args.format_out.upper(),
+        output_bit_depth=None if mp3_out else TARGET_BIT_DEPTH,
+        output_sample_rate=output_sample_rate,
     )
 
 
@@ -342,6 +357,7 @@ def convert(
                 raise RuntimeError(f"Source not found: {src}")
 
             if args.format_out.upper() == "MP3":
+                output_sample_rate = None
                 success = _convert_to_mp3(src, op.output_path)
             else:
                 fidelity, output_sample_rate = _classify_source_fidelity(src)
@@ -367,7 +383,12 @@ def convert(
                 args.format_out.upper(),
             )
             converted_ops.append(
-                ConvertOp(id=op.id, source_path=src, output_path=op.output_path)
+                op.model_copy(
+                    update={
+                        "source_path": src,
+                        "output_sample_rate": output_sample_rate,
+                    }
+                )
             )
 
         db.session.commit()

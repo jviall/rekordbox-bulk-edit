@@ -52,7 +52,7 @@ class TestClassifyConvert:
     @patch("rekordbox_edit.api.convert.os.path.exists", return_value=False)
     @patch("rekordbox_edit.api.convert._get_output_path")
     @patch("rekordbox_edit.api.convert.get_file_type_for_format")
-    def test_below_target_source_converts(
+    def test_below_target_sample_rate_clamps_to_source(
         self, mock_get_type, mock_get_output, mock_exists, make_djmd_content_item
     ):
         mock_get_type.side_effect = lambda fmt: {"AIFF": 1, "MP3": 5, "M4A": 6}.get(
@@ -64,6 +64,27 @@ class TestClassifyConvert:
         result = _classify_convert(content, ConvertRequest(format_out="aiff"))
 
         assert isinstance(result, ConvertOp)
+        assert result.output_sample_rate == 22050
+
+    @patch("rekordbox_edit.api.convert.os.path.exists", return_value=False)
+    @patch("rekordbox_edit.api.convert._get_output_path")
+    @patch("rekordbox_edit.api.convert.get_file_type_for_format")
+    def test_missing_db_fields_default_to_target(
+        self, mock_get_type, mock_get_output, mock_exists, make_djmd_content_item
+    ):
+        mock_get_type.side_effect = lambda fmt: {"AIFF": 1, "MP3": 5, "M4A": 6}.get(
+            fmt.upper(), 99
+        )
+        mock_get_output.return_value = ("/out.aif", "out.aif", "/")
+        content = make_djmd_content_item(
+            ID="8", FileType=11, BitDepth=None, SampleRate=None
+        )
+
+        result = _classify_convert(content, ConvertRequest(format_out="aiff"))
+
+        assert isinstance(result, ConvertOp)
+        assert result.output_bit_depth == 16
+        assert result.output_sample_rate == 44100
 
     @patch("rekordbox_edit.api.convert.os.path.exists", return_value=True)
     @patch("rekordbox_edit.api.convert._get_output_path")
@@ -124,6 +145,49 @@ class TestClassifyConvert:
         assert result.id == "4"
         assert result.source_path == "/music/song.wav"
         assert result.output_path == "/music/song.aif"
+
+    @patch("rekordbox_edit.api.convert.os.path.exists", return_value=False)
+    @patch("rekordbox_edit.api.convert._get_output_path")
+    @patch("rekordbox_edit.api.convert.get_file_type_for_format")
+    def test_populates_audio_fields(
+        self, mock_get_type, mock_get_output, mock_exists, make_djmd_content_item
+    ):
+        mock_get_type.side_effect = lambda fmt: {"AIFF": 1, "MP3": 5, "M4A": 6}.get(
+            fmt.upper(), 99
+        )
+        mock_get_output.return_value = ("/music/song.aif", "song.aif", "/music")
+        content = make_djmd_content_item(
+            ID="4", FileType=11, BitDepth=24, SampleRate=96000
+        )
+
+        result = _classify_convert(content, ConvertRequest(format_out="aiff"))
+
+        assert isinstance(result, ConvertOp)
+        assert result.source_file_type == "WAV"
+        assert result.source_bit_depth == 24
+        assert result.source_sample_rate == 96000
+        assert result.output_file_type == "AIFF"
+        assert result.output_bit_depth == 16
+        assert result.output_sample_rate == 44100
+
+    @patch("rekordbox_edit.api.convert.os.path.exists", return_value=False)
+    @patch("rekordbox_edit.api.convert._get_output_path")
+    @patch("rekordbox_edit.api.convert.get_file_type_for_format")
+    def test_mp3_output_audio_fields_left_to_encoder(
+        self, mock_get_type, mock_get_output, mock_exists, make_djmd_content_item
+    ):
+        mock_get_type.side_effect = lambda fmt: {"AIFF": 1, "MP3": 5, "M4A": 6}.get(
+            fmt.upper(), 99
+        )
+        mock_get_output.return_value = ("/music/song.mp3", "song.mp3", "/music")
+        content = make_djmd_content_item(ID="7", FileType=11)
+
+        result = _classify_convert(content, ConvertRequest(format_out="mp3"))
+
+        assert isinstance(result, ConvertOp)
+        assert result.output_file_type == "MP3"
+        assert result.output_bit_depth is None
+        assert result.output_sample_rate is None
 
 
 def _seed_db(mock_db, *contents):
@@ -255,7 +319,14 @@ class TestConvertRealRun:
         )
         mock_update.assert_called_once()
         mock_db.session.commit.assert_called_once()
-        assert response.result.converted[0].id == "1"
+        op = response.result.converted[0]
+        assert op.id == "1"
+        assert op.source_file_type == "WAV"
+        assert op.source_bit_depth == 16
+        assert op.source_sample_rate == 44100
+        assert op.output_file_type == "AIFF"
+        assert op.output_bit_depth == 16
+        assert op.output_sample_rate == 44100
         assert response.result.deleted == 0
         assert response.tracks[0].ID == "1"
 
@@ -458,7 +529,8 @@ class TestConvertRealRun:
         make_djmd_content_item,
     ):
         # DB fields say 16/44.1 but the probe reveals a 22.05 kHz source: the
-        # conversion keeps the source rate instead of up-sampling.
+        # conversion keeps the source rate instead of up-sampling, and the op
+        # reports the rate that was actually encoded.
         mock_get_type.side_effect = lambda fmt: {"AIFF": 1, "MP3": 5, "M4A": 6}.get(
             fmt.upper(), 99
         )
@@ -472,7 +544,8 @@ class TestConvertRealRun:
         mock_hi_res.assert_called_once_with(
             "/in.wav", "/out.aif", OutputFormats.AIFF, 22050
         )
-        assert len(response.result.converted) == 1
+        op = response.result.converted[0]
+        assert op.output_sample_rate == 22050
         assert response.result.skipped == []
 
     @patch("rekordbox_edit.api.convert.os.remove")
