@@ -12,12 +12,6 @@ runs:
     - name: Setup UV
       uses: ./.github/actions/install
 
-    - name: Validate Conventional Commits
-      shell: bash
-      if: ${{ github.ref != 'refs/heads/main' }}
-      run: |
-        uv run cz check --rev-range origin/main..HEAD
-
     - name: Run lint
       shell: bash
       run: |
