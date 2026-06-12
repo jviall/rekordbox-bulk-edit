@@ -84,7 +84,8 @@ class ConvertRequest(FilterArgs):
     delete_originals: DeleteOriginalsMode = "lossless"
     """When to delete original files after conversion: "all" always deletes
     them, "none" never deletes them, and "lossless" (the default) deletes them
-    only when converting to a hi-res format."""
+    only when the conversion loses no audio information. Down-sampling to the
+    conversion target counts as lossy, as does MP3 output."""
     overwrite: bool = False
 
 

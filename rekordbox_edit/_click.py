@@ -161,7 +161,7 @@ convert_click_options = [
         "--delete-originals",
         type=click.Choice(["none", "lossless", "all"], case_sensitive=False),
         default="lossless",
-        help="When to delete original files after conversion: 'lossless' deletes them only when converting to a hi-res format, 'all' always deletes them, 'none' never deletes them (default: lossless)",
+        help="When to delete original files after conversion: 'lossless' deletes them only when no audio information was lost (down-sampling and MP3 output count as lossy), 'all' always deletes them, 'none' never deletes them (default: lossless)",
     ),
     click.option(
         "--overwrite",

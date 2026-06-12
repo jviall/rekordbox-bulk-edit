@@ -9,11 +9,19 @@ Convert audio files between formats and update the Rekordbox database to point a
 
 Tracks already in the target format are skipped, as are tracks whose output file already exists (override with `--overwrite`).
 
+## Bit Depth and Sample Rate
+
+Lossless conversions target **16-bit / 44.1 kHz**:
+
+- A source already at the target bit depth and sample rate converts losslessly.
+- A higher-resolution source (say 24-bit or 96 kHz) is down-sampled to the target, and is considered **lossy** even between lossless formats.
+- A source below the target keeps its own sample rate: up-sampling cannot restore resolution the file never had.
+
 ## Originals: Delete or Keep
 
 `--delete-originals` controls what happens to the source file after a successful conversion:
 
-- `lossless` (default) — delete the original when converting to a hi-res format (you can always convert back); keep it when converting to MP3 (the quality loss is one-way)
+- `lossless` (default) — delete the original only when the conversion lost no audio information; keep it when the conversion was lossy (MP3 output or down-sampled hi-res output)
 - `all` — always delete the original
 - `none` — never delete the original
 

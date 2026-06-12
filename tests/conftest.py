@@ -41,7 +41,7 @@ def make_djmd_content_item():
             "FolderPath",
             "/super/very/extra/unnecessarily/long/path/to/music/test_track.wav",
         )
-        item.SampleRate = kwargs.get("SampleRate", 41000)
+        item.SampleRate = kwargs.get("SampleRate", 44100)
         item.BitDepth = kwargs.get("BitDepth", 16)
         item.BitRate = kwargs.get("BitRate", 2113)
         item.FileType = kwargs.get("FileType", 11)
@@ -66,7 +66,7 @@ def make_track():
                 "FolderPath",
                 "/super/very/extra/unnecessarily/long/path/to/music/test_track.wav",
             ),
-            SampleRate=kwargs.get("SampleRate", 41000),
+            SampleRate=kwargs.get("SampleRate", 44100),
             BitDepth=kwargs.get("BitDepth", 16),
             BitRate=kwargs.get("BitRate", 2113),
             FileType=kwargs.get("FileType", 11),
