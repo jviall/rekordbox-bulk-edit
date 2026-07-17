@@ -11,6 +11,7 @@ from rekordbox_edit.utils import (
     get_file_type_codes_for_format,
     get_file_type_for_format,
     get_file_type_name,
+    probe_matches_file_type,
 )
 
 
@@ -462,3 +463,28 @@ class TestConfirm:
 
         with pytest.raises(UserQuit, match="User quit"):
             confirm("Continue?", default=True, abort=False)
+
+
+class TestProbeMatchesFileType:
+    @pytest.mark.parametrize(
+        "code,codec,container,expected",
+        [
+            (5, "flac", "flac", True),
+            (6, "alac", "mov,mp4,m4a,3gp,3g2,mj2", True),
+            (6, "aac", "mov,mp4,m4a,3gp,3g2,mj2", False),  # lossy posing as ALAC
+            (4, "aac", "mov,mp4,m4a,3gp,3g2,mj2", True),
+            (11, "pcm_s16le", "wav", True),
+            (11, "pcm_s24le", "wav", True),
+            (11, "flac", "wav", False),
+            (11, "pcm_s16le", "aiff", False),  # container disambiguates PCM
+            (12, "pcm_s16be", "aiff", True),
+            (12, "pcm_s16le", "wav", False),
+            (1, "mp3", "mp3", True),
+            (1, "flac", "flac", False),
+            (99, "flac", "flac", False),  # unknown codes never match
+            (None, "flac", "flac", False),
+            (5, None, None, False),
+        ],
+    )
+    def test_matching(self, code, codec, container, expected):
+        assert probe_matches_file_type(code, codec, container) is expected
