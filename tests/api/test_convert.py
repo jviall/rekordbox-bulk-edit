@@ -224,6 +224,27 @@ class TestClassifyConvert:
         assert result.output_bit_depth == 16
         assert result.output_sample_rate == 44100
 
+    @patch("rekordbox_edit.api.convert.os.path.exists", return_value=False)
+    @patch("rekordbox_edit.api.convert._get_output_path")
+    def test_alac_source_is_convertible(
+        self, mock_get_output, mock_exists, make_djmd_content_item
+    ):
+        mock_get_output.return_value = ("/out.aif", "out.aif", "/")
+        content = make_djmd_content_item(ID="10", FileType=6, FolderPath="/in.m4a")
+
+        result = _classify_convert(content, ConvertRequest(format_out="aiff"))
+
+        assert isinstance(result, ConvertOp)
+        assert result.source_file_type == "ALAC"
+
+    def test_aac_source_skipped_as_unsupported(self, make_djmd_content_item):
+        content = make_djmd_content_item(ID="11", FileType=4)
+
+        result = _classify_convert(content, ConvertRequest(format_out="aiff"))
+
+        assert isinstance(result, SkippedTrack)
+        assert result.reason == "unsupported_source_format"
+
 
 def _seed_db(mock_db, *contents):
     """Make mock_db.session.execute(select).scalars().all() return contents."""

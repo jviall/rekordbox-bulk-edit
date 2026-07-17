@@ -17,7 +17,7 @@ Repeating a filter, or combining different filters, matches tracks that satisfy 
 | `--exact-album TEXT` | album name is exactly `TEXT` |
 | `--playlist TEXT` | playlist name contains `TEXT` |
 | `--exact-playlist TEXT` | playlist name is exactly `TEXT` |
-| `--format FMT` | file format is `FMT` (`mp3`, `flac`, `aiff`, `wav`, `m4a`) |
+| `--format FMT` | Rekordbox file type is `FMT` (`mp3`, `mp4`, `aac`, `flac`, `alac`, `wav`, `aiff`, `video`, `invalid`) |
 | `--path TEXT` | file path contains `TEXT` (matched against the folder path, filename, or both) |
 | `--exact-path TEXT` | file path is exactly `TEXT` (resolved to an absolute path before matching) |
 | `--first N` | return only the first N results |

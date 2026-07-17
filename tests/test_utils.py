@@ -8,25 +8,36 @@ from rekordbox_edit.utils import (
     UserQuit,
     get_audio_info,
     get_extension_for_format,
+    get_file_type_codes_for_format,
     get_file_type_for_format,
     get_file_type_name,
 )
 
 
 class TestGetFileTypeName:
-    """Test getter functions."""
+    """Test file type name mapping."""
 
     def test_get_file_type_name_known_types(self):
         """Test get_file_type_name with known file type codes."""
-        assert get_file_type_name(0) == "MP3"
         assert get_file_type_name(1) == "MP3"
-        assert get_file_type_name(4) == "M4A"
+        assert get_file_type_name(4) == "AAC"
         assert get_file_type_name(5) == "FLAC"
+        assert get_file_type_name(6) == "ALAC"
         assert get_file_type_name(11) == "WAV"
         assert get_file_type_name(12) == "AIFF"
 
+    def test_get_file_type_name_video_types(self):
+        """Code 3 is the .mp4 container regardless of content; code 16
+        covers every other video container (avi, m4v, mov, mpg)."""
+        assert get_file_type_name(3) == "MP4"
+        assert get_file_type_name(16) == "VIDEO"
+
+    def test_get_file_type_name_invalid_type(self):
+        """Code 0 means corrupt or empty content, independent of container."""
+        assert get_file_type_name(0) == "INVALID"
+
     def test_get_file_type_name_unknown_types(self):
-        """Unmapped codes return None instead of raising; the map is total."""
+        """Unknown codes return None so callers pick their own fallback."""
         assert get_file_type_name(None) is None
         assert get_file_type_name(-1) is None
         assert get_file_type_name(99) is None
@@ -34,7 +45,7 @@ class TestGetFileTypeName:
 
 class TestGetFileTypeForFormat:
     def test_get_file_type_for_format_case_insensitive(self):
-        """Test get_file_type_for_format is case-insensitive."""
+        """Output formats resolve to their unique code, case-insensitively."""
         assert get_file_type_for_format("MP3") == 1
         assert get_file_type_for_format("mp3") == 1
         assert get_file_type_for_format("Mp3") == 1
@@ -42,46 +53,71 @@ class TestGetFileTypeForFormat:
         assert get_file_type_for_format("flac") == 5
         assert get_file_type_for_format("wav") == 11
         assert get_file_type_for_format("AIFF") == 12
-        assert get_file_type_for_format("M4A") == 4
+
+    def test_get_file_type_for_format_rejects_non_output_formats(self):
+        """Tokens RBE cannot write as output are rejected."""
+        with pytest.raises(ValueError, match="Unknown format"):
+            get_file_type_for_format("aac")
+        with pytest.raises(ValueError, match="Unknown format"):
+            get_file_type_for_format("alac")
+        with pytest.raises(ValueError, match="Unknown format"):
+            get_file_type_for_format("mp4")
+        with pytest.raises(ValueError, match="Unknown format"):
+            get_file_type_for_format("video")
+        with pytest.raises(ValueError, match="Unknown format"):
+            get_file_type_for_format("invalid")
 
     def test_get_file_type_for_format_invalid(self):
         """Test get_file_type_for_format with invalid formats."""
-        import pytest
-
-        with pytest.raises(ValueError, match="Unknown format: invalid"):
-            get_file_type_for_format("invalid")
-
-        with pytest.raises(ValueError, match="Format name cannot be empty or None"):
+        with pytest.raises(ValueError, match="Unknown format"):
+            get_file_type_for_format("xyz")
+        with pytest.raises(ValueError, match="cannot be empty"):
             get_file_type_for_format("")
-
-        with pytest.raises(ValueError, match="Format name cannot be empty or None"):
+        with pytest.raises(ValueError, match="cannot be empty"):
             get_file_type_for_format(None)  # ty: ignore[invalid-argument-type]
 
 
-class TestGetGetExtensionForFormat:
+class TestGetFileTypeCodesForFormat:
+    def test_single_code_tokens(self):
+        assert get_file_type_codes_for_format("mp3") == {1}
+        assert get_file_type_codes_for_format("flac") == {5}
+        assert get_file_type_codes_for_format("WAV") == {11}
+        assert get_file_type_codes_for_format("aiff") == {12}
+        assert get_file_type_codes_for_format("aac") == {4}
+        assert get_file_type_codes_for_format("alac") == {6}
+        assert get_file_type_codes_for_format("mp4") == {3}
+        assert get_file_type_codes_for_format("video") == {16}
+        assert get_file_type_codes_for_format("invalid") == {0}
+
+    def test_m4a_is_not_a_token(self):
+        """Tokens mirror FileType values; the extension-level m4a token was
+        removed, so callers filter AAC/ALAC directly or search by path."""
+        with pytest.raises(ValueError, match="Unknown format"):
+            get_file_type_codes_for_format("m4a")
+
+    def test_invalid_raises(self):
+        with pytest.raises(ValueError, match="Unknown format"):
+            get_file_type_codes_for_format("xyz")
+        with pytest.raises(ValueError, match="cannot be empty"):
+            get_file_type_codes_for_format("")
+
+
+class TestGetExtensionForFormat:
     def test_get_extension_for_format_case_insensitive(self):
         """Test get_extension_for_format is case-insensitive."""
         assert get_extension_for_format("MP3") == ".mp3"
         assert get_extension_for_format("mp3") == ".mp3"
-        assert get_extension_for_format("Mp3") == ".mp3"
         assert get_extension_for_format("FLAC") == ".flac"
-        assert get_extension_for_format("flac") == ".flac"
         assert get_extension_for_format("WAV") == ".wav"
-        assert get_extension_for_format("wav") == ".wav"
-        assert get_extension_for_format("AIFF") == ".aiff"
         assert get_extension_for_format("aiff") == ".aiff"
 
     def test_get_extension_for_format_invalid(self):
         """Test get_extension_for_format with invalid formats."""
-        import pytest
-
-        with pytest.raises(ValueError, match="Unknown format: invalid"):
-            get_extension_for_format("invalid")
-
-        with pytest.raises(ValueError, match="Format name cannot be empty or None"):
+        with pytest.raises(ValueError, match="Unknown format"):
+            get_extension_for_format("xyz")
+        with pytest.raises(ValueError, match="cannot be empty"):
             get_extension_for_format("")
-
-        with pytest.raises(ValueError, match="Format name cannot be empty or None"):
+        with pytest.raises(ValueError, match="cannot be empty"):
             get_extension_for_format(None)  # ty: ignore[invalid-argument-type]
 
 

@@ -149,7 +149,7 @@ class TestPrintTrackInfo:
         """Test printing track with unknown file type."""
         mock_content = make_track(
             ID="123",
-            FileType=6,
+            FileType=99,
         )
 
         print_track_info([mock_content], self.TEST_PRINT_COLUMNS)

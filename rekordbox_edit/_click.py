@@ -91,7 +91,10 @@ global_click_filters = [
     ),
     click.option(
         "--format",
-        type=click.Choice(["mp3", "flac", "aiff", "wav", "m4a"], case_sensitive=False),
+        type=click.Choice(
+            ["mp3", "mp4", "aac", "flac", "alac", "wav", "aiff", "video", "invalid"],
+            case_sensitive=False,
+        ),
         multiple=True,
         help="Find tracks of this format",
     ),

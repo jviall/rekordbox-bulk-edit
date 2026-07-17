@@ -21,7 +21,7 @@ from rekordbox_edit.models import (
 )
 from rekordbox_edit.query import get_filtered_content
 from rekordbox_edit.utils import (
-    InputFormats,
+    FILE_TYPES,
     OutputFormats,
     get_audio_info,
     get_extension_for_format,
@@ -34,8 +34,8 @@ logger = logging.getLogger(__name__)
 TARGET_BIT_DEPTH = 16
 TARGET_SAMPLE_RATE = 44100
 
-# Rekordbox FileType codes RBE converts from: the hi-res lossless whitelist.
-_INPUT_FILE_TYPES = {get_file_type_for_format(fmt.value) for fmt in InputFormats}
+# Rekordbox FileType codes RBE converts from: the lossless whitelist.
+_INPUT_FILE_TYPES = {code for code, info in FILE_TYPES.items() if info.convertable}
 
 _HI_RES_CODECS = {
     "aiff": "pcm_s16be",
