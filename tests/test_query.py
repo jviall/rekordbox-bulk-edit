@@ -256,12 +256,11 @@ class TestCollectionQuery:
 
     def test_by_format(self, mocker):
         """Test that the by_format method does not modify the statement and
-        adds a condition on the DjmdContent.FileType field."""
-        # Mock the get_file_type_for_format function
-        mock_get_file_type = mocker.patch(
-            "rekordbox_edit.utils.get_file_type_for_format"
+        adds an IN condition on the DjmdContent.FileType field."""
+        mock_get_codes = mocker.patch(
+            "rekordbox_edit.utils.get_file_type_codes_for_format"
         )
-        mock_get_file_type.return_value = 5  # Example file type code
+        mock_get_codes.return_value = {5}
 
         query = CollectionQuery()
         format_name = "FLAC"
@@ -279,12 +278,13 @@ class TestCollectionQuery:
         new_stmt_str = str(new_query._stmt)
         assert new_stmt_str == original_stmt_str
 
-        # Check that the condition involves FileType
+        # Check that the condition is an IN over FileType
         condition_str = str(new_query._conditions[0]).lower()
         assert "filetype" in condition_str
+        assert "in" in condition_str
 
         # Verify the helper function was called
-        mock_get_file_type.assert_called_once_with(format_name)
+        mock_get_codes.assert_called_once_with(format_name)
 
     def test_copy(self):
         """ """
@@ -378,7 +378,7 @@ class TestCollectionQuery:
     def test_by_format_invalid(self, mocker):
         """Invalid format logs a warning and returns a copy without adding a condition."""
         mocker.patch(
-            "rekordbox_edit.utils.get_file_type_for_format",
+            "rekordbox_edit.utils.get_file_type_codes_for_format",
             side_effect=ValueError("unknown format"),
         )
         mock_warn = mocker.patch("rekordbox_edit.query.logger")

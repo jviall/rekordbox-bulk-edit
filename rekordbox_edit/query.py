@@ -132,7 +132,7 @@ class CollectionQuery:
 
     def by_format(self, format_name: str) -> "CollectionQuery":
         """Filter by file format."""
-        from rekordbox_edit.utils import get_file_type_for_format
+        from rekordbox_edit.utils import get_file_type_codes_for_format
 
         if not format_name:
             logger.warning("Empty format filter has no effect")
@@ -141,8 +141,8 @@ class CollectionQuery:
         new_inst = self._copy()
 
         try:
-            file_type_code = get_file_type_for_format(format_name)
-            condition = DjmdContent.FileType == file_type_code
+            file_type_codes = get_file_type_codes_for_format(format_name)
+            condition = DjmdContent.FileType.in_(file_type_codes)
             new_inst._conditions.append(condition)
         except ValueError:
             logger.warning(f"Invalid format: {format_name}")

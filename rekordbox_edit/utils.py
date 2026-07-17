@@ -3,6 +3,7 @@
 import logging
 import platform
 import shutil
+from dataclasses import dataclass
 from enum import Enum
 
 import click
@@ -17,61 +18,112 @@ class UserQuit(Exception):
     pass
 
 
-# File type mappings for Rekordbox database
-def get_file_type_name(file_type_code: int | None) -> str | None:
-    """Map a Rekordbox FileType code to a display name, or None if unmapped.
+@dataclass(frozen=True)
+class FileTypeInfo:
+    """One Rekordbox FileType code: how RBE names, filters, probes, and
+    converts it. ``codecs`` are ffprobe codec_name prefixes and
+    ``containers`` are format_name substrings; a probe must satisfy both
+    (WAV and AIFF share PCM codecs, so their containers disambiguate)."""
 
-    A total display map, not a guard: Rekordbox stores many codes RBE does not
-    convert (AAC, ALAC, video). Each caller chooses its own fallback for None.
-    """
+    code: int
+    name: str
+    token: str
+    extension: str | None = None
+    codecs: tuple[str, ...] = ()
+    containers: tuple[str, ...] = ()
+    convertable: bool = False
+
+
+FILE_TYPES: dict[int, FileTypeInfo] = {
+    # Corrupt or empty content, independent of container.
+    0: FileTypeInfo(code=0, name="INVALID", token="invalid"),
+    1: FileTypeInfo(code=1, name="MP3", token="mp3", extension=".mp3", codecs=("mp3",)),
+    # 3 is the .mp4 container regardless of content: audio-only AAC/ALAC
+    # .mp4 files land here alongside video .mp4, so RBE never converts it.
+    3: FileTypeInfo(code=3, name="MP4", token="mp4"),
+    4: FileTypeInfo(code=4, name="AAC", token="aac", codecs=("aac",)),
+    5: FileTypeInfo(
+        code=5,
+        name="FLAC",
+        token="flac",
+        extension=".flac",
+        codecs=("flac",),
+        convertable=True,
+    ),
+    6: FileTypeInfo(
+        code=6,
+        name="ALAC",
+        token="alac",
+        codecs=("alac",),
+        convertable=True,
+    ),
+    11: FileTypeInfo(
+        code=11,
+        name="WAV",
+        token="wav",
+        extension=".wav",
+        codecs=("pcm_",),
+        containers=("wav",),
+        convertable=True,
+    ),
+    12: FileTypeInfo(
+        code=12,
+        name="AIFF",
+        token="aiff",
+        extension=".aiff",
+        codecs=("pcm_",),
+        containers=("aiff",),
+        convertable=True,
+    ),
+    # Catch-all for non-mp4 video containers (avi, m4v, mov, mpg).
+    16: FileTypeInfo(code=16, name="VIDEO", token="video"),
+}
+
+
+def get_file_type_name(file_type_code: int | None) -> str | None:
+    """Map a Rekordbox FileType code to a display name, or None if unmapped."""
     if file_type_code is None:
         return None
-    _get_file_type_name = {
-        0: "MP3",
-        1: "MP3",
-        4: "M4A",
-        5: "FLAC",
-        11: "WAV",
-        12: "AIFF",
-    }
-    return _get_file_type_name.get(file_type_code)
+    info = FILE_TYPES.get(file_type_code)
+    return info.name if info else None
 
 
-def get_file_type_for_format(format_name: str):
-    """Get file type code for format name (case-insensitive)."""
+def get_file_type_codes_for_format(format_name: str) -> set[int]:
+    """All FileType codes a format token matches (case-insensitive).
+
+    Tokens mirror FileType values one to one.
+    """
     if not format_name:
         raise ValueError("Format name cannot be empty or None")
-    _get_file_type_for_format = {"MP3": 1, "M4A": 4, "FLAC": 5, "WAV": 11, "AIFF": 12}
-    file_type = _get_file_type_for_format.get(format_name.upper())
-    if file_type is None:
+    token = format_name.lower()
+    codes = {code for code, info in FILE_TYPES.items() if token == info.token}
+    if not codes:
         raise ValueError(f"Unknown format: {format_name}")
-    return file_type
+    return codes
 
 
-def get_extension_for_format(format_name: str):
-    """Get file extension for format name (case-insensitive)."""
+def get_file_type_for_format(format_name: str) -> int:
+    """The FileType code Rekordbox records for files RBE writes in this
+    output format (case-insensitive). Raises for non-output formats."""
     if not format_name:
         raise ValueError("Format name cannot be empty or None")
-    _get_extension_for_format = {
-        "MP3": ".mp3",
-        "AIFF": ".aiff",
-        "FLAC": ".flac",
-        "WAV": ".wav",
-    }
-    extension = _get_extension_for_format.get(format_name.upper())
-    if extension is None:
-        raise ValueError(f"Unknown format: {format_name}")
+    token = format_name.lower()
+    for code, info in FILE_TYPES.items():
+        if info.extension and token == info.token:
+            return code
+    raise ValueError(f"Unknown format: {format_name}")
+
+
+def get_extension_for_format(format_name: str) -> str:
+    """Get file extension for an output format name (case-insensitive)."""
+    code = get_file_type_for_format(format_name)
+    extension = FILE_TYPES[code].extension
+    assert extension is not None  # get_file_type_for_format only returns such codes
     return extension
 
 
 class OutputFormats(Enum):
     MP3 = "mp3"
-    FLAC = "flac"
-    AIFF = "aiff"
-    WAV = "wav"
-
-
-class InputFormats(Enum):
     FLAC = "flac"
     AIFF = "aiff"
     WAV = "wav"
