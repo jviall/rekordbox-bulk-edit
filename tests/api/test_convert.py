@@ -13,6 +13,7 @@ from rekordbox_edit.api.convert import (
     _mp3_output_kwargs,
     _rollback_and_cleanup,
     _run_ffmpeg,
+    _update_anlz_paths,
     _update_database_record,
     convert,
 )
@@ -982,6 +983,101 @@ class TestConvertRealRun:
         mock_remove.assert_not_called()
         assert response.result.deleted == 0
 
+    @patch(
+        "rekordbox_edit.api.convert._classify_source_fidelity",
+        return_value=("lossless", 44100),
+    )
+    @patch("rekordbox_edit.api.convert._update_anlz_paths")
+    @patch("rekordbox_edit.api.convert._update_database_record")
+    @patch("rekordbox_edit.api.convert._run_ffmpeg", return_value=True)
+    @patch("rekordbox_edit.api.convert.os.path.exists", return_value=True)
+    @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=True)
+    @patch("rekordbox_edit.api.convert._get_output_path")
+    @patch("rekordbox_edit.api.convert.get_file_type_for_format")
+    @patch("rekordbox_edit.api.convert.get_filtered_content")
+    def test_updates_anlz_paths_after_commit(
+        self,
+        mock_gfc,
+        mock_get_type,
+        mock_get_output,
+        _ffmpeg,
+        _exists,
+        _run,
+        _update,
+        mock_anlz,
+        _fidelity,
+        mock_db,
+        make_djmd_content_item,
+    ):
+        mock_get_type.side_effect = lambda fmt: {"AIFF": 1, "MP3": 5, "M4A": 6}.get(
+            fmt.upper(), 99
+        )
+        mock_get_output.return_value = ("/music/out.aif", "out.aif", "/music")
+        content = make_djmd_content_item(
+            ID="1", FileType=11, FolderPath="/music/in.wav"
+        )
+        _seed_filter(mock_gfc, content)
+        _seed_db(mock_db, content)
+
+        convert(
+            mock_db,
+            ConvertRequest(format_out="aiff", delete_originals="none", overwrite=True),
+        )
+
+        mock_db.session.commit.assert_called_once()
+        mock_anlz.assert_called_once_with(mock_db, content, "out.aif")
+
+    @patch(
+        "rekordbox_edit.api.convert._classify_source_fidelity",
+        return_value=("lossless", 44100),
+    )
+    @patch(
+        "rekordbox_edit.api.convert._update_anlz_paths",
+        side_effect=RuntimeError("ANLZ write failed"),
+    )
+    @patch("rekordbox_edit.api.convert._rollback_and_cleanup")
+    @patch("rekordbox_edit.api.convert._update_database_record")
+    @patch("rekordbox_edit.api.convert._run_ffmpeg", return_value=True)
+    @patch("rekordbox_edit.api.convert.os.path.exists", return_value=True)
+    @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=True)
+    @patch("rekordbox_edit.api.convert._get_output_path")
+    @patch("rekordbox_edit.api.convert.get_file_type_for_format")
+    @patch("rekordbox_edit.api.convert.get_filtered_content")
+    def test_anlz_update_failure_is_non_fatal(
+        self,
+        mock_gfc,
+        mock_get_type,
+        mock_get_output,
+        _ffmpeg,
+        _exists,
+        _run,
+        _update,
+        mock_rollback,
+        _anlz,
+        _fidelity,
+        mock_db,
+        make_djmd_content_item,
+    ):
+        mock_get_type.side_effect = lambda fmt: {"AIFF": 1, "MP3": 5, "M4A": 6}.get(
+            fmt.upper(), 99
+        )
+        mock_get_output.return_value = ("/music/out.aif", "out.aif", "/music")
+        content = make_djmd_content_item(
+            ID="1", FileType=11, FolderPath="/music/in.wav"
+        )
+        _seed_filter(mock_gfc, content)
+        _seed_db(mock_db, content)
+
+        response = convert(
+            mock_db,
+            ConvertRequest(format_out="aiff", delete_originals="none", overwrite=True),
+        )
+
+        # The committed conversion stands; a failed PPTH refresh does not roll back.
+        mock_db.session.commit.assert_called_once()
+        mock_rollback.assert_not_called()
+        assert len(response.result.converted) == 1
+
 
 # ── Helper-function tests (preserved from existing file) ──────────────────
 
@@ -1116,6 +1212,88 @@ class TestMp3OutputKwargs:
 
 
 class TestUpdateDatabaseRecord:
+    @pytest.fixture(autouse=True)
+    def _mock_getsize(self):
+        # The converted file exists on disk by the time this runs in production;
+        # stub its size so the unit tests need no real file.
+        with patch("rekordbox_edit.api.convert.os.path.getsize", return_value=987654):
+            yield
+
+    @patch("rekordbox_edit.api.convert.get_audio_info")
+    def test_sets_file_size_from_converted_file(
+        self, mock_get_audio_info, make_djmd_content_item
+    ):
+        mock_db = Mock()
+        mock_content = make_djmd_content_item(ID=123, BitDepth=24)
+        mock_db.get_content().filter_by(ID=123).first.return_value = mock_content
+        mock_get_audio_info.return_value = {
+            "bitrate": 1000,
+            "bit_depth": 16,
+            "sample_rate": 44100,
+        }
+
+        _update_database_record(mock_db, "123", "output.aiff", "/path/to", "AIFF")
+
+        assert mock_content.FileSize == 987654
+
+    @patch("rekordbox_edit.api.convert.get_audio_info")
+    def test_normalizes_folder_path_separators(
+        self, mock_get_audio_info, make_djmd_content_item
+    ):
+        mock_db = Mock()
+        mock_content = make_djmd_content_item(ID=123, BitDepth=24)
+        mock_db.get_content().filter_by(ID=123).first.return_value = mock_content
+        mock_get_audio_info.return_value = {
+            "bitrate": 1000,
+            "bit_depth": 16,
+            "sample_rate": 44100,
+        }
+
+        # new_folder arrives with Windows separators, as os.path.dirname yields.
+        _update_database_record(mock_db, "123", "song.aiff", r"A:\Music\dir", "AIFF")
+
+        assert mock_content.FolderPath == "A:/Music/dir/song.aiff"
+
+    @patch("rekordbox_edit.api.convert.get_audio_info")
+    def test_org_folder_path_follows_when_it_matched_old_path(
+        self, mock_get_audio_info, make_djmd_content_item
+    ):
+        mock_db = Mock()
+        mock_content = make_djmd_content_item(
+            ID=123, BitDepth=24, FolderPath="A:/Music/song.wav"
+        )
+        mock_content.OrgFolderPath = "A:/Music/song.wav"  # matches the old path
+        mock_db.get_content().filter_by(ID=123).first.return_value = mock_content
+        mock_get_audio_info.return_value = {
+            "bitrate": 1000,
+            "bit_depth": 16,
+            "sample_rate": 44100,
+        }
+
+        _update_database_record(mock_db, "123", "song.aiff", "A:/Music", "AIFF")
+
+        assert mock_content.OrgFolderPath == "A:/Music/song.aiff"
+
+    @patch("rekordbox_edit.api.convert.get_audio_info")
+    def test_org_folder_path_left_alone_when_it_differed(
+        self, mock_get_audio_info, make_djmd_content_item
+    ):
+        mock_db = Mock()
+        mock_content = make_djmd_content_item(
+            ID=123, BitDepth=24, FolderPath="A:/Music/song.wav"
+        )
+        mock_content.OrgFolderPath = "A:/OriginalImport/song.wav"  # a real original
+        mock_db.get_content().filter_by(ID=123).first.return_value = mock_content
+        mock_get_audio_info.return_value = {
+            "bitrate": 1000,
+            "bit_depth": 16,
+            "sample_rate": 44100,
+        }
+
+        _update_database_record(mock_db, "123", "song.aiff", "A:/Music", "AIFF")
+
+        assert mock_content.OrgFolderPath == "A:/OriginalImport/song.wav"
+
     @patch("rekordbox_edit.api.convert.get_audio_info")
     def test_flac_sets_bitrate_zero(self, mock_get_audio_info, make_djmd_content_item):
         mock_db = Mock()
@@ -1127,7 +1305,7 @@ class TestUpdateDatabaseRecord:
             "sample_rate": 44100,
         }
 
-        _update_database_record(mock_db, 123, "output.flac", "/path/to", "FLAC")
+        _update_database_record(mock_db, "123", "output.flac", "/path/to", "FLAC")
 
         assert mock_content.FileNameL == "output.flac"
         assert mock_content.FolderPath == "/path/to/output.flac"
@@ -1146,7 +1324,7 @@ class TestUpdateDatabaseRecord:
             "sample_rate": 44100,
         }
 
-        _update_database_record(mock_db, 123, "output.aiff", "/path/to", "AIFF")
+        _update_database_record(mock_db, "123", "output.aiff", "/path/to", "AIFF")
 
         assert mock_content.BitDepth == 16
         assert mock_content.SampleRate == 44100
@@ -1164,7 +1342,7 @@ class TestUpdateDatabaseRecord:
             "sample_rate": None,
         }
 
-        _update_database_record(mock_db, 123, "output.aiff", "/path/to", "AIFF")
+        _update_database_record(mock_db, "123", "output.aiff", "/path/to", "AIFF")
 
         assert mock_content.BitDepth == 24
         assert mock_content.SampleRate == 96000
@@ -1182,7 +1360,7 @@ class TestUpdateDatabaseRecord:
             "sample_rate": 44100,
         }
 
-        _update_database_record(mock_db, 123, "output.mp3", "/path/to", "MP3")
+        _update_database_record(mock_db, "123", "output.mp3", "/path/to", "MP3")
 
         assert mock_content.BitRate == 320
 
@@ -1199,7 +1377,7 @@ class TestUpdateDatabaseRecord:
             "sample_rate": 44100,
         }
 
-        _update_database_record(mock_db, 123, "output.mp3", "/path/to", "MP3")
+        _update_database_record(mock_db, "123", "output.mp3", "/path/to", "MP3")
 
         assert mock_content.BitRate == 320
 
@@ -1216,7 +1394,7 @@ class TestUpdateDatabaseRecord:
             "sample_rate": 48000,
         }
 
-        _update_database_record(mock_db, 123, "output.mp3", "/path/to", "MP3")
+        _update_database_record(mock_db, "123", "output.mp3", "/path/to", "MP3")
 
         assert mock_content.BitDepth == 16
         assert mock_content.SampleRate == 48000
@@ -1226,7 +1404,34 @@ class TestUpdateDatabaseRecord:
         mock_db.get_content().filter_by(ID=123).first.return_value = None
 
         with pytest.raises(Exception, match="Content record with ID 123 not found"):
-            _update_database_record(mock_db, 123, "output.flac", "/path/to", "FLAC")
+            _update_database_record(mock_db, "123", "output.flac", "/path/to", "FLAC")
+
+
+class TestUpdateAnlzPaths:
+    def test_rewrites_ppth_to_device_relative_form(self, make_djmd_content_item):
+        mock_db = Mock()
+        content = make_djmd_content_item(ID=7)
+        content.AnalysisDataPath = "share/PIONEER/USBANLZ/x/ANLZ0000.DAT"
+        dat, ext = Mock(), Mock()
+        mock_db.read_anlz_files.return_value = {
+            "/a/ANLZ0000.DAT": dat,
+            "/a/ANLZ0000.EXT": ext,
+        }
+
+        _update_anlz_paths(mock_db, content, "new song.aiff")
+
+        dat.set_path.assert_called_once_with("?/new song.aiff")
+        dat.save.assert_called_once_with("/a/ANLZ0000.DAT")
+        ext.set_path.assert_called_once_with("?/new song.aiff")
+        ext.save.assert_called_once_with("/a/ANLZ0000.EXT")
+
+    def test_skips_track_without_analysis(self, make_djmd_content_item):
+        mock_db = Mock()
+        content = make_djmd_content_item(ID=7)  # AnalysisDataPath defaults to None
+
+        _update_anlz_paths(mock_db, content, "new.aiff")
+
+        mock_db.read_anlz_files.assert_not_called()
 
 
 class TestCleanupConvertedFiles:

@@ -2,7 +2,6 @@
 
 import logging
 import os
-import posixpath
 from pathlib import Path
 from typing import Literal, Tuple
 
@@ -138,15 +137,21 @@ def _run_ffmpeg(input_path, output_path, output_kwargs: dict, label: str) -> boo
 
 
 def _update_database_record(
-    db, content_id, new_filename, new_folder, output_format
+    db: Rekordbox6Database,
+    content_id: str,
+    new_filename: str,
+    new_folder: str,
+    output_format: str,
 ) -> None:
     """Update database record with new file information."""
     content = db.get_content().filter_by(ID=content_id).first()
     if not content:
         raise Exception(f"Content record with ID {content_id} not found")
 
-    converted_full_path = posixpath.join(new_folder, new_filename)
-    converted_audio_info = get_audio_info(converted_full_path)
+    old_path = content.FolderPath
+    converted_file_path = Path(new_folder, new_filename)
+    converted_db_path = str(converted_file_path).replace("\\", "/")
+    converted_audio_info = get_audio_info(converted_file_path)
     converted_bitrate = converted_audio_info["bitrate"]
 
     if output_format.upper() == "MP3" and converted_bitrate is None:
@@ -171,14 +176,37 @@ def _update_database_record(
             content.BitDepth = converted_bit_depth
 
     content.FileNameL = new_filename
-    content.FolderPath = converted_full_path
+    content.FolderPath = converted_db_path
     content.FileType = file_type
+    content.FileSize = os.path.getsize(converted_file_path)
+
+    # Original location: only update if it matches FolderPath
+    if content.OrgFolderPath == old_path:
+        content.OrgFolderPath = converted_db_path
 
     # FLAC stores bitrate as 0 in Rekordbox to represent VBR
     if output_format.upper() == "FLAC":
         content.BitRate = 0
     else:
         content.BitRate = converted_bitrate
+
+
+def _update_anlz_paths(
+    db: Rekordbox6Database, content: DjmdContent, new_filename: str
+) -> None:
+    """Rewrite the PPTH path tag in a track's ANLZ files to the converted file
+    name, in rekordbox's device-relative ``?/<name>`` form.
+
+    No-op for tracks without an analysis.
+    """
+    if not content.AnalysisDataPath:
+        return
+    new_ppth = f"?/{new_filename}"
+    anlz_files = db.read_anlz_files(content.ID)
+    for anlz_path, anlz in anlz_files.items():
+        anlz.set_path(new_ppth)
+        anlz.save(anlz_path)
+        logger.debug(f"Updated PPTH of {anlz_path} to {new_ppth}")
 
 
 def _cleanup_converted_files(converted_ops: list[ConvertOp]) -> None:
@@ -395,6 +423,15 @@ def convert(
         )
         _rollback_and_cleanup(db, converted_ops)
         raise
+
+    for op in converted_ops:
+        content = content_map[op.id]
+        try:
+            _update_anlz_paths(db, content, os.path.basename(op.output_path))
+        except Exception as e:
+            logger.warning(
+                f"Failed to update ANLZ path tags for {content.FileNameL}: {e}"
+            )
 
     if args.delete_originals == "all":
         deletable_ops = converted_ops
