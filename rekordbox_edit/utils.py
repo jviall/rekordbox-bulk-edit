@@ -5,6 +5,7 @@ import platform
 import shutil
 from dataclasses import dataclass
 from enum import Enum
+from typing import TypedDict
 
 import click
 import ffmpeg
@@ -151,12 +152,24 @@ or https://ffmpeg.org/download.html
 """
 
 
-def get_audio_info(file_path) -> dict[str, int | None]:
+class AudioInfo(TypedDict):
+    """Fields extracted from an ffmpeg probe of one audio file."""
+
+    bit_depth: int | None
+    sample_rate: int
+    channels: int
+    bitrate: int | None
+    codec: str | None
+    container: str | None
+
+
+def get_audio_info(file_path) -> AudioInfo:
     """Get audio information from file using ffmpeg probe.
 
     Returns None for any field that cannot be determined from the probe data.
-    Callers are responsible for handling None values and applying format-specific
-    assumptions (e.g. MP3 has no true bit depth).
+    Callers are responsible for handling None values and applying
+    format-specific assumptions (e.g. MP3 has no true bit depth). ``codec``
+    is the stream's codec_name and ``container`` the probe's format_name.
     """
     try:
         # Check if ffmpeg is available first
@@ -215,6 +228,8 @@ def get_audio_info(file_path) -> dict[str, int | None]:
             "sample_rate": int(audio_stream.get("sample_rate", 44100)),
             "channels": int(audio_stream.get("channels", 2)),
             "bitrate": bitrate,
+            "codec": audio_stream.get("codec_name"),
+            "container": probe.get("format", {}).get("format_name"),
         }
     except Exception as e:
         logger.error(f"Failed to get audio info for {file_path}: {e}")
