@@ -16,6 +16,12 @@ def mock_logger():
         yield mock_log
 
 
+@pytest.fixture(autouse=True)
+def mock_rekordbox_not_running():
+    with patch("rekordbox_edit.cli._utils.get_rekordbox_pid", return_value=None):
+        yield
+
+
 def _response(tracks=None, edits=None, skipped=None):
     tracks = tracks or [
         Track(ID="1", Title="New", FileNameL="x.wav", FolderPath="/x.wav")
