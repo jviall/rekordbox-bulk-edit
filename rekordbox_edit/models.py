@@ -130,6 +130,7 @@ SkipReason: TypeAlias = Literal[
     "already_target_format",
     "unsupported_source_format",
     "output_file_exists",
+    "codec_mismatch",
 ]
 
 

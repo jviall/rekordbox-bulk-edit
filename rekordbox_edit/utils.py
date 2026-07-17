@@ -123,6 +123,25 @@ def get_extension_for_format(format_name: str) -> str:
     return extension
 
 
+def probe_matches_file_type(
+    file_type_code: int | None, codec: str | None, container: str | None
+) -> bool:
+    """Whether a probed codec/container is consistent with a Rekordbox
+    FileType code. Unknown codes never match, so callers treat them as
+    mismatches instead of converting blind."""
+    if file_type_code is None:
+        return False
+    info = FILE_TYPES.get(file_type_code)
+    if info is None:
+        return False
+    if info.codecs and not (codec or "").startswith(info.codecs):
+        return False
+    if info.containers:
+        if not container or not any(c in container for c in info.containers):
+            return False
+    return True
+
+
 class OutputFormats(Enum):
     MP3 = "mp3"
     FLAC = "flac"
