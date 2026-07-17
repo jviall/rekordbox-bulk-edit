@@ -326,6 +326,48 @@ class TestGetAudioInfo:
         assert result["bitrate"] == 320
         assert result["sample_rate"] == 44100
 
+    @patch("rekordbox_edit.utils.ffmpeg.probe")
+    def test_get_audio_info__codec_and_container(self, mock_probe, ffmpeg_exists):
+        """The probe's codec_name and format_name pass through."""
+        mock_probe.return_value = {
+            "streams": [
+                {
+                    "codec_type": "audio",
+                    "codec_name": "alac",
+                    "bits_per_sample": 16,
+                    "sample_rate": "44100",
+                    "channels": 2,
+                }
+            ],
+            "format": {"format_name": "mov,mp4,m4a,3gp,3g2,mj2"},
+        }
+
+        result = get_audio_info("/path/to/audio.m4a")
+
+        assert result["codec"] == "alac"
+        assert result["container"] == "mov,mp4,m4a,3gp,3g2,mj2"
+
+    @patch("rekordbox_edit.utils.ffmpeg.probe")
+    def test_get_audio_info__missing_codec_fields_are_none(
+        self, mock_probe, ffmpeg_exists
+    ):
+        """Probes without codec_name or a format section yield None fields."""
+        mock_probe.return_value = {
+            "streams": [
+                {
+                    "codec_type": "audio",
+                    "bits_per_sample": 16,
+                    "sample_rate": "44100",
+                    "channels": 2,
+                }
+            ]
+        }
+
+        result = get_audio_info("/path/to/audio.wav")
+
+        assert result["codec"] is None
+        assert result["container"] is None
+
 
 class TestConfirm:
     """Test confirm function."""
