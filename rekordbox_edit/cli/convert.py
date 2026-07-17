@@ -48,9 +48,10 @@ logger = logging.getLogger(__name__)
 def convert_command(db, **kwargs):
     """Convert hi-res audio files between formats and update RekordBox database.
 
-    Supports conversion from any hi-res format (FLAC, AIFF, WAV) to:
-    AIFF, FLAC, WAV, or MP3. Skips lossy formats and files already in
-    the target format.
+    Supports conversion from any hi-res format (FLAC, ALAC, AIFF, WAV) to:
+    AIFF, FLAC, WAV, or MP3. Skips lossy formats, video, and files already
+    in the target format. Each source's codec is verified against its
+    database file type before converting; mismatches are skipped.
 
     Lossless conversions target 16-bit/44.1 kHz: higher-resolution sources
     are down-sampled, and sources below the target keep their own sample
@@ -122,6 +123,9 @@ def convert_command(db, **kwargs):
             return
         response = convert(db, args)
 
+    # The preview cannot surface codec_mismatch (dry runs never probe), so
+    # report skips found only during the live run.
+    _report_skips([s for s in response.result.skipped if s.reason == "codec_mismatch"])
     _print_convert_result(response, print_opt, scripting_mode, dry_run=False)
 
 
@@ -129,16 +133,22 @@ def _report_skips(skipped) -> None:
     already_target = sum(1 for s in skipped if s.reason == "already_target_format")
     unsupported = sum(1 for s in skipped if s.reason == "unsupported_source_format")
     conflicts = sum(1 for s in skipped if s.reason == "output_file_exists")
+    mismatches = sum(1 for s in skipped if s.reason == "codec_mismatch")
     if already_target:
         logger.warning(f"Skipping {already_target} file(s): already in target format")
     if unsupported:
         logger.warning(
             f"Skipping {unsupported} file(s): unsupported source format "
-            "(only FLAC, AIFF, WAV are converted)"
+            "(only FLAC, ALAC, AIFF, WAV are converted)"
         )
     if conflicts:
         logger.warning(
             f"Skipping {conflicts} file(s): output exists (use --overwrite to convert)"
+        )
+    if mismatches:
+        logger.warning(
+            f"Skipping {mismatches} file(s): file content does not match its "
+            "Rekordbox file type"
         )
 
 

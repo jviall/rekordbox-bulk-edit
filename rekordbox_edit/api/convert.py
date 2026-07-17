@@ -22,11 +22,13 @@ from rekordbox_edit.models import (
 from rekordbox_edit.query import get_filtered_content
 from rekordbox_edit.utils import (
     FILE_TYPES,
+    AudioInfo,
     OutputFormats,
     get_audio_info,
     get_extension_for_format,
     get_file_type_for_format,
     get_file_type_name,
+    probe_matches_file_type,
 )
 
 logger = logging.getLogger(__name__)
@@ -55,16 +57,14 @@ def _effective_sample_rate(source_rate: int | None) -> int:
     return TARGET_SAMPLE_RATE
 
 
-def _classify_source_fidelity(
-    source_path,
+def _classify_fidelity(
+    audio_info: AudioInfo,
 ) -> Tuple[Literal["lossless", "lossy"], int]:
-    """Probe a source file and return the conversion's fidelity along with
-    its effective sample rate. "lossless" means no audio information is lost:
-    the source is at the target bit depth and at or below the target sample
-    rate. An unknown bit depth counts as lossy so originals are kept when in
-    doubt.
+    """The conversion's fidelity and effective sample rate for a probed
+    source. "lossless" means no audio information is lost: the source is at
+    the target bit depth and at or below the target sample rate. An unknown
+    bit depth counts as lossy so originals are kept when in doubt.
     """
-    audio_info = get_audio_info(source_path)
     bit_depth = audio_info["bit_depth"]
     sample_rate = audio_info["sample_rate"]
     logger.debug(
@@ -374,13 +374,25 @@ def convert(
             if not os.path.exists(src):
                 raise RuntimeError(f"Source not found: {src}")
 
+            audio_info = get_audio_info(src)
+            if not probe_matches_file_type(
+                content.FileType, audio_info["codec"], audio_info["container"]
+            ):
+                logger.warning(
+                    f"Skipping {content.FileNameL}: probed codec "
+                    f"{audio_info['codec']!r} does not match its Rekordbox "
+                    f"file type {get_file_type_name(content.FileType)!r}"
+                )
+                skipped.append(SkippedTrack(id=op.id, reason="codec_mismatch"))
+                continue
+
             if args.format_out.upper() == "MP3":
                 output_sample_rate = TARGET_SAMPLE_RATE
                 success = _run_ffmpeg(
                     src, op.output_path, _mp3_output_kwargs(output_sample_rate), "mp3"
                 )
             else:
-                fidelity, output_sample_rate = _classify_source_fidelity(src)
+                fidelity, output_sample_rate = _classify_fidelity(audio_info)
                 if fidelity == "lossless":
                     lossless_op_ids.add(op.id)
                 output_format = OutputFormats(args.format_out.lower())

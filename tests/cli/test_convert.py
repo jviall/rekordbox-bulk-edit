@@ -183,6 +183,32 @@ class TestConvertCommand:
         assert mock_convert.call_args_list[1].kwargs.get("dry_run", False) is False
 
     @patch("rekordbox_edit.cli.convert.print_track_info")
+    @patch("rekordbox_edit.cli.convert.confirm", return_value=True)
+    @patch("rekordbox_edit.cli.convert.convert")
+    @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
+    @patch("rekordbox_edit.cli._utils.get_rekordbox_pid", return_value=None)
+    def test_default_flow_reports_live_codec_mismatch_once(
+        self, _pid, mock_db_class, mock_convert, _confirm, _print, mock_logger
+    ):
+        mock_db_class.return_value = Mock(session=Mock())
+        # The preview cannot detect codec_mismatch (dry runs never probe);
+        # only the live run surfaces it. Both runs report the same
+        # classification skip, which must not be warned about twice.
+        preview_skips = [SkippedTrack(id="2", reason="already_target_format")]
+        live_skips = preview_skips + [SkippedTrack(id="3", reason="codec_mismatch")]
+        mock_convert.side_effect = [
+            _response(skipped=preview_skips),
+            _response(skipped=live_skips),
+        ]
+
+        result = CliRunner().invoke(convert_command, ["--format-out", "aiff"])
+
+        assert result.exit_code == 0
+        warnings = [c.args[0] for c in mock_logger.warning.call_args_list]
+        assert sum("does not match" in w for w in warnings) == 1
+        assert sum("already" in w for w in warnings) == 1
+
+    @patch("rekordbox_edit.cli.convert.print_track_info")
     @patch("rekordbox_edit.cli.convert.confirm", return_value=False)
     @patch("rekordbox_edit.cli.convert.convert")
     @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
