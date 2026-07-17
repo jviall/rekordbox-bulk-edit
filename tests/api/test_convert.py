@@ -6,7 +6,7 @@ import pytest
 
 from rekordbox_edit.api.convert import (
     _classify_convert,
-    _classify_source_fidelity,
+    _classify_fidelity,
     _cleanup_converted_files,
     _get_output_path,
     _hi_res_output_kwargs,
@@ -23,7 +23,40 @@ from rekordbox_edit.models import (
     ConvertResponse,
     SkippedTrack,
 )
-from rekordbox_edit.utils import OutputFormats
+from rekordbox_edit.utils import AudioInfo, OutputFormats
+
+_PROBE_WAV_16_44 = {
+    "bit_depth": 16,
+    "sample_rate": 44100,
+    "channels": 2,
+    "bitrate": 1411,
+    "codec": "pcm_s16le",
+    "container": "wav",
+}
+_PROBE_WAV_24_96 = {
+    "bit_depth": 24,
+    "sample_rate": 96000,
+    "channels": 2,
+    "bitrate": 4608,
+    "codec": "pcm_s24le",
+    "container": "wav",
+}
+_PROBE_WAV_16_22 = {
+    "bit_depth": 16,
+    "sample_rate": 22050,
+    "channels": 2,
+    "bitrate": 705,
+    "codec": "pcm_s16le",
+    "container": "wav",
+}
+_PROBE_AAC_M4A = {
+    "bit_depth": 16,
+    "sample_rate": 44100,
+    "channels": 2,
+    "bitrate": 256,
+    "codec": "aac",
+    "container": "mov,mp4,m4a,3gp,3g2,mj2",
+}
 
 
 class TestClassifyConvert:
@@ -333,10 +366,90 @@ class TestConvertRealRun:
         assert response.tracks == []
         mock_db.session.commit.assert_not_called()
 
-    @patch(
-        "rekordbox_edit.api.convert._classify_source_fidelity",
-        return_value=("lossless", 44100),
-    )
+    @patch("rekordbox_edit.api.convert.get_audio_info")
+    @patch("rekordbox_edit.api.convert._update_database_record")
+    @patch("rekordbox_edit.api.convert._run_ffmpeg", return_value=True)
+    @patch("rekordbox_edit.api.convert.os.path.exists", return_value=True)
+    @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=True)
+    @patch("rekordbox_edit.api.convert._get_output_path")
+    @patch("rekordbox_edit.api.convert.get_filtered_content")
+    def test_codec_mismatch_skips_track_and_continues(
+        self,
+        mock_gfc,
+        mock_get_output,
+        _ffmpeg,
+        _exists,
+        mock_run,
+        mock_update,
+        mock_probe,
+        mock_db,
+        make_djmd_content_item,
+    ):
+        # Row A claims ALAC but holds AAC; row B is a genuine WAV. A is
+        # skipped with codec_mismatch, B converts, and the run commits.
+        mock_get_output.side_effect = lambda content, fmt: (
+            f"/{content.ID}.aif",
+            f"{content.ID}.aif",
+            "/",
+        )
+        mismatched = make_djmd_content_item(ID="A", FileType=6, FolderPath="/A.m4a")
+        good = make_djmd_content_item(ID="B", FileType=11, FolderPath="/B.wav")
+        _seed_filter(mock_gfc, mismatched, good)
+        _seed_db(mock_db, good)
+        mock_probe.side_effect = lambda path: (
+            _PROBE_AAC_M4A if path == "/A.m4a" else _PROBE_WAV_16_44
+        )
+
+        response = convert(
+            mock_db,
+            ConvertRequest(format_out="aiff", delete_originals="none", overwrite=True),
+        )
+
+        assert [op.id for op in response.result.converted] == ["B"]
+        assert [t.ID for t in response.tracks] == ["B"]
+        assert {(s.id, s.reason) for s in response.result.skipped} == {
+            ("A", "codec_mismatch")
+        }
+        mock_run.assert_called_once()
+        mock_update.assert_called_once()
+        mock_db.session.commit.assert_called_once()
+
+    @patch("rekordbox_edit.api.convert.get_audio_info", return_value=_PROBE_AAC_M4A)
+    @patch("rekordbox_edit.api.convert.os.remove")
+    @patch("rekordbox_edit.api.convert._run_ffmpeg", return_value=True)
+    @patch("rekordbox_edit.api.convert.os.path.exists", return_value=True)
+    @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=True)
+    @patch("rekordbox_edit.api.convert._get_output_path")
+    @patch("rekordbox_edit.api.convert.get_filtered_content")
+    def test_codec_mismatch_never_touches_files(
+        self,
+        mock_gfc,
+        mock_get_output,
+        _ffmpeg,
+        _exists,
+        mock_run,
+        mock_remove,
+        _probe,
+        mock_db,
+        make_djmd_content_item,
+    ):
+        # Every op mismatches: no ffmpeg run, no deletion, empty response.
+        mock_get_output.return_value = ("/out.aif", "out.aif", "/")
+        content = make_djmd_content_item(ID="A", FileType=6, FolderPath="/A.m4a")
+        _seed_filter(mock_gfc, content)
+        _seed_db(mock_db)
+
+        response = convert(
+            mock_db,
+            ConvertRequest(format_out="aiff", delete_originals="all", overwrite=True),
+        )
+
+        mock_run.assert_not_called()
+        mock_remove.assert_not_called()
+        assert response.result.converted == []
+        assert response.result.skipped[0].reason == "codec_mismatch"
+
+    @patch("rekordbox_edit.api.convert.get_audio_info", return_value=_PROBE_WAV_16_44)
     @patch("rekordbox_edit.api.convert._update_database_record")
     @patch("rekordbox_edit.api.convert._run_ffmpeg", return_value=True)
     @patch("rekordbox_edit.api.convert.os.path.exists", return_value=True)
@@ -353,7 +466,7 @@ class TestConvertRealRun:
         mock_exists,
         mock_run,
         mock_update,
-        _fidelity,
+        _probe,
         mock_db,
         make_djmd_content_item,
     ):
@@ -389,10 +502,7 @@ class TestConvertRealRun:
         assert response.result.deleted == 0
         assert response.tracks[0].ID == "1"
 
-    @patch(
-        "rekordbox_edit.api.convert._classify_source_fidelity",
-        return_value=("lossless", 44100),
-    )
+    @patch("rekordbox_edit.api.convert.get_audio_info", return_value=_PROBE_WAV_16_44)
     @patch("rekordbox_edit.api.convert.os.remove")
     @patch("rekordbox_edit.api.convert._update_database_record")
     @patch("rekordbox_edit.api.convert._run_ffmpeg", return_value=True)
@@ -411,7 +521,7 @@ class TestConvertRealRun:
         mock_hi_res,
         mock_update,
         mock_remove,
-        _fidelity,
+        _probe,
         mock_db,
         make_djmd_content_item,
     ):
@@ -431,10 +541,7 @@ class TestConvertRealRun:
         mock_remove.assert_called_once_with("/in.wav")
         assert response.result.deleted == 1
 
-    @patch(
-        "rekordbox_edit.api.convert._classify_source_fidelity",
-        return_value=("lossy", 44100),
-    )
+    @patch("rekordbox_edit.api.convert.get_audio_info", return_value=_PROBE_WAV_24_96)
     @patch("rekordbox_edit.api.convert.os.remove")
     @patch("rekordbox_edit.api.convert._update_database_record")
     @patch("rekordbox_edit.api.convert._run_ffmpeg", return_value=True)
@@ -453,7 +560,7 @@ class TestConvertRealRun:
         mock_hi_res,
         mock_update,
         mock_remove,
-        _fidelity,
+        _probe,
         mock_db,
         make_djmd_content_item,
     ):
@@ -477,10 +584,7 @@ class TestConvertRealRun:
         assert response.result.deleted == 0
         assert len(response.result.converted) == 1
 
-    @patch(
-        "rekordbox_edit.api.convert._classify_source_fidelity",
-        return_value=("lossy", 44100),
-    )
+    @patch("rekordbox_edit.api.convert.get_audio_info", return_value=_PROBE_WAV_24_96)
     @patch("rekordbox_edit.api.convert.os.remove")
     @patch("rekordbox_edit.api.convert._update_database_record")
     @patch("rekordbox_edit.api.convert._run_ffmpeg", return_value=True)
@@ -499,7 +603,7 @@ class TestConvertRealRun:
         mock_hi_res,
         mock_update,
         mock_remove,
-        _fidelity,
+        _probe,
         mock_db,
         make_djmd_content_item,
     ):
@@ -519,10 +623,7 @@ class TestConvertRealRun:
         mock_remove.assert_called_once_with("/in.wav")
         assert response.result.deleted == 1
 
-    @patch(
-        "rekordbox_edit.api.convert._classify_source_fidelity",
-        return_value=("lossless", 44100),
-    )
+    @patch("rekordbox_edit.api.convert.get_audio_info", return_value=_PROBE_WAV_16_44)
     @patch("rekordbox_edit.api.convert.os.remove")
     @patch("rekordbox_edit.api.convert._update_database_record")
     @patch("rekordbox_edit.api.convert._run_ffmpeg", return_value=True)
@@ -541,7 +642,7 @@ class TestConvertRealRun:
         mock_hi_res,
         mock_update,
         mock_remove,
-        _fidelity,
+        _probe,
         mock_db,
         make_djmd_content_item,
     ):
@@ -563,10 +664,7 @@ class TestConvertRealRun:
         mock_remove.assert_called_once_with("/in.wav")
         assert response.result.deleted == 1
 
-    @patch(
-        "rekordbox_edit.api.convert._classify_source_fidelity",
-        return_value=("lossless", 22050),
-    )
+    @patch("rekordbox_edit.api.convert.get_audio_info", return_value=_PROBE_WAV_16_22)
     @patch("rekordbox_edit.api.convert._update_database_record")
     @patch("rekordbox_edit.api.convert._run_ffmpeg", return_value=True)
     @patch("rekordbox_edit.api.convert.os.path.exists", return_value=True)
@@ -583,7 +681,7 @@ class TestConvertRealRun:
         mock_exists,
         mock_run,
         mock_update,
-        _fidelity,
+        _probe,
         mock_db,
         make_djmd_content_item,
     ):
@@ -610,6 +708,7 @@ class TestConvertRealRun:
         assert op.output_sample_rate == 22050
         assert response.result.skipped == []
 
+    @patch("rekordbox_edit.api.convert.get_audio_info", return_value=_PROBE_WAV_16_44)
     @patch("rekordbox_edit.api.convert.os.remove")
     @patch("rekordbox_edit.api.convert._update_database_record")
     @patch("rekordbox_edit.api.convert._run_ffmpeg", return_value=True)
@@ -628,6 +727,7 @@ class TestConvertRealRun:
         _mp3,
         _update,
         mock_remove,
+        _probe,
         mock_db,
         make_djmd_content_item,
     ):
@@ -649,10 +749,7 @@ class TestConvertRealRun:
         mock_remove.assert_not_called()
         assert response.result.deleted == 0
 
-    @patch(
-        "rekordbox_edit.api.convert._classify_source_fidelity",
-        return_value=("lossless", 44100),
-    )
+    @patch("rekordbox_edit.api.convert.get_audio_info", return_value=_PROBE_WAV_16_44)
     @patch("rekordbox_edit.api.convert._rollback_and_cleanup")
     @patch("rekordbox_edit.api.convert._run_ffmpeg", return_value=False)
     @patch("rekordbox_edit.api.convert.os.path.exists", return_value=True)
@@ -669,7 +766,7 @@ class TestConvertRealRun:
         mock_exists,
         mock_hi_res,
         mock_rollback,
-        _fidelity,
+        _probe,
         mock_db,
         make_djmd_content_item,
     ):
@@ -685,10 +782,7 @@ class TestConvertRealRun:
 
         mock_rollback.assert_called_once()
 
-    @patch(
-        "rekordbox_edit.api.convert._classify_source_fidelity",
-        return_value=("lossless", 44100),
-    )
+    @patch("rekordbox_edit.api.convert.get_audio_info", return_value=_PROBE_WAV_16_44)
     @patch("rekordbox_edit.api.convert._rollback_and_cleanup")
     @patch("rekordbox_edit.api.convert.os.remove", side_effect=KeyboardInterrupt)
     @patch("rekordbox_edit.api.convert._update_database_record")
@@ -709,7 +803,7 @@ class TestConvertRealRun:
         mock_update,
         _remove,
         mock_rollback,
-        _fidelity,
+        _probe,
         mock_db,
         make_djmd_content_item,
     ):
@@ -734,10 +828,7 @@ class TestConvertRealRun:
         mock_db.session.commit.assert_called_once()
         mock_rollback.assert_not_called()
 
-    @patch(
-        "rekordbox_edit.api.convert._classify_source_fidelity",
-        return_value=("lossless", 44100),
-    )
+    @patch("rekordbox_edit.api.convert.get_audio_info", return_value=_PROBE_WAV_16_44)
     @patch("rekordbox_edit.api.convert._update_database_record")
     @patch("rekordbox_edit.api.convert._run_ffmpeg", return_value=True)
     @patch("rekordbox_edit.api.convert.os.path.exists", return_value=True)
@@ -754,7 +845,7 @@ class TestConvertRealRun:
         mock_exists,
         mock_hi_res,
         mock_update,
-        _fidelity,
+        _probe,
         mock_db,
         make_djmd_content_item,
     ):
@@ -784,10 +875,7 @@ class TestConvertRealRun:
         assert [op.id for op in response.result.converted] == ["A", "B", "C"]
         assert [t.ID for t in response.tracks] == ["A", "B", "C"]
 
-    @patch(
-        "rekordbox_edit.api.convert._classify_source_fidelity",
-        return_value=("lossless", 44100),
-    )
+    @patch("rekordbox_edit.api.convert.get_audio_info", return_value=_PROBE_WAV_16_44)
     @patch("rekordbox_edit.api.convert._update_database_record")
     @patch("rekordbox_edit.api.convert._run_ffmpeg", return_value=True)
     @patch("rekordbox_edit.api.convert.os.path.exists", return_value=True)
@@ -804,7 +892,7 @@ class TestConvertRealRun:
         mock_exists,
         mock_hi_res,
         mock_update,
-        _fidelity,
+        _probe,
         mock_db,
         make_djmd_content_item,
     ):
@@ -889,10 +977,7 @@ class TestConvertRealRun:
             convert(mock_db, ConvertRequest(format_out="aiff", overwrite=True))
         mock_rollback.assert_called_once()
 
-    @patch(
-        "rekordbox_edit.api.convert._classify_source_fidelity",
-        return_value=("lossless", 44100),
-    )
+    @patch("rekordbox_edit.api.convert.get_audio_info", return_value=_PROBE_WAV_16_44)
     @patch("rekordbox_edit.api.convert._rollback_and_cleanup")
     @patch(
         "rekordbox_edit.api.convert._update_database_record",
@@ -914,7 +999,7 @@ class TestConvertRealRun:
         _hi_res,
         _update,
         mock_rollback,
-        _fidelity,
+        _probe,
         mock_db,
         make_djmd_content_item,
     ):
@@ -929,6 +1014,7 @@ class TestConvertRealRun:
             convert(mock_db, ConvertRequest(format_out="aiff", overwrite=True))
         mock_rollback.assert_called_once()
 
+    @patch("rekordbox_edit.api.convert.get_audio_info", return_value=_PROBE_WAV_16_44)
     @patch("rekordbox_edit.api.convert._update_database_record")
     @patch("rekordbox_edit.api.convert._run_ffmpeg", return_value=True)
     @patch("rekordbox_edit.api.convert.os.path.exists", return_value=True)
@@ -945,6 +1031,7 @@ class TestConvertRealRun:
         _exists,
         mock_run,
         _update,
+        _probe,
         mock_db,
         make_djmd_content_item,
     ):
@@ -962,10 +1049,7 @@ class TestConvertRealRun:
             "/in.wav", "/out.mp3", _mp3_output_kwargs(44100), "mp3"
         )
 
-    @patch(
-        "rekordbox_edit.api.convert._classify_source_fidelity",
-        return_value=("lossless", 44100),
-    )
+    @patch("rekordbox_edit.api.convert.get_audio_info", return_value=_PROBE_WAV_16_44)
     @patch("rekordbox_edit.api.convert.os.remove")
     @patch("rekordbox_edit.api.convert._update_database_record")
     @patch("rekordbox_edit.api.convert._run_ffmpeg", return_value=True)
@@ -984,7 +1068,7 @@ class TestConvertRealRun:
         _hi_res,
         _update,
         mock_remove,
-        _fidelity,
+        _probe,
         mock_db,
         make_djmd_content_item,
     ):
@@ -1004,10 +1088,7 @@ class TestConvertRealRun:
         mock_remove.assert_not_called()
         assert response.result.deleted == 0
 
-    @patch(
-        "rekordbox_edit.api.convert._classify_source_fidelity",
-        return_value=("lossless", 44100),
-    )
+    @patch("rekordbox_edit.api.convert.get_audio_info", return_value=_PROBE_WAV_16_44)
     @patch("rekordbox_edit.api.convert._update_anlz_paths")
     @patch("rekordbox_edit.api.convert._update_database_record")
     @patch("rekordbox_edit.api.convert._run_ffmpeg", return_value=True)
@@ -1026,7 +1107,7 @@ class TestConvertRealRun:
         _run,
         _update,
         mock_anlz,
-        _fidelity,
+        _probe,
         mock_db,
         make_djmd_content_item,
     ):
@@ -1048,10 +1129,7 @@ class TestConvertRealRun:
         mock_db.session.commit.assert_called_once()
         mock_anlz.assert_called_once_with(mock_db, content, "out.aif")
 
-    @patch(
-        "rekordbox_edit.api.convert._classify_source_fidelity",
-        return_value=("lossless", 44100),
-    )
+    @patch("rekordbox_edit.api.convert.get_audio_info", return_value=_PROBE_WAV_16_44)
     @patch(
         "rekordbox_edit.api.convert._update_anlz_paths",
         side_effect=RuntimeError("ANLZ write failed"),
@@ -1075,7 +1153,7 @@ class TestConvertRealRun:
         _update,
         mock_rollback,
         _anlz,
-        _fidelity,
+        _probe,
         mock_db,
         make_djmd_content_item,
     ):
@@ -1103,7 +1181,7 @@ class TestConvertRealRun:
 # ── Helper-function tests (preserved from existing file) ──────────────────
 
 
-class TestClassifySourceFidelity:
+class TestClassifyFidelity:
     @pytest.mark.parametrize(
         "bit_depth,sample_rate,expected",
         [
@@ -1117,16 +1195,17 @@ class TestClassifySourceFidelity:
             (24, 22050, ("lossy", 22050)),
         ],
     )
-    @patch("rekordbox_edit.api.convert.get_audio_info")
-    def test_fidelity_classification(
-        self, mock_get_audio_info, bit_depth, sample_rate, expected
-    ):
-        mock_get_audio_info.return_value = {
+    def test_fidelity_classification(self, bit_depth, sample_rate, expected):
+        audio_info: AudioInfo = {
             "bit_depth": bit_depth,
             "sample_rate": sample_rate,
+            "channels": 2,
+            "bitrate": None,
+            "codec": "flac",
+            "container": "flac",
         }
 
-        assert _classify_source_fidelity("in.flac") == expected
+        assert _classify_fidelity(audio_info) == expected
 
 
 class TestRunFfmpeg:
