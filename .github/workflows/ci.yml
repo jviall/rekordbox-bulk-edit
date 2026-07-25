@@ -15,7 +15,7 @@ jobs:
       paths_result: ${{ steps.skip_check.outputs.paths_result }}
     steps:
       - id: skip_check
-        uses: fkirc/skip-duplicate-actions@b974a9395958c231af965b70070979a577efa578 # master
+        uses: fkirc/skip-duplicate-actions@a09bf677ad5e5dedb31a42070b6a180fde0ab6ce # master
         with:
           cancel_others: true
           concurrent_skipping: same_content_newer
