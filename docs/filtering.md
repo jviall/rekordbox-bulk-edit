@@ -104,4 +104,4 @@ rbe search --artist "Daft Punk" --artist "Justice" --print ids \
   | rbe convert --format-out mp3 --dry-run
 ```
 
-For richer pipelines, `--print json` emits the same selection as structured data for `jq` and other shell tools. Use the [API functions](/api/#functions) if you want to build a more complex python script.
+For richer pipelines, `--print json` emits the same selection as structured data for `jq` and other shell tools. Use the [API functions](api.md#functions) if you want to build a more complex python script.
