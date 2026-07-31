@@ -1,3 +1,161 @@
+## v0.7.0 (2026-07-31)
+
+
+- ci: more precise changelogs on releases
+- chore: update AGENTS.md
+- docs: pave FAQ page based on convert + analysis research
+- feat(convert): verify source codec against FileType before converting
+- test(cli): mock rekordbox pid check in edit CLI tests
+- feat: add probe/file-type matcher and codec_mismatch skip reason
+- feat(utils): probe codec and container in get_audio_info
+- feat: adds display and filtering support for all rekordbox file types
+- - creates a FileTypeInfo registry to map all the different dimensions of
+  FileType under one database code
+- adds AAC and ALAC .m4a FileTypes (4 and 6)
+- adds .mp4 FileType (3)
+- adds video FileType (16)
+- chore(deps): update dependency ty to v0.0.64 (#152)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+- chore(deps): update pre-commit hook astral-sh/ruff-pre-commit to v0.16.0 (#149)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+- chore(deps): update linters (#148)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+- chore(deps): update dependency platformdirs to v4.11.0 (#147)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+- chore(deps): update dependency ty to v0.0.62 (#145)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+- chore(deps): update pre-commit hooks (#146)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+- chore(deps): update dependency pre-commit to v4.6.1 (#144)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+- chore(deps): update fkirc/skip-duplicate-actions digest to a09bf67 (#143)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+- chore(deps): update dependency ty to v0.0.61 (#142)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+- chore(deps): update actions/checkout action to v7.0.1 (#141)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+- chore(deps): update dependency platformdirs to v4.10.1 (#140)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+- chore(deps): update dependency mkdocs-material to v9.7.7 (#139)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+- chore(deps): update dependency commitizen to v4.16.5 (#138)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+- chore(deps): update pypa/gh-action-pypi-publish digest to ba38be9 (#137)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+- chore(deps): update fkirc/skip-duplicate-actions digest to b974a93 (#136)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+- chore: ignore research/decision docs
+- fix(convert): update FileSize, OrgFilePath cols; PPTH ANLZ tag
+- refactor(convert): merge shared logic of ffmpeg helpers
+- Replace _convert_to_hi_res and _convert_to_mp3 with a single _run_ffmpeg
+runner and two pure output-kwargs builders.
+- fix(convert): skip unsupported source formats via input whitelist
+- Previously we were skipping via a blacklist, which allowed
+unknown/unsupported formats to create undefined behavior.
+- refactor(convert): change get_file_type_name a simple display map
+- chore(deps): update dependency ty to v0.0.59 (#134)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+- chore(deps): update dependency syrupy to v5.5.3 (#133)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+- chore(deps): update dependency mkdocstrings to v1.0.6 (#132)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+- chore(deps): update dependency mkdocstrings to v1.0.5 (#131)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+- chore(deps): update softprops/action-gh-release digest to 3d0d988 (#130)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+- chore(deps): update linters (#128)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+- chore(deps): update pre-commit hook astral-sh/ruff-pre-commit to v0.15.21 (#129)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+- chore(deps): update dependency syrupy to v5.5.2 (#127)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+- chore(deps): update astral-sh/setup-uv action to v8.3.2 (#126)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+- chore(deps): update astral-sh/setup-uv action to v8.3.1 (#125)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+- chore(deps): update dependency syrupy to v5.5.1 (#124)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+- chore(deps): update astral-sh/setup-uv action to v8.3.0 (#123)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+- chore(deps): update dependency syrupy to v5.4.0 (#122)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+- chore(deps): update dependency ty to v0.0.56 (#121)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+- chore(deps): update actions/checkout action to v7
+- chore(deps): update dependency ty to v0.0.55 (#120)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+- chore(deps): update dependency syrupy to v5.3.4 (#119)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+- chore(deps): update linters (#117)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+- chore(deps): update pre-commit hook astral-sh/ruff-pre-commit to v0.15.20 (#118)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+- chore(deps): update dependency syrupy to v5.3.3 (#116)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+- chore(deps): update dependency ty to v0.0.53 (#115)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+- chore(deps): update dependency click to v8.4.2 (#114)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+- chore(deps): update dependency ruff to v0.15.19 (#112)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+- chore(deps): update pre-commit hooks (#113)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+- chore(deps): update dependency ty to v0.0.52 (#111)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+- chore(deps): update dependency commitizen to v4.16.4 (#110)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+- chore(deps): update github actions (#109)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+- chore(deps): update testing (#108)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+- chore(deps): update linters to v0.15.18 (#106)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+- chore(deps): update pre-commit hooks to v0.15.18 (#107)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+- chore(deps): update linters to v0.0.50 (#104)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+- chore(deps): update github actions to 718ea10 (#103)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+- chore(deps): update testing to v9.1.0 (#102)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+- chore(deps): update linters to v0.15.17 (#100)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+- chore(deps): update pre-commit hooks to v0.15.17 (#101)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+- chore(deps): update linters to v0.0.48 (#99)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+- chore(deps): update dependency syrupy to v5.3.2 (#97)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+- chore(deps): update linters to v0.0.46 (#98)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+- chore: ruff formatting
+- fix(convert): encode MP3 at the target bit depth and sample rate
+- Pass ar=44100 and sample_fmt=s16p to libmp3lame instead of inheriting
+the source rate, so MP3 output always matches the 16-bit/44.1 kHz
+conversion target. MP3 ConvertOps report the target instead of None.
+- fix(convert): update MP3 bit depth and sample rate in database
+- Converting to MP3 left the source values (e.g. 24-bit/96 kHz) on the
+record. Rekordbox stores MP3s as 16-bit with the real sample rate, per
+the e2e database fixtures, so write those after conversion.
+- feat(convert): report audio properties on ConvertOp
+- Add source/output file type, bit depth, and sample rate fields so
+dry-run previews and JSON output describe each conversion fully.
+Source fields mirror the database record, the output sample rate
+clamps to the source, and MP3 output leaves bit depth and sample rate
+to the encoder.
+- fix(convert): respect bit depth and sample rate between hi-res formats
+- Hi-res conversions now explicitly target 16-bit/44.1 kHz. The target
+sample rate clamps to the source so nothing is ever up-sampled,
+down-sampled conversions count as lossy so --delete-originals lossless
+keeps those originals, and the database record is updated with the
+converted file's bit depth and sample rate.
+- Fixes #92
+- BREAKING(convert): replace --delete/--keep with --delete-originals enum
+- The tri-state boolean becomes an explicit mode: 'none' never deletes,
+'all' always deletes, 'lossless' (default) deletes only for hi-res
+output formats. Also drops the unsupported 'alac' --format-out choice,
+which crashed at conversion time.
+
 ## v0.6.0 (2026-06-12)
 
 
