@@ -1,9 +1,10 @@
 name: "Build Release Notes"
-description: "Generate categorized release notes from conventional commits between two tags"
+description: "Generate categorized, per-commit release notes with each commit's PR resolved and its author credited"
 inputs:
   from_tag:
-    description: "Tag to start the changelog range from (exclusive)"
-    required: true
+    description: "Tag to start the changelog range from (exclusive). Leave empty for full history."
+    required: false
+    default: ""
   to_tag:
     description: "Tag to end the changelog range at (inclusive)"
     required: true
@@ -13,76 +14,12 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - uses: mikepenz/release-changelog-builder-action@c9bcd8238b6f41e05561348339429d360b1c0247 # v6.2.3
-      with:
-        outputFile: release-notes.md
-        configurationJson: |
-          {
-            "categories": [
-              {
-                "title": "## Breaking Changes",
-                "labels": [],
-                "rules": [
-                  {
-                    "pattern": "^(\\w+)?(\\(.*\\))?!:",
-                    "on_property": "title"
-                  }
-                ]
-              },
-              {
-                "title": "## Features",
-                "labels": [],
-                "rules": [
-                  {
-                    "pattern": "^feat(\\(.*\\))?:",
-                    "on_property": "title"
-                  }
-                ]
-              },
-              {
-                "title": "## Fixes",
-                "labels": [],
-                "rules": [
-                  {
-                    "pattern": "^fix(?!\\(deps\\))(\\(.*\\))?:",
-                    "on_property": "title"
-                  }
-                ]
-              },
-              {
-                "title": "## Chores",
-                "labels": [],
-                "rules": [
-                  {
-                    "pattern": "^(chore(?!\\(deps\\))|refactor|ci|docs|style|perf|test|build)(\\(.*\\))?:",
-                    "on_property": "title"
-                  }
-                ]
-              },
-              {
-                "title": "## Dependency Updates",
-                "labels": [],
-                "rules": [
-                  {
-                    "pattern": "^(chore|fix)\\(deps\\):",
-                    "on_property": "title"
-                  }
-                ]
-              }
-            ],
-            "exhaustive": true,
-            "sort": {
-              "order": "ASC",
-              "on_property": "title"
-            },
-            "template": "#{{CHANGELOG}}\n\n## Uncategorized\n#{{UNCATEGORIZED}}",
-            "pr_template": "- #{{TITLE}} (##{{NUMBER}} by @#{{AUTHOR}})",
-            "empty_template": "- No changes",
-            "tag_resolver": {
-              "method": "sort"
-            }
-          }
-        fromTag: ${{ inputs.from_tag }}
-        toTag: ${{ inputs.to_tag }}
+    - name: Generate release notes
+      shell: bash
+      run: python3 "${GITHUB_ACTION_PATH}/build_release_notes.py"
       env:
-        GITHUB_TOKEN: ${{ inputs.github_token }}
+        FROM_TAG: ${{ inputs.from_tag }}
+        TO_TAG: ${{ inputs.to_tag }}
+        OUTPUT_FILE: release-notes.md
+        REPO: ${{ github.repository }}
+        GH_TOKEN: ${{ inputs.github_token }}
