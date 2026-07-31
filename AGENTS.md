@@ -91,7 +91,10 @@ Every module should get and use its own `logger` for all logging purposes and fo
 - Commit descriptions should be terse and use active tenses (e.g. "add feature")
 - Commit bodies are completely optional, and should be used to describe changes when they aren't easily inferred by the main message, they should not include agent conversation context, decisions, or plan notes.
 - The agent may commit. But the user always handles pushes, PR creation, and rebases after merges.
-- Do not commit spec, brainstorming, or design documents (e.g. anything under `docs/superpowers/specs/`).
+- Do not commit spec, brainstorming, or design documents (e.g. anything under `ai-docs/`).
+- **Save plans to:** `ai-docs/YYYYMMDD-HHmm-{session-slug}/plan.md` instead of the plugin or skill presets.
+- **Save specs to:** `ai-docs/YYYYMMDD-HHmm-{session-slug}/specs.md` instead of the plugin or skill presets.
+- **Save decision records to:** `ai-docs/decisions/{topic}.md` (not session-scoped).
 
 ## Tooling
 

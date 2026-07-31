@@ -48,9 +48,7 @@ Thumbs.db
 .coverage
 
 .claude
-docs/superpowers
-docs/decisions
-research
+ai-docs
 
 # MkDocs build output
 site/

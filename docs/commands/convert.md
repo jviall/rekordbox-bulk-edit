@@ -50,7 +50,7 @@ rbe search --artist "Lauryn Hill" --print ids | rbe convert --yes
 ### Guardrails
 - Without flags, `convert` shows every planned change and asks once before applying. `--interactive` confirms each track individually; `--dry-run` previews without writing; `--yes` confirms the default choice for all prompts without asking.
 - Editing while Rekordbox is open risks corrupting your database. By default `convert` warns and asks for confirmation (defaulting to no, so a `--yes` would exit); in a non-interactive mode (e.g. `--print ids`) it throws an error.
-- Before a large run, walk through the checklist in [What Should I Do Before Converting?](../conversion-and-analysis.md#what-should-i-do-before-converting)
+- Before a large run, walk through the checklist in [What Should I Do Before Converting?](../faqs.md#what-should-i-do-before-converting)
 
 ## Reference
 
