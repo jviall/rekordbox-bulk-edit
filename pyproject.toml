@@ -91,8 +91,8 @@ message_template = "{{change_type}}{{scope}}: {{message}}"
 example = "feat(convert): add new conversion feature"
 schema = "<type>(<scope>): <body>"
 schema_pattern = "^(BREAKING|feat|fix|refactor|ci|test|docs|chore)(\\([^)]*\\))?!?: .+"
-bump_pattern = "^(BREAKING|feat|fix|perf|hotfix|refactor)"
-bump_map = { "BREAKING" = "MAJOR", "feat" = "MINOR", "fix" = "PATCH", "refactor" = "PATCH" }
+bump_pattern = "^((BREAKING[\\-\\ ]CHANGE|BREAKING|feat|fix|perf|hotfix|refactor)(\\(.+\\))?!?):"
+bump_map = { "^.+!$" = "MAJOR", "^BREAKING" = "MAJOR", "^feat" = "MINOR", "^fix" = "PATCH", "^refactor" = "PATCH" }
 
 [[tool.commitizen.customize.questions]]
 type = "list"
