@@ -4,9 +4,6 @@ site_url: https://rekordbox-edit.readthedocs.io/
 repo_url: https://github.com/jviall/rekordbox-edit
 repo_name: jviall/rekordbox-edit
 
-exclude_docs: |
-  superpowers/
-
 theme:
   name: material
   palette:
