@@ -60,4 +60,5 @@ nav:
       - search: commands/search.md
       - edit: commands/edit.md
       - convert: commands/convert.md
+  - FAQs: faqs.md
   - API Reference: api.md
