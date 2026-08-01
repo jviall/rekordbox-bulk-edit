@@ -74,7 +74,7 @@ def _narrow_to_track_ids(args, ids: list[str]):
         "album",
         "exact_album",
         "path",
-        "exact_path",
+        "resolved_path",
         "format",
     ):
         if hasattr(narrowed, field_name):

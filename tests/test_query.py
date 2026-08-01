@@ -468,58 +468,44 @@ class TestCollectionQuery:
         assert " and " in stmt_str
         assert " or " not in stmt_str
 
-    def test_by_path_filename_only(self):
-        """A bare filename (no directory) adds a FileNameL ilike condition only.
-        The FolderPath condition is skipped — the filter still runs with just FileNameL.
-        """
+    def test_by_path_substring_against_folderpath_only(self):
+        """A --path arg adds a single case-insensitive substring condition on
+        FolderPath, which holds the full file path. FileNameL is never queried."""
+        query = CollectionQuery()
+        new_query = query.by_path("Daft Punk")
+
+        assert new_query is not query
+        assert len(new_query._conditions) == 1
+        condition_str = str(new_query._conditions[0])
+        assert "FolderPath" in condition_str
+        assert "FileNameL" not in condition_str
+        assert "LIKE lower" in condition_str
+
+    def test_by_path_wraps_with_wildcards(self):
+        """The substring pattern is wrapped in % wildcards."""
         query = CollectionQuery()
         new_query = query.by_path("track.mp3")
 
-        assert new_query is not query
-        assert len(new_query._conditions) == 1
-        condition_str = str(new_query._conditions[0])
-        assert "FileNameL" in condition_str
-        assert "LIKE lower" in condition_str
-        assert "FolderPath" not in condition_str
+        condition_str = _compile(new_query._conditions[0])
+        assert "%track.mp3%" in condition_str
 
-    def test_by_path_folder_only_forward_slash(self):
-        """A trailing-forward-slash string adds a FolderPath ilike condition only.
-        The FileNameL condition is skipped — the filter still runs with just FolderPath.
-        """
+    def test_by_path_preserves_trailing_slash(self):
+        """A trailing slash stays in the pattern so it only matches directory
+        components, not filename prefixes."""
         query = CollectionQuery()
-        new_query = query.by_path("./Test/Folder/")
+        new_query = query.by_path("Daft Punk/")
 
-        assert new_query is not query
-        assert len(new_query._conditions) == 1
-        condition_str = str(new_query._conditions[0])
-        assert "FileNameL" not in condition_str
-        assert "LIKE lower" in condition_str
-        assert "FolderPath" in condition_str
+        condition_str = _compile(new_query._conditions[0])
+        assert "%Daft Punk/%" in condition_str
 
-    def test_by_path_folder_and_filename(self):
-        """A path with both parts adds a compound AND condition covering both columns."""
-        query = CollectionQuery()
-        new_query = query.by_path("Music/Artist/track.mp3")
-
-        assert new_query is not query
-        assert len(new_query._conditions) == 1
-        condition_str = str(new_query._conditions[0])
-        assert "FolderPath" in condition_str
-        assert "FileNameL" in condition_str
-        assert " AND " in condition_str
-        assert condition_str.count("LIKE lower") == 2
-
-    @pytest.mark.skipif(
-        platform.system() != "Windows", reason="backslash path parsing is Windows-only"
-    )
     def test_by_path_backslash_normalised_to_forward_slash(self):
         """Backslash separators in --path input are normalised to forward slashes."""
         query = CollectionQuery()
-        new_query = query.by_path("Music\\Artist\\track.mp3")
+        new_query = query.by_path("Music\\Artist\\")
 
-        query_str = _compile(new_query._conditions[0])
-        assert "\\" not in query_str
-        assert "Music/Artist" in query_str
+        condition_str = _compile(new_query._conditions[0])
+        assert "\\" not in condition_str
+        assert "%Music/Artist/%" in condition_str
 
     def test_by_path_no_resolve(self):
         """by_path does NOT resolve the path."""
@@ -530,87 +516,83 @@ class TestCollectionQuery:
         # The raw string (or parts of it) must appear, not a resolved absolute path
         assert ".." in condition_str and "relative" in condition_str
 
-    def test_by_path_ilike_wraps_with_wildcards(self):
-        """The ilike condition includes % wildcards for substring matching."""
+    def test_by_path_empty_arg_adds_no_condition(self):
+        """An empty --path arg is a no-op rather than matching everything."""
         query = CollectionQuery()
-        new_query = query.by_path("track.mp3")
+        new_query = query.by_path("")
 
-        condition_str = _compile(new_query._conditions[0])
-        assert "%" in condition_str
+        assert new_query._conditions == []
 
-    # --- by_path exact mode ---
+    # --- by_path resolved mode ---
 
-    def test_by_exact_path_filename_only(self):
-        """Exact match on a bare filename produces an equality condition on FileNameL only."""
-        query = CollectionQuery()
-        new_query = query.by_path("track.mp3", exact=True)
-
-        assert len(new_query._conditions) == 1
-        condition_str = str(new_query._conditions[0])
-        assert "FolderPath" not in condition_str
-        assert "FileNameL" in condition_str
-        assert "=" in condition_str
-        assert "LIKE lower" not in condition_str
-
-    def test_by_exact_path_folder_only(self):
-        """Exact match on a only folder path produces equality check on FolderPath only."""
-        query = CollectionQuery()
-        # Build a cross-platform absolute path using pathlib
-        path = "/Test/Artist/"
-        new_query = query.by_path(path, exact=True)
-
-        assert len(new_query._conditions) == 1
-        condition_str = _compile(new_query._conditions[0])
-        assert "FolderPath" in condition_str
-        assert "FileNameL" not in condition_str
-        assert "=" in condition_str
-        assert path in condition_str
-        assert "like lower" not in condition_str
-
-    def test_by_exact_path_folder_and_filename(self):
-        """Exact match on a full path produces a compound AND with equality on both columns."""
-        query = CollectionQuery()
-        # Build a cross-platform absolute path using pathlib
-        abs_path = "/Artist/track.mp3"
-        new_query = query.by_path(abs_path, exact=True)
-
-        assert len(new_query._conditions) == 1
-        condition_str = str(new_query._conditions[0])
-        assert "FolderPath" in condition_str
-        assert "FileNameL" in condition_str
-        assert " AND " in condition_str
-        assert "LIKE lower" not in condition_str
-
-    def test_by_exact_path_resolves_relative_path(self):
-        """Exact match resolves relative paths to absolute before querying."""
+    def test_by_resolved_path_resolves_relative_path(self):
+        """Resolved mode makes relative paths absolute against the cwd before querying."""
         cwd = Path(os.getcwd()).as_posix()
         query = CollectionQuery()
-        new_query = query.by_path("Album/track.mp3", exact=True)
+        new_query = query.by_path("Album/track.mp3", resolved=True)
 
         condition_str = _compile(new_query._conditions[0])
-        # cwd should appear as the resolved folder part
-        assert cwd in condition_str
+        assert f"%{cwd}/Album/track.mp3%" in condition_str
+
+    def test_by_resolved_path_substring_case_insensitive(self):
+        """Resolved mode is a case-insensitive substring check on FolderPath,
+        same as fuzzy mode, so a resolved folder path matches every track under it."""
+        query = CollectionQuery()
+        new_query = query.by_path("/Test/Artist/file.mp3", resolved=True)
+
+        assert len(new_query._conditions) == 1
+        condition_str = str(new_query._conditions[0])
+        assert "FolderPath" in condition_str
+        assert "FileNameL" not in condition_str
+        assert "LIKE lower" in condition_str
+
+    def test_by_resolved_path_is_lexical_and_preserves_casing(self):
+        """Resolution is pure string math: even for a directory that exists on
+        disk, the casing stays as typed instead of being rewritten to the
+        on-disk casing (Path.resolve would rewrite it on Windows)."""
+        miscased_cwd = Path(os.getcwd()).as_posix().swapcase()
+        query = CollectionQuery()
+        new_query = query.by_path(f"{miscased_cwd}/track.mp3", resolved=True)
+
+        condition_str = _compile(new_query._conditions[0])
+        assert f"{miscased_cwd}/track.mp3" in condition_str
+
+    def test_by_resolved_path_preserves_trailing_slash(self):
+        """A trailing slash survives resolution so the pattern only matches
+        directory components."""
+        query = CollectionQuery()
+        new_query = query.by_path("Album/", resolved=True)
+
+        condition_str = _compile(new_query._conditions[0])
+        assert f"{Path(os.getcwd()).as_posix()}/Album/" in condition_str
 
     @pytest.mark.skipif(
         platform.system() != "Windows", reason="backslash path parsing is Windows-only"
     )
-    def test_by_exact_path_backslash_normalised_to_forward_slash(self):
-        """Backslash separators in --exact-path input are normalised via as_posix()."""
+    def test_by_resolved_path_backslash_normalised_to_forward_slash(self):
+        """Backslash separators in --resolved-path input are normalised via as_posix()."""
         query = CollectionQuery()
         # Pass a Windows-style absolute path; as_posix() must produce forward slashes
         new_query = query.by_path(
-            "C:\\Users\\foo\\music\\Artist\\track.mp3", exact=True
+            "C:\\Users\\foo\\music\\Artist\\track.mp3", resolved=True
         )
 
         condition_str = _compile(new_query._conditions[0])
         assert "\\" not in condition_str
-        assert "/" in condition_str
+        assert "C:/Users/foo/music/Artist/track.mp3" in condition_str
+
+    def test_by_resolved_path_empty_arg_adds_no_condition(self):
+        """An empty --resolved-path arg is a no-op rather than matching everything."""
+        query = CollectionQuery()
+        new_query = query.by_path("", resolved=True)
+
+        assert new_query._conditions == []
 
     def test_by_path_returns_new_instance(self):
         """by_path always returns a new CollectionQuery instance."""
         query = CollectionQuery()
         assert query.by_path("track.mp3") is not query
-        assert query.by_path("track.mp3", exact=True) is not query
+        assert query.by_path("track.mp3", resolved=True) is not query
 
 
 @pytest.fixture
@@ -699,9 +681,9 @@ class TestGetFilteredContent:
         get_filtered_content(mock_db, FilterArgs(path=["Music/track.mp3"]))
         mock_query.by_path.assert_called_once_with("Music/track.mp3")
 
-    def test_exact_path(self, mock_db, mock_query):
-        get_filtered_content(mock_db, FilterArgs(exact_path=["/Music/track.wav"]))
-        mock_query.by_path.assert_called_once_with("/Music/track.wav", exact=True)
+    def test_resolved_path(self, mock_db, mock_query):
+        get_filtered_content(mock_db, FilterArgs(resolved_path=["/Music/track.wav"]))
+        mock_query.by_path.assert_called_once_with("/Music/track.wav", resolved=True)
 
     def test_format(self, mock_db, mock_query):
         get_filtered_content(mock_db, FilterArgs(format=["flac"]))

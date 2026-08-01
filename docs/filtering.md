@@ -18,14 +18,16 @@ Repeating a filter, or combining different filters, matches tracks that satisfy 
 | `--playlist TEXT` | playlist name contains `TEXT` |
 | `--exact-playlist TEXT` | playlist name is exactly `TEXT` |
 | `--format FMT` | Rekordbox file type is `FMT` (`mp3`, `mp4`, `aac`, `flac`, `alac`, `wav`, `aiff`, `video`, `invalid`) |
-| `--path TEXT` | file path contains `TEXT` (matched against the folder path, filename, or both) |
-| `--exact-path TEXT` | file path is exactly `TEXT` (resolved to an absolute path before matching) |
+| `--path TEXT` | file path contains `TEXT`, case-insensitive |
+| `--resolved-path TEXT` | file path contains `TEXT` after resolving it to an absolute path, case-insensitive |
 | `--first N` | return only the first N results |
 | `--last N` | return only the last N results |
 
 > [!TIP]
 > Filters that are "exact" are case-sensitive (e.g. `--exact-artist 'HOOBASTANK'` won't match "Hoobastank") whereas their counterparts (`--artist`) are case-insensitive and match substrings. Only one of either the `--first` and `--last` filters can be provided at a time as they're mutually exclusive.
 
+> [!NOTE]
+> Path filters match case-insensitively on every platform because the filesystems Rekordbox supports (NTFS and APFS) treat paths case-insensitively themselves.
 
 ### Examples
 
@@ -45,11 +47,14 @@ rbe search --playlist "house" --playlist "disco"
 # All the songs in my library that aren't in any playlist
 rbe search --playlist ""
 
-# The first 10 tracks whose path contains a folder or filename substring
+# The first 10 tracks in a "Favorites" folder or with "track.wav" in the file path
 rbe search --path "Favorites/" --path "track.wav" --first 10
 
 # The track at an exact location
-rbe search --exact-path "/Users/djmustard/Music/banger.mp3"
+rbe search --resolved-path "/Users/djmustard/Music/banger.mp3"
+
+# Every track under a folder, given relative to the current directory
+rbe search --resolved-path "../Music/house/"
 ```
 
 ## Track ID Arguments
