@@ -8,8 +8,8 @@
     ":enablePreCommit",
     ":automergePr",
     "helpers:pinGitHubActionDigests",
-    "schedule:daily",
-    "schedule:automergeDaily",
+    "schedule:weekends",
+    "schedule:automergeEarlyMondays",
   ],
 
   branchPrefix: "chore/deps/",
