@@ -1,4 +1,5 @@
 import logging
+import os
 from pathlib import Path
 from typing import List, Tuple, Union
 
@@ -148,57 +149,32 @@ class CollectionQuery:
             logger.warning(f"Invalid format: {format_name}")
         return new_inst
 
-    def by_path(self, path_str: str, exact: bool = False) -> "CollectionQuery":
-        """Filter by file path, matching against FolderPath and/or FileNameL.
+    def by_path(self, path_str: str, resolved: bool = False) -> "CollectionQuery":
+        """Filter by case-insensitive substring of the track's file path.
+        FolderPath holds the full path to the file, including its name and
+        extension.
 
-        Paths get normalized to posix format.
-        --path args arg matched as substrings.
-        --exact-path argsl are resolved to absolute paths and must match exact.
-
-        Args with a trailing '/' only query against FolderPath.
-        Args with no parent folders in the path only query against FileNameL.
+        Separators get normalized to posix format, and a trailing '/' is kept
+        so the substring only matches directory components.
+        --path args match as given.
+        --resolved-path args are made absolute against the working directory
+        by pure string math (no filesystem access), so casing stays as typed
+        and symlinks are never followed.
         """
+        if not path_str:
+            return self
+
         new_inst = self._copy()
+        has_trailing_sep = path_str.endswith(("/", "\\"))
 
-        is_dir_only = path_str.endswith("/") or path_str.endswith("\\")
-
-        if exact:
-            resolved = Path(path_str).resolve()
-            if is_dir_only:
-                folder_part = resolved.as_posix() + "/"
-                name_part = ""
-            elif "/" not in path_str and "\\" not in path_str:
-                folder_part = ""
-                name_part = resolved.name
-            else:
-                folder_part = resolved.parent.as_posix() + "/"
-                name_part = resolved.name
+        if resolved:
+            pattern = Path(os.path.abspath(path_str)).as_posix()
+            if has_trailing_sep and not pattern.endswith("/"):
+                pattern += "/"
         else:
-            normalized = Path(path_str)
-            if is_dir_only:
-                folder_part = normalized.as_posix()
-                name_part = ""
-            else:
-                parent_str = normalized.parent.as_posix()
-                folder_part = "" if parent_str == "." else parent_str
-                name_part = normalized.name
+            pattern = path_str.replace("\\", "/")
 
-        conditions: list[ColumnElement[bool]] = []
-        if folder_part:
-            if exact:
-                conditions.append(DjmdContent.FolderPath == folder_part)
-            else:
-                conditions.append(DjmdContent.FolderPath.ilike(f"%{folder_part}%"))
-        if name_part:
-            if exact:
-                conditions.append(DjmdContent.FileNameL == name_part)
-            else:
-                conditions.append(DjmdContent.FileNameL.ilike(f"%{name_part}%"))
-
-        if conditions:
-            combined = and_(*conditions) if len(conditions) > 1 else conditions[0]
-            new_inst._conditions.append(combined)
-
+        new_inst._conditions.append(DjmdContent.FolderPath.ilike(f"%{pattern}%"))
         return new_inst
 
     def limit(self, count: int) -> "CollectionQuery":
@@ -317,8 +293,8 @@ def get_filtered_content(
     for path in filters.path:
         query = query.by_path(path)
 
-    for exact_path in filters.exact_path:
-        query = query.by_path(exact_path, exact=True)
+    for resolved_path in filters.resolved_path:
+        query = query.by_path(resolved_path, resolved=True)
 
     if filters.match_all:
         query = query.match_all()

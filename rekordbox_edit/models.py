@@ -45,7 +45,7 @@ class FilterArgs(BaseModel):
     album: list[str] = []
     exact_album: list[str] = []
     path: list[str] = []
-    exact_path: list[str] = []
+    resolved_path: list[str] = []
     format: list[str] = []
     first: int | None = Field(default=None, gt=0)
     last: int | None = Field(default=None, gt=0)

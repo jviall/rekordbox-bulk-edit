@@ -81,13 +81,14 @@ global_click_filters = [
         "--path",
         type=str,
         multiple=True,
-        help="Find tracks whose file paths include this value",
+        help="Find tracks whose file paths contain this value (case-insensitive)",
     ),
     click.option(
-        "--exact-path",
+        "--resolved-path",
         type=str,
         multiple=True,
-        help="Find tracks whose file paths are exactly this value",
+        help="Find tracks whose file paths contain this value after it is "
+        "resolved to an absolute path (case-insensitive)",
     ),
     click.option(
         "--format",
