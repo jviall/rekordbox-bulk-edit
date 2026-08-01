@@ -1,3 +1,21 @@
+## v0.8.0 (2026-08-01)
+
+
+- chore(deps): update dependency commitizen to v4.17.0 (#158)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+- feat!: replace --exact-path with case-insensitive --resolved-path
+- Path filters now always match case-insensitively, mirroring how NTFS
+and APFS treat paths. --resolved-path makes its argument absolute by
+pure string math instead of Path.resolve(), so results no longer
+depend on mounted drives, on-disk casing, or symlinks.
+- chore(deps): update pre-commit hook commitizen-tools/commitizen to v4.17.0 (#159)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+- chore: reduce renovate schedule to weekends
+- docs: add FAQ about converts impact on USB exports
+- chore(deps): update github actions (#151)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+- ci: optimize the build_release_notes script
+
 ## v0.7.0 (2026-07-31)
 
 
