@@ -3,10 +3,10 @@
 
 Lists one entry per commit (not per PR) between ``FROM_TAG`` (exclusive) and
 ``TO_TAG`` (inclusive). Each entry links the pull request that introduced the
-commit and credits its author. The PR (number and author login) is resolved via
-``GET /repos/{repo}/commits/{sha}/pulls``, which works for both squash and
-rebase merges. Commits with no associated PR fall back to a short-SHA reference
-and the git author name.
+commit and credits its author. PRs are resolved through a batched GraphQL query
+(``Commit.associatedPullRequests``), which works for both squash and rebase
+merges without a per-commit round trip. Commits with no associated PR fall back
+to a short-SHA reference and the git author name.
 """
 
 from __future__ import annotations
@@ -97,21 +97,63 @@ def read_commits(from_tag: str, to_tag: str) -> list[Commit]:
     return commits
 
 
-def resolve_pr(repo: str, sha: str) -> tuple[int, str] | None:
-    """Return the (number, author_login) of a commit's PR, or None if unresolved."""
-    result = _run(["gh", "api", f"repos/{repo}/commits/{sha}/pulls"])
-    if result.returncode != 0 or not result.stdout.strip():
-        return None
-    try:
-        prs = json.loads(result.stdout)
-    except json.JSONDecodeError:
-        return None
-    merged = [pr for pr in prs if pr.get("merged_at")]
-    chosen = merged[0] if merged else (prs[0] if prs else None)
+# GitHub's GraphQL node limit is generous; keep chunks small enough that the
+# query fits comfortably in a single command-line argument on any platform.
+_CHUNK = 100
+
+_COMMIT_FIELD = (
+    'c{i}: object(oid: "{sha}") {{ ... on Commit {{ '
+    "associatedPullRequests(first: 5) {{ nodes {{ number merged author {{ login }} }} }} "
+    "}} }}"
+)
+
+
+def _chunks(items: list[str], size: int):
+    for start in range(0, len(items), size):
+        yield items[start : start + size]
+
+
+def _pick_pr(nodes: list[dict]) -> tuple[int, str] | None:
+    merged = [pr for pr in nodes if pr.get("merged")]
+    chosen = merged[0] if merged else (nodes[0] if nodes else None)
     if not chosen:
         return None
-    login = (chosen.get("user") or {}).get("login", "")
-    return chosen["number"], login
+    return chosen["number"], (chosen.get("author") or {}).get("login", "")
+
+
+def resolve_prs(repo: str, shas: list[str]) -> dict[str, tuple[int, str]]:
+    """Resolve every commit's PR (number, author_login) in batched GraphQL calls.
+
+    One request per ``_CHUNK`` commits replaces the previous per-commit REST call,
+    which dominated runtime. Commits with no associated PR are simply absent from
+    the returned mapping.
+    """
+    owner, _, name = repo.partition("/")
+    resolved: dict[str, tuple[int, str]] = {}
+    for chunk in _chunks(shas, _CHUNK):
+        fields = " ".join(
+            _COMMIT_FIELD.format(i=i, sha=sha) for i, sha in enumerate(chunk)
+        )
+        query = (
+            f'query {{ repository(owner: "{owner}", name: "{name}") {{ {fields} }} }}'
+        )
+        result = _run(["gh", "api", "graphql", "-f", f"query={query}"])
+        if result.returncode != 0 or not result.stdout.strip():
+            continue
+        try:
+            repository = (json.loads(result.stdout).get("data") or {}).get("repository")
+        except json.JSONDecodeError:
+            continue
+        if not repository:
+            continue
+        for i, sha in enumerate(chunk):
+            node = repository.get(f"c{i}")
+            if not node:
+                continue
+            pr = _pick_pr((node.get("associatedPullRequests") or {}).get("nodes") or [])
+            if pr is not None:
+                resolved[sha] = pr
+    return resolved
 
 
 def categorize(commit: Commit) -> str:
@@ -123,9 +165,8 @@ def categorize(commit: Commit) -> str:
     return _UNCATEGORIZED_HEADER
 
 
-def render_line(commit: Commit, repo: str) -> str:
+def render_line(commit: Commit, pr: tuple[int, str] | None) -> str:
     subject = _TRAILING_PR.sub("", commit.subject)
-    pr = resolve_pr(repo, commit.sha)
     if pr is not None:
         number, login = pr
         credit = f"#{number} by @{login}" if login else f"#{number}"
@@ -134,11 +175,13 @@ def render_line(commit: Commit, repo: str) -> str:
 
 
 def build_notes(commits: list[Commit], repo: str) -> str:
+    included = [c for c in commits if not _SKIP_SUBJECT.match(c.subject)]
+    pr_map = resolve_prs(repo, [c.sha for c in included])
+
     categories = {header: Category(header) for header in _CATEGORY_ORDER}
-    for commit in commits:
-        if _SKIP_SUBJECT.match(commit.subject):
-            continue
-        categories[categorize(commit)].lines.append(render_line(commit, repo))
+    for commit in included:
+        line = render_line(commit, pr_map.get(commit.sha))
+        categories[categorize(commit)].lines.append(line)
 
     sections = [
         f"{cat.header}\n" + "\n".join(cat.lines)
