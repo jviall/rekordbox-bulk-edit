@@ -19,7 +19,7 @@ from rich.console import Console
 from rich.table import Table
 
 from rekordbox_edit.models import Track
-from rekordbox_edit.utils import get_file_type_name
+from rekordbox_edit.utils import get_file_type_name, stored_to_star_rating
 
 logger = logging.getLogger(__name__)
 
@@ -40,6 +40,7 @@ class PrintableField(Enum):
     AlbumName = "AlbumName"
     Title = "Title"
     Comment = "Commnt"
+    Rating = "Rating"
 
 
 # Column headers shown in the rendered table
@@ -55,6 +56,7 @@ PRINT_HEADERS: Dict[PrintableField, str] = {
     PrintableField.BitDepth: "BitDp",
     PrintableField.FolderPath: "Folder",
     PrintableField.Comment: "Comment",
+    PrintableField.Rating: "Rating",
 }
 
 # Per-column add_column kwargs. min_width guarantees a column is never collapsed
@@ -71,6 +73,7 @@ _COLUMN_CONFIG: Dict[PrintableField, dict] = {
     PrintableField.FolderPath: {"min_width": 5, "ratio": 1},
     PrintableField.FileNameL: {"min_width": 5, "ratio": 1},
     PrintableField.Comment: {"min_width": 5, "ratio": 1},
+    PrintableField.Rating: {"justify": "right", "min_width": 3},
 }
 
 
@@ -90,6 +93,8 @@ def _cell_value(track: Track, column: PrintableField) -> str:
         return name
     if column is PrintableField.FolderPath:
         return os.path.dirname(track.FolderPath or "")
+    if column is PrintableField.Rating:
+        return "" if track.Rating is None else str(stored_to_star_rating(track.Rating))
     value = getattr(track, column.value, None)
     return "" if value is None else str(value)
 
