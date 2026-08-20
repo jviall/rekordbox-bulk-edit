@@ -13,6 +13,11 @@ from pyrekordbox.db6 import tables as tb
 from sqlalchemy import or_
 
 from rekordbox_edit.models import EditRequest
+from rekordbox_edit.utils import (
+    parse_star_rating,
+    star_rating_to_stored,
+    stored_to_star_rating,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -66,6 +71,30 @@ class StringField(FieldHandler):
 
     def apply(self, db, content, new_value):
         setattr(content, self.column, new_value)
+
+
+class RatingField(FieldHandler):
+    """A 0-5 star rating, stored as stars * 51. `--match` does not apply."""
+
+    name = "Rating"
+    supports_match = False
+
+    def validate_request(self, args):
+        if args.match_pattern is not None:
+            logger.warning(
+                "--match does not apply to Rating; setting the value directly"
+            )
+        parse_star_rating(args.replace_value)  # raises ValueError on bad input
+
+    def current_value(self, content):
+        stored = content.Rating
+        return None if stored is None else str(stored_to_star_rating(stored))
+
+    def compute_new_value(self, current, args):
+        return str(parse_star_rating(args.replace_value))
+
+    def apply(self, db, content, new_value):
+        content.Rating = star_rating_to_stored(int(new_value))
 
 
 # Every DjmdContent column pointing at a DjmdArtist row; an artist is orphaned
@@ -166,5 +195,6 @@ FIELD_HANDLERS: dict[str, FieldHandler] = {
         StringField("Comment", "Commnt"),
         RelationalField("ArtistName", "ArtistID", "ArtistName", "artist"),
         RelationalField("AlbumName", "AlbumID", "AlbumName", "album"),
+        RatingField(),
     )
 }

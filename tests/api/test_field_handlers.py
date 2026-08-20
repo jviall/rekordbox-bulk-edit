@@ -1,5 +1,7 @@
 from unittest.mock import MagicMock
 
+import pytest
+
 from rekordbox_edit.api.field_handlers import (
     FIELD_HANDLERS,
     RelationalField,
@@ -167,6 +169,36 @@ class TestRelationalArtist:
         _artist_handler().apply(db, content, "Alpha")
 
         db.delete.assert_not_called()
+
+
+class TestRatingField:
+    def test_no_match_support(self):
+        assert FIELD_HANDLERS["Rating"].supports_match is False
+
+    def test_validate_rejects_out_of_range(self):
+        args = EditRequest(field="Rating", replace_value="9")
+        with pytest.raises(ValueError):
+            FIELD_HANDLERS["Rating"].validate_request(args)
+
+    def test_validate_warns_and_ignores_match(self):
+        args = EditRequest(field="Rating", replace_value="3", match_pattern="x")
+        # Must not raise; --match is ignored for Rating.
+        FIELD_HANDLERS["Rating"].validate_request(args)
+
+    def test_current_value_is_star_string(self, make_djmd_content_item):
+        content = make_djmd_content_item(ID="1")
+        content.Rating = 153
+        assert FIELD_HANDLERS["Rating"].current_value(content) == "3"
+
+    def test_compute_and_apply_star_to_stored(self, make_djmd_content_item):
+        content = make_djmd_content_item(ID="1")
+        content.Rating = 0
+        handler = FIELD_HANDLERS["Rating"]
+        args = EditRequest(field="Rating", replace_value="4")
+        new_value = handler.compute_new_value(handler.current_value(content), args)
+        assert new_value == "4"
+        handler.apply(db=MagicMock(), content=content, new_value=new_value)
+        assert content.Rating == 204
 
 
 class TestRelationalAlbum:

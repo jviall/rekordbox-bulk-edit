@@ -11,7 +11,10 @@ from rekordbox_edit.utils import (
     get_file_type_codes_for_format,
     get_file_type_for_format,
     get_file_type_name,
+    parse_star_rating,
     probe_matches_file_type,
+    star_rating_to_stored,
+    stored_to_star_rating,
 )
 
 
@@ -488,3 +491,20 @@ class TestProbeMatchesFileType:
     )
     def test_matching(self, code, codec, container, expected):
         assert probe_matches_file_type(code, codec, container) is expected
+
+
+@pytest.mark.parametrize("stars,stored", [(0, 0), (1, 51), (3, 153), (5, 255)])
+def test_star_stored_roundtrip(stars, stored):
+    assert star_rating_to_stored(stars) == stored
+    assert stored_to_star_rating(stored) == stars
+
+
+@pytest.mark.parametrize("value,expected", [("0", 0), ("5", 5), (3, 3)])
+def test_parse_star_rating_valid(value, expected):
+    assert parse_star_rating(value) == expected
+
+
+@pytest.mark.parametrize("value", ["6", "-1", "abc", "3.5"])
+def test_parse_star_rating_invalid(value):
+    with pytest.raises(ValueError):
+        parse_star_rating(value)

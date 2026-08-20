@@ -256,6 +256,35 @@ def get_audio_info(file_path) -> AudioInfo:
         raise e
 
 
+_RATING_STARS_MAX = 5
+_RATING_STEP = 51  # Rekordbox stores N stars as N * 51.
+
+
+def parse_star_rating(value: "str | int") -> int:
+    """Parse a 0-5 star rating. Raise ValueError if not an integer in range."""
+    try:
+        stars = int(value)
+    except (TypeError, ValueError):
+        raise ValueError(
+            f"Rating must be an integer 0-{_RATING_STARS_MAX}, got {value!r}"
+        )
+    if not 0 <= stars <= _RATING_STARS_MAX:
+        raise ValueError(
+            f"Rating must be between 0 and {_RATING_STARS_MAX}, got {stars}"
+        )
+    return stars
+
+
+def star_rating_to_stored(stars: int) -> int:
+    """Convert a 0-5 star rating to the value Rekordbox stores."""
+    return stars * _RATING_STEP
+
+
+def stored_to_star_rating(stored: int) -> int:
+    """Convert a stored rating back to a 0-5 star count."""
+    return round(stored / _RATING_STEP)
+
+
 def confirm(
     prompt: str,
     default: bool = False,
