@@ -173,3 +173,11 @@ def test_changed_field_injected_into_columns(capsys, wide_console, make_track):
     rendered = capsys.readouterr().out
     assert "Old Artist" in rendered
     assert "New Artist" in rendered
+
+
+def test_comment_column_renders(capsys, wide_console, make_track):
+    track = make_track(ID="1")
+    track.Commnt = "hello"
+    print_track_info([track], print_columns=[PrintableField.Comment])
+    rendered = capsys.readouterr().out
+    assert "hello" in rendered

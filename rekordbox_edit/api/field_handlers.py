@@ -163,6 +163,7 @@ FIELD_HANDLERS: dict[str, FieldHandler] = {
     handler.name: handler
     for handler in (
         StringField("Title", "Title"),
+        StringField("Comment", "Commnt"),
         RelationalField("ArtistName", "ArtistID", "ArtistName", "artist"),
         RelationalField("AlbumName", "AlbumID", "AlbumName", "album"),
     )
