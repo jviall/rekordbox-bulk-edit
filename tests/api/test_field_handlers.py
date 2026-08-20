@@ -1,8 +1,15 @@
+from unittest.mock import MagicMock
+
 from rekordbox_edit.api.field_handlers import (
     FIELD_HANDLERS,
+    RelationalField,
     StringField,
 )
 from rekordbox_edit.models import EditRequest
+
+
+def _artist_handler():
+    return RelationalField("ArtistName", "ArtistID", "ArtistName", "artist")
 
 
 class TestStringField:
@@ -43,3 +50,100 @@ class TestRegistry:
     def test_title_registered(self):
         assert FIELD_HANDLERS["Title"].name == "Title"
         assert FIELD_HANDLERS["Title"].supports_match is True
+
+
+class TestRelationalArtist:
+    def test_current_value_reads_name_proxy(self, make_djmd_content_item):
+        content = make_djmd_content_item(ID="1", ArtistName="Gamma")
+        assert _artist_handler().current_value(content) == "Gamma"
+
+    def test_compute_plain_replace(self):
+        args = EditRequest(field="ArtistName", replace_value="Alpha")
+        assert _artist_handler().compute_new_value("Gamma", args) == "Alpha"
+
+    def test_apply_reuses_existing_artist_and_deletes_orphan(
+        self, make_djmd_content_item
+    ):
+        content = make_djmd_content_item(ID="1", ArtistName="Gamma", ArtistID="G")
+        db = MagicMock()
+        existing = MagicMock(ID="A")
+        # get-or-create finds the existing artist by name.
+        db.session.query.return_value.filter_by.return_value.order_by.return_value.first.return_value = existing
+        # orphan check: vacated artist "G" is referenced nowhere.
+        db.session.query.return_value.filter.return_value.first.return_value = None
+        old_row = MagicMock()
+        db.get_artist.return_value = old_row
+
+        _artist_handler().apply(db, content, "Alpha")
+
+        assert content.ArtistID == "A"
+        db.add_artist.assert_not_called()
+        db.delete.assert_called_once_with(old_row)
+
+    def test_apply_creates_artist_when_absent(self, make_djmd_content_item):
+        content = make_djmd_content_item(ID="1", ArtistName="Gamma", ArtistID="G")
+        db = MagicMock()
+        db.session.query.return_value.filter_by.return_value.order_by.return_value.first.return_value = None
+        db.add_artist.return_value = MagicMock(ID="NEW")
+        db.session.query.return_value.filter.return_value.first.return_value = None
+        db.get_artist.return_value = MagicMock()
+
+        _artist_handler().apply(db, content, "Brand New")
+
+        db.add_artist.assert_called_once_with("Brand New")
+        assert content.ArtistID == "NEW"
+
+    def test_apply_keeps_artist_still_referenced(self, make_djmd_content_item):
+        content = make_djmd_content_item(ID="1", ArtistName="Alpha", ArtistID="A")
+        db = MagicMock()
+        db.session.query.return_value.filter_by.return_value.order_by.return_value.first.return_value = MagicMock(
+            ID="B"
+        )
+        # orphan check: vacated artist "A" still referenced by another row.
+        db.session.query.return_value.filter.return_value.first.return_value = (
+            MagicMock()
+        )
+
+        _artist_handler().apply(db, content, "Beta")
+
+        db.delete.assert_not_called()
+
+    def test_apply_clear_sets_empty_fk(self, make_djmd_content_item):
+        content = make_djmd_content_item(ID="1", ArtistName="Gamma", ArtistID="G")
+        db = MagicMock()
+        db.session.query.return_value.filter.return_value.first.return_value = None
+        db.get_artist.return_value = MagicMock()
+
+        _artist_handler().apply(db, content, "")
+
+        assert content.ArtistID == ""
+        db.add_artist.assert_not_called()
+
+    def test_apply_skips_orphan_check_when_no_previous_artist(
+        self, make_djmd_content_item
+    ):
+        content = make_djmd_content_item(ID="1", ArtistName="Gamma", ArtistID=None)
+        db = MagicMock()
+        db.session.query.return_value.filter_by.return_value.order_by.return_value.first.return_value = None
+        db.add_artist.return_value = MagicMock(ID="NEW")
+
+        _artist_handler().apply(db, content, "Brand New")
+
+        db.get_artist.assert_not_called()
+        db.delete.assert_not_called()
+
+    def test_apply_orphan_check_handles_missing_artist_row(
+        self, make_djmd_content_item
+    ):
+        content = make_djmd_content_item(ID="1", ArtistName="Gamma", ArtistID="G")
+        db = MagicMock()
+        existing = MagicMock(ID="A")
+        db.session.query.return_value.filter_by.return_value.order_by.return_value.first.return_value = existing
+        # orphan check: vacated artist "G" is referenced nowhere, but its row
+        # is already gone (e.g. deleted out-of-band).
+        db.session.query.return_value.filter.return_value.first.return_value = None
+        db.get_artist.return_value = None
+
+        _artist_handler().apply(db, content, "Alpha")
+
+        db.delete.assert_not_called()
