@@ -50,6 +50,22 @@ def _album_handler():
     return RelationalField("AlbumName", "AlbumID", "AlbumName", "album")
 
 
+class TestCommentField:
+    def test_registered_over_commnt_column(self):
+        handler = FIELD_HANDLERS["Comment"]
+        assert isinstance(handler, StringField)
+        assert handler.column == "Commnt"
+
+    def test_current_and_apply_use_commnt(self, make_djmd_content_item):
+        content = make_djmd_content_item(ID="1")
+        content.Commnt = "old note"
+        handler = FIELD_HANDLERS["Comment"]
+        assert handler.current_value(content) == "old note"
+        db = MagicMock()
+        handler.apply(db=db, content=content, new_value="new note")
+        assert content.Commnt == "new note"
+
+
 class TestRegistry:
     def test_title_registered(self):
         assert FIELD_HANDLERS["Title"].name == "Title"

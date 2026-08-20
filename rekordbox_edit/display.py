@@ -39,6 +39,7 @@ class PrintableField(Enum):
     ArtistName = "ArtistName"
     AlbumName = "AlbumName"
     Title = "Title"
+    Comment = "Commnt"
 
 
 # Column headers shown in the rendered table
@@ -53,6 +54,7 @@ PRINT_HEADERS: Dict[PrintableField, str] = {
     PrintableField.BitRate: "BitRt",
     PrintableField.BitDepth: "BitDp",
     PrintableField.FolderPath: "Folder",
+    PrintableField.Comment: "Comment",
 }
 
 # Per-column add_column kwargs. min_width guarantees a column is never collapsed
@@ -68,6 +70,7 @@ _COLUMN_CONFIG: Dict[PrintableField, dict] = {
     PrintableField.BitDepth: {"min_width": 4},
     PrintableField.FolderPath: {"min_width": 5, "ratio": 1},
     PrintableField.FileNameL: {"min_width": 5, "ratio": 1},
+    PrintableField.Comment: {"min_width": 5, "ratio": 1},
 }
 
 
