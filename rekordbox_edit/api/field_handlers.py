@@ -164,5 +164,6 @@ FIELD_HANDLERS: dict[str, FieldHandler] = {
     for handler in (
         StringField("Title", "Title"),
         RelationalField("ArtistName", "ArtistID", "ArtistName", "artist"),
+        RelationalField("AlbumName", "AlbumID", "AlbumName", "album"),
     )
 }
