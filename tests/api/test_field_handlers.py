@@ -46,6 +46,10 @@ class TestStringField:
         assert content.Title == "New"
 
 
+def _album_handler():
+    return RelationalField("AlbumName", "AlbumID", "AlbumName", "album")
+
+
 class TestRegistry:
     def test_title_registered(self):
         assert FIELD_HANDLERS["Title"].name == "Title"
@@ -145,5 +149,86 @@ class TestRelationalArtist:
         db.get_artist.return_value = None
 
         _artist_handler().apply(db, content, "Alpha")
+
+        db.delete.assert_not_called()
+
+
+class TestRelationalAlbum:
+    def test_apply_reuses_existing_album(self, make_djmd_content_item):
+        content = make_djmd_content_item(
+            ID="1", AlbumName="AIFF Sampler", AlbumID="OLD"
+        )
+        db = MagicMock()
+        existing = MagicMock(ID="TARGET")
+        db.session.query.return_value.filter_by.return_value.order_by.return_value.first.return_value = existing
+        db.session.query.return_value.filter.return_value.first.return_value = None
+        db.get_album.return_value = MagicMock()
+
+        _album_handler().apply(db, content, "Lossless Vol 1")
+
+        # Reuse repoints the track and never creates a duplicate album. That the
+        # reused album's album-artist is left untouched is verified end-to-end in
+        # tests/e2e/test_edit_fields.py (a MagicMock cannot prove a non-write).
+        assert content.AlbumID == "TARGET"
+        db.add_album.assert_not_called()
+
+    def test_apply_creates_album_without_album_artist(self, make_djmd_content_item):
+        content = make_djmd_content_item(ID="1", AlbumName="Old", AlbumID="OLD")
+        db = MagicMock()
+        db.session.query.return_value.filter_by.return_value.order_by.return_value.first.return_value = None
+        db.add_album.return_value = MagicMock(ID="NEW")
+        db.session.query.return_value.filter.return_value.first.return_value = None
+        db.get_album.return_value = MagicMock()
+
+        _album_handler().apply(db, content, "Brand New Album")
+
+        db.add_album.assert_called_once_with("Brand New Album")
+        assert content.AlbumID == "NEW"
+
+    def test_apply_deletes_orphaned_album(self, make_djmd_content_item):
+        content = make_djmd_content_item(
+            ID="1", AlbumName="AIFF Sampler", AlbumID="OLD"
+        )
+        db = MagicMock()
+        db.session.query.return_value.filter_by.return_value.order_by.return_value.first.return_value = MagicMock(
+            ID="TARGET"
+        )
+        db.session.query.return_value.filter.return_value.first.return_value = None
+        old_row = MagicMock()
+        db.get_album.return_value = old_row
+
+        _album_handler().apply(db, content, "Lossless Vol 1")
+
+        db.delete.assert_called_once_with(old_row)
+
+    def test_apply_orphan_check_handles_missing_album_row(self, make_djmd_content_item):
+        content = make_djmd_content_item(
+            ID="1", AlbumName="AIFF Sampler", AlbumID="OLD"
+        )
+        db = MagicMock()
+        db.session.query.return_value.filter_by.return_value.order_by.return_value.first.return_value = MagicMock(
+            ID="TARGET"
+        )
+        # orphan check: vacated album "OLD" is referenced nowhere, but its row
+        # is already gone (e.g. deleted out-of-band).
+        db.session.query.return_value.filter.return_value.first.return_value = None
+        db.get_album.return_value = None
+
+        _album_handler().apply(db, content, "Lossless Vol 1")
+
+        db.delete.assert_not_called()
+
+    def test_apply_keeps_album_still_referenced(self, make_djmd_content_item):
+        content = make_djmd_content_item(ID="1", AlbumName="Old", AlbumID="OLD")
+        db = MagicMock()
+        db.session.query.return_value.filter_by.return_value.order_by.return_value.first.return_value = MagicMock(
+            ID="TARGET"
+        )
+        # orphan check: vacated album "OLD" still referenced by another row.
+        db.session.query.return_value.filter.return_value.first.return_value = (
+            MagicMock()
+        )
+
+        _album_handler().apply(db, content, "New Name")
 
         db.delete.assert_not_called()
