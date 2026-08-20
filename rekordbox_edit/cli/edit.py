@@ -13,7 +13,8 @@ from rekordbox_edit._click import (
     print_option,
     track_ids_argument,
 )
-from rekordbox_edit.api.edit import FIELD_COLUMNS, edit
+from rekordbox_edit.api.edit import edit
+from rekordbox_edit.api.field_handlers import FIELD_HANDLERS
 from rekordbox_edit.cli._utils import (
     SCRIPTING_MODES,
     _build_args,
@@ -46,7 +47,7 @@ logger = logging.getLogger(__name__)
 @track_ids_argument
 @click.argument(
     "field",
-    type=click.Choice(list(FIELD_COLUMNS.keys()), case_sensitive=False),
+    type=click.Choice(list(FIELD_HANDLERS.keys()), case_sensitive=False),
 )
 @with_database(writes=True)
 def edit_command(db, **kwargs):

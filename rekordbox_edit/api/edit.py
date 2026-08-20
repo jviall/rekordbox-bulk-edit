@@ -5,6 +5,7 @@ import logging
 from pyrekordbox import Rekordbox6Database
 
 from rekordbox_edit.api._utils import _order_tracks_by_op
+from rekordbox_edit.api.field_handlers import FIELD_HANDLERS
 from rekordbox_edit.models import (
     EditRequest,
     EditOp,
@@ -16,29 +17,13 @@ from rekordbox_edit.query import get_filtered_content
 
 logger = logging.getLogger(__name__)
 
-FIELD_COLUMNS: dict[str, str] = {
-    "Title": "Title",
-}
-
-
-def _compute_new_value(
-    current: str | int | None,
-    match_pattern: str | None,
-    replace_value: str | int,
-) -> str | int | None:
-    if current is None:
-        return None
-    if match_pattern is not None:
-        return str(current).replace(match_pattern, str(replace_value))
-    return replace_value
-
 
 def _classify_edit(content, args: EditRequest) -> EditOp | SkippedTrack:
     """Return EditOp if this track should be edited, or SkippedTrack with
     reason if not."""
-    col_name = FIELD_COLUMNS[args.field]
-    current = getattr(content, col_name)
-    new_value = _compute_new_value(current, args.match_pattern, args.replace_value)
+    handler = FIELD_HANDLERS[args.field]
+    current = handler.current_value(content)
+    new_value = handler.compute_new_value(current, args)
     if new_value is None or new_value == current:
         logger.debug(
             f"skip edit id={content.ID} reason=no_change "
@@ -60,6 +45,11 @@ def edit(
     With `dry_run=False` (default), commits the changes.
     """
     logger.debug(f"edit start field={args.field} dry_run={dry_run}")
+    handler = FIELD_HANDLERS.get(args.field)
+    if handler is None:
+        raise ValueError(f"Unknown field: {args.field!r}")
+    handler.validate_request(args)
+
     contents = get_filtered_content(db, args).scalars().all()
     logger.debug(f"edit fetched {len(contents)} candidate(s) from filter")
 
@@ -95,11 +85,10 @@ def edit(
 
     assert db.session is not None
 
-    col_name = FIELD_COLUMNS[args.field]
     new_values = {op.id: op.new_value for op in ops}
     for content in contents:
         if str(content.ID) in new_values:
-            setattr(content, col_name, new_values[str(content.ID)])
+            handler.apply(db, content, new_values[str(content.ID)])
     db.session.commit()
     logger.debug(f"edit committed {len(ops)} change(s) on field={args.field}")
 

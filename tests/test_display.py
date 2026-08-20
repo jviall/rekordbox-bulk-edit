@@ -156,3 +156,20 @@ class TestPrintTrackInfo:
 
         captured = capsys.readouterr()
         assert "UNKNOWN" in captured.out
+
+
+def test_changed_field_injected_into_columns(capsys, wide_console, make_track):
+    from rekordbox_edit.display import (
+        PrintableField,
+        print_track_info,
+    )
+
+    track = make_track(ID="1", ArtistName="Old Artist")
+    print_track_info(
+        [track],
+        changed_field=PrintableField.ArtistName,
+        new_values=["New Artist"],
+    )
+    rendered = capsys.readouterr().out
+    assert "Old Artist" in rendered
+    assert "New Artist" in rendered

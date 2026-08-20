@@ -31,9 +31,18 @@ class TestClassifyEdit:
         assert result.id == "1"
         assert result.reason == "no_change"
 
-    def test_returns_skipped_when_current_is_none(self, make_djmd_content_item):
+    def test_plain_replace_sets_when_current_is_none(self, make_djmd_content_item):
         content = make_djmd_content_item(ID="1", Title=None)
         args = EditRequest(field="Title", replace_value="New")
+
+        result = _classify_edit(content, args)
+
+        assert isinstance(result, EditOp)
+        assert result.new_value == "New"
+
+    def test_match_skips_when_current_is_none(self, make_djmd_content_item):
+        content = make_djmd_content_item(ID="1", Title=None)
+        args = EditRequest(field="Title", replace_value="b", match_pattern="a")
 
         result = _classify_edit(content, args)
 
@@ -166,3 +175,32 @@ class TestEditRealRun:
         # of contents). tracks aligns to edits.
         ids = [t.ID for t in response.tracks]
         assert ids == [op.id for op in response.result.edits]
+
+    @patch("rekordbox_edit.api.edit.get_filtered_content")
+    def test_skipped_content_is_not_applied(
+        self, mock_gfc, mock_db, make_djmd_content_item
+    ):
+        # One track matches and is changed; one has no match and is skipped.
+        # Only the matching track's content should be mutated.
+        changed = make_djmd_content_item(ID="1", Title="Hello World")
+        skipped = make_djmd_content_item(ID="2", Title="Nothing Here")
+        mock_gfc.return_value.scalars.return_value.all.return_value = [
+            changed,
+            skipped,
+        ]
+
+        edit(
+            mock_db,
+            EditRequest(
+                field="Title", replace_value="Earth", match_pattern="World", multi=True
+            ),
+        )
+
+        assert changed.Title == "Hello Earth"
+        assert skipped.Title == "Nothing Here"
+
+    @patch("rekordbox_edit.api.edit.get_filtered_content")
+    def test_unknown_field_raises(self, mock_gfc, mock_db):
+        mock_gfc.return_value.scalars.return_value.all.return_value = []
+        with pytest.raises(ValueError, match="Unknown field"):
+            edit(mock_db, EditRequest(field="Nope", replace_value="x"))

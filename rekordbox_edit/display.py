@@ -122,6 +122,8 @@ def print_track_info(
         PrintableField.FolderPath,
         PrintableField.FileNameL,
     ]
+    if changed_field is not None and changed_field not in print_columns:
+        print_columns = [*print_columns, changed_field]
 
     table = Table(show_header=True, box=box.SIMPLE, expand=True)
     table.add_column("#", justify="right", min_width=1, no_wrap=True)
