@@ -1,0 +1,26 @@
+== DjmdCue columns ==
+['ID', 'ContentID', 'InMsec', 'InFrame', 'InMpegFrame', 'InMpegAbs', 'OutMsec', 'OutFrame', 'OutMpegFrame', 'OutMpegAbs', 'Kind', 'Color', 'ColorTableIndex', 'ActiveLoop', 'Comment', 'BeatLoopSize', 'CueMicrosec', 'InPointSeekInfo', 'OutPointSeekInfo', 'ContentUUID', 'UUID', 'rb_data_status', 'rb_local_data_status', 'rb_local_deleted', 'rb_local_synced', 'usn', 'rb_local_usn', 'created_at', 'updated_at']
+
+Total DjmdCue rows: 1002
+Distinct contents with cues: 366
+
+Top 8 contents by cue count:
+  ID=80401918 cues=9 type=5 name='01. NUEVAYoL - Bad Bunny.flac' len=183
+  ID=211266193 cues=7 type=5 name='04 - When I Run.flac' len=224
+  ID=59417313 cues=7 type=5 name='08 - Voz Serena.flac' len=305
+  ID=225597143 cues=7 type=5 name='03 - A7mer.flac' len=260
+  ID=25708972 cues=6 type=5 name='02 - Emcimbinii.flac' len=422
+  ID=52149052 cues=6 type=5 name='02 - Alucinao.flac' len=546
+  ID=77054300 cues=6 type=5 name='04 - Drup.flac' len=287
+  ID=178001008 cues=6 type=5 name='01 - Seven Poets.flac' len=185
+
+== Sample DjmdCue rows for ID=80401918 ==
+  Kind=1 InMsec=55 InFrame=8 OutMsec=-1 OutFrame=0 Color=22 ActiveLoop=0
+  Kind=0 InMsec=55 InFrame=8 OutMsec=-1 OutFrame=0 Color=None ActiveLoop=None
+  Kind=2 InMsec=2061 InFrame=309 OutMsec=-1 OutFrame=0 Color=22 ActiveLoop=0
+  Kind=0 InMsec=2061 InFrame=309 OutMsec=-1 OutFrame=0 Color=None ActiveLoop=None
+  Kind=3 InMsec=20837 InFrame=3125 OutMsec=-1 OutFrame=0 Color=22 ActiveLoop=0
+  Kind=5 InMsec=22725 InFrame=3408 OutMsec=-1 OutFrame=0 Color=22 ActiveLoop=0
+  Kind=0 InMsec=22725 InFrame=3408 OutMsec=-1 OutFrame=0 Color=None ActiveLoop=None
+  Kind=6 InMsec=124289 InFrame=18643 OutMsec=124799 OutFrame=18719 Color=36 ActiveLoop=0
+  Kind=0 InMsec=2054 InFrame=308 OutMsec=-1 OutFrame=0 Color=None ActiveLoop=None

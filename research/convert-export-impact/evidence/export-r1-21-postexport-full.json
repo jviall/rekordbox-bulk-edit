@@ -1,0 +1,4621 @@
+{
+  "stage": "r1-21-postexport-full",
+  "drive_root": "D:/",
+  "captured_at": "2026-07-31T22:52:50",
+  "contents": [
+    {
+      "rel": "Contents/Blue Hawaii/Under 1 House/02. I Felt Love.flac",
+      "ext": ".flac",
+      "size": 20725311,
+      "mtime": 1750983878,
+      "sha1": "18eaedd6beb76839bb5d700949650d3ad4c97b44"
+    },
+    {
+      "rel": "Contents/Charli xcx, Shygirl/Brat and it’s completely different but also stil/15. 365 featuring shygirl.flac",
+      "ext": ".flac",
+      "size": 13218928,
+      "mtime": 1750983726,
+      "sha1": "106ddcca5eefb6b2a1a5adb1c1e25a594e574d93"
+    },
+    {
+      "rel": "Contents/Charli xcx, Shygirl/Brat and it’s completely different but also stil/15. 365 featuring shygirl.mp3",
+      "ext": ".mp3",
+      "size": 5425179,
+      "mtime": 1785563084,
+      "sha1": "d7c58fe38db3b22a58de4528b658c0b721d870f9"
+    },
+    {
+      "rel": "Contents/DJ これからの緊急災害/Like a Switchblade/02. Flow 2000 Edit.flac",
+      "ext": ".flac",
+      "size": 22667722,
+      "mtime": 1750983878,
+      "sha1": "7ba0b4de1b10089c63356f2553fac9af920dd6ac"
+    },
+    {
+      "rel": "Contents/Erika de Casier/Essentials/09. Rainy - Erika de Casier.flac",
+      "ext": ".flac",
+      "size": 25373377,
+      "mtime": 1752116174,
+      "sha1": "906dd5b1d7c2af2e867683c39cbf19ba832233c9"
+    },
+    {
+      "rel": "Contents/Erika de Casier/Essentials/10. Space - Erika de Casier.flac",
+      "ext": ".flac",
+      "size": 25531413,
+      "mtime": 1752116174,
+      "sha1": "f575494b8ddd2b8f9a5ecd0b401bc09d92851ce6"
+    },
+    {
+      "rel": "Contents/Erika de Casier/Essentials/11. Story of My Life - Erika de Casier.flac",
+      "ext": ".flac",
+      "size": 22092102,
+      "mtime": 1752116176,
+      "sha1": "b5a5efa1f891e524d05666f6db1f90a65c66fb81"
+    },
+    {
+      "rel": "Contents/Erika de Casier/Essentials/12. Intimate (Club Mix) - Erika de Casier.flac",
+      "ext": ".flac",
+      "size": 22813922,
+      "mtime": 1746832716,
+      "sha1": "fd7097ddfb6ac6f2c7316734342c370f626541a3"
+    },
+    {
+      "rel": "Contents/hazboy/UnknownAlbum/hazboy - Charli xcx - Spring breakers (hazb.aiff",
+      "ext": ".aiff",
+      "size": 50019204,
+      "mtime": 1754101448,
+      "sha1": "c66f2b9c293ab97f5d67c502cc657a6465ffb64b"
+    },
+    {
+      "rel": "Contents/hazboy/UnknownAlbum/hazboy - Charli xcx - Spring breakers (hazbo.wav",
+      "ext": ".wav",
+      "size": 33163402,
+      "mtime": 1785563086,
+      "sha1": "520b703067ddc1f296bb42b5131887ead49c0c7d"
+    },
+    {
+      "rel": "Contents/JIALING & Kade Young/DUMMY/JIALING & Kade Young - DUMMY - 03 DUMMY (JI.flac",
+      "ext": ".flac",
+      "size": 29679035,
+      "mtime": 1752121358,
+      "sha1": "c02001229add2d16f312db9904ac3aa7cd0b6a40"
+    },
+    {
+      "rel": "Contents/MIMI ZIMA/UnknownAlbum/MIMI ZIMA - End It.aiff",
+      "ext": ".aiff",
+      "size": 52634518,
+      "mtime": 1785563080,
+      "sha1": "42e805bc7cb5bc8beec5eaeba125641a847bef8f"
+    },
+    {
+      "rel": "Contents/MIMI ZIMA/UnknownAlbum/MIMI ZIMA - End It.flac",
+      "ext": ".flac",
+      "size": 31982924,
+      "mtime": 1750977458,
+      "sha1": "bf9cdc1fcdda3b8fc34139b6a9ba9c2aafe1f356"
+    },
+    {
+      "rel": "Contents/Pelada/Movimiento Para Cambio/03. Habla Tu Verdad - Pelada.flac",
+      "ext": ".flac",
+      "size": 45203566,
+      "mtime": 1750984214,
+      "sha1": "e48f27104a7b340389fbf40576f411ee560d3cea"
+    },
+    {
+      "rel": "Contents/Poproboval/Soundz of da Ru$$ia/04 - На такси.flac",
+      "ext": ".flac",
+      "size": 14787195,
+      "mtime": 1750983754,
+      "sha1": "e31644afd9e6c4eed5ecbbc1410f159a5e6c1a53"
+    },
+    {
+      "rel": "Contents/Shygirl, Club Shy, Yseult/F_Me/01. F-Me.flac",
+      "ext": ".flac",
+      "size": 22519293,
+      "mtime": 1750983858,
+      "sha1": "c325b9418306f23bcc80fa27cfc0588263415813"
+    },
+    {
+      "rel": "Contents/Tessela/Hackney Parrot _ Helter Skelter/01 - Hackney Parrot.flac",
+      "ext": ".flac",
+      "size": 41515389,
+      "mtime": 1750983834,
+      "sha1": "b8a0de2e61198e8944f7556bf37f2656f1e224cb"
+    },
+    {
+      "rel": "Contents/Yunè Pinku/Affection/01. Affection - Yunè Pinku.flac",
+      "ext": ".flac",
+      "size": 25196600,
+      "mtime": 1750983762,
+      "sha1": "1c0384866e0fafd4c9cb0d2536d05523b779cf8d"
+    },
+    {
+      "rel": "Contents/Yunè Pinku/Affection/01. Affection.flac",
+      "ext": ".flac",
+      "size": 25196600,
+      "mtime": 1750983764,
+      "sha1": "1c0384866e0fafd4c9cb0d2536d05523b779cf8d"
+    }
+  ],
+  "usbanlz": {
+    "P004/00024C70": {
+      "2EX": {
+        "file": "ANLZ0000.2EX",
+        "ppth": "/Contents/Blue Hawaii/Under 1 House/02. I Felt Love.flac",
+        "tags": [
+          {
+            "type": "PPTH",
+            "offset": 28,
+            "len_header": 16,
+            "len_tag": 130,
+            "sha1": "025d59cb4c0eac29ee1b420530b730bf73bbd547"
+          },
+          {
+            "type": "PWV7",
+            "offset": 158,
+            "len_header": 24,
+            "len_tag": 86427,
+            "sha1": "305ebef8b0225e94abd0f4b793301054115b151b"
+          },
+          {
+            "type": "PWV6",
+            "offset": 86585,
+            "len_header": 20,
+            "len_tag": 3620,
+            "sha1": "e149fe13ca6f8719cc6347b6378ecaac0569f3cc"
+          },
+          {
+            "type": "PWVC",
+            "offset": 90205,
+            "len_header": 14,
+            "len_tag": 20,
+            "sha1": "3d6e563be7fb701462629fcf0467ed95c6509b2a"
+          },
+          {
+            "type": "PVDI",
+            "offset": 90225,
+            "len_header": 24,
+            "len_tag": 24,
+            "sha1": "125dc395b4cddf91f64a8fed30ef0383dbee91b6"
+          }
+        ]
+      },
+      "DAT": {
+        "file": "ANLZ0000.DAT",
+        "ppth": "/Contents/Blue Hawaii/Under 1 House/02. I Felt Love.flac",
+        "tags": [
+          {
+            "type": "PPTH",
+            "offset": 28,
+            "len_header": 16,
+            "len_tag": 130,
+            "sha1": "025d59cb4c0eac29ee1b420530b730bf73bbd547"
+          },
+          {
+            "type": "PVBR",
+            "offset": 158,
+            "len_header": 16,
+            "len_tag": 1620,
+            "sha1": "f6983036fa89dc49a51fa4179c3c0dc70a1bdb40"
+          },
+          {
+            "type": "PQTZ",
+            "offset": 1778,
+            "len_header": 24,
+            "len_tag": 3424,
+            "sha1": "90c2140059064d3e9939915dc2333779af6bc4ac"
+          },
+          {
+            "type": "PWAV",
+            "offset": 5202,
+            "len_header": 20,
+            "len_tag": 420,
+            "sha1": "80f9a12c4682ad850edbbec03f37fc537c67aa5e"
+          },
+          {
+            "type": "PWV2",
+            "offset": 5622,
+            "len_header": 20,
+            "len_tag": 120,
+            "sha1": "1b626023e9155bd16c7d32121dff7fd97c9742ce"
+          },
+          {
+            "type": "PCOB",
+            "offset": 5742,
+            "len_header": 24,
+            "len_tag": 80,
+            "sha1": "2059994cbceee8b794aa5648493c41acc1a5aa8d"
+          },
+          {
+            "type": "PCOB",
+            "offset": 5822,
+            "len_header": 24,
+            "len_tag": 24,
+            "sha1": "279c54cb0898a7f13ea6be66c47328d4cc7950aa"
+          }
+        ],
+        "pqtz": {
+          "beats": 425,
+          "bpm_avg": 133.0,
+          "first_s": 0.45,
+          "last_s": 191.728
+        },
+        "cue_lists": [
+          {
+            "tag": "cue_list",
+            "count": 1,
+            "entries": [
+              {
+                "type": "single",
+                "hot_cue": 1,
+                "time": 1803,
+                "loop_time": 4294967295,
+                "comment": null
+              }
+            ]
+          },
+          {
+            "tag": "cue_list",
+            "count": 0,
+            "entries": []
+          }
+        ]
+      },
+      "EXT": {
+        "file": "ANLZ0000.EXT",
+        "ppth": "/Contents/Blue Hawaii/Under 1 House/02. I Felt Love.flac",
+        "tags": [
+          {
+            "type": "PPTH",
+            "offset": 28,
+            "len_header": 16,
+            "len_tag": 130,
+            "sha1": "025d59cb4c0eac29ee1b420530b730bf73bbd547"
+          },
+          {
+            "type": "PWV3",
+            "offset": 158,
+            "len_header": 24,
+            "len_tag": 28825,
+            "sha1": "3ce818f9439f12248cd1ca11d6ec9c466dc9368a"
+          },
+          {
+            "type": "PCOB",
+            "offset": 28983,
+            "len_header": 24,
+            "len_tag": 24,
+            "sha1": "7a54777fcd4e881526cd1557cf997ee6d2cc844c"
+          },
+          {
+            "type": "PCOB",
+            "offset": 29007,
+            "len_header": 24,
+            "len_tag": 24,
+            "sha1": "279c54cb0898a7f13ea6be66c47328d4cc7950aa"
+          },
+          {
+            "type": "PCO2",
+            "offset": 29031,
+            "len_header": 20,
+            "len_tag": 124,
+            "sha1": "e5321485eb35bbcf706660a469a5ca4f61b7bbec"
+          },
+          {
+            "type": "PCO2",
+            "offset": 29155,
+            "len_header": 20,
+            "len_tag": 20,
+            "sha1": "e667389d7fc8e4fa5c1fe3f11be649ff73acc0a8"
+          },
+          {
+            "type": "PWV5",
+            "offset": 29175,
+            "len_header": 24,
+            "len_tag": 57626,
+            "sha1": "7190edb3cc89f41b36a6967b03b40eb4d8be929a"
+          },
+          {
+            "type": "PWV4",
+            "offset": 86801,
+            "len_header": 24,
+            "len_tag": 7224,
+            "sha1": "caab2978cc8f4df2d5dc27d4f125da31fd05e605"
+          },
+          {
+            "type": "PVB2",
+            "offset": 94025,
+            "len_header": 32,
+            "len_tag": 8032,
+            "sha1": "ea820e98ef921f4db250cd982a3152971c6d428b"
+          },
+          {
+            "type": "PSSI",
+            "offset": 102057,
+            "len_header": 32,
+            "len_tag": 320,
+            "sha1": "651f3e2f8fe71edb664f2170e8acfe885e1707a1"
+          }
+        ],
+        "cue_lists": [
+          {
+            "tag": "cue_list",
+            "count": 0,
+            "entries": []
+          },
+          {
+            "tag": "cue_list",
+            "count": 0,
+            "entries": []
+          },
+          {
+            "tag": "cue_list2",
+            "count": 1,
+            "entries": [
+              {
+                "type": 1,
+                "hot_cue": 1,
+                "time": 1803,
+                "loop_time": 4294967295,
+                "comment": "1.1Bars"
+              }
+            ]
+          },
+          {
+            "tag": "cue_list2",
+            "count": 0,
+            "entries": []
+          }
+        ]
+      }
+    },
+    "P00E/000094EE": {
+      "2EX": {
+        "file": "ANLZ0000.2EX",
+        "ppth": "/Contents/Yunè Pinku/Affection/01. Affection - Yunè Pinku.flac",
+        "tags": [
+          {
+            "type": "PPTH",
+            "offset": 28,
+            "len_header": 16,
+            "len_tag": 142,
+            "sha1": "6f11e77dcd6fa3d58df067cea8d1646122d285c0"
+          },
+          {
+            "type": "PWV7",
+            "offset": 170,
+            "len_header": 24,
+            "len_tag": 98997,
+            "sha1": "716f17b8ea3de7885f64e854799fa6e9a86eb7be"
+          },
+          {
+            "type": "PWV6",
+            "offset": 99167,
+            "len_header": 20,
+            "len_tag": 3620,
+            "sha1": "799b6719e183723059db90f492c5756c90164745"
+          },
+          {
+            "type": "PWVC",
+            "offset": 102787,
+            "len_header": 14,
+            "len_tag": 20,
+            "sha1": "9f6b718e444fcea6a5ad63c967d0d6940a513856"
+          },
+          {
+            "type": "PVDI",
+            "offset": 102807,
+            "len_header": 24,
+            "len_tag": 24,
+            "sha1": "125dc395b4cddf91f64a8fed30ef0383dbee91b6"
+          }
+        ]
+      },
+      "DAT": {
+        "file": "ANLZ0000.DAT",
+        "ppth": "/Contents/Yunè Pinku/Affection/01. Affection - Yunè Pinku.flac",
+        "tags": [
+          {
+            "type": "PPTH",
+            "offset": 28,
+            "len_header": 16,
+            "len_tag": 142,
+            "sha1": "6f11e77dcd6fa3d58df067cea8d1646122d285c0"
+          },
+          {
+            "type": "PVBR",
+            "offset": 170,
+            "len_header": 16,
+            "len_tag": 1620,
+            "sha1": "f6983036fa89dc49a51fa4179c3c0dc70a1bdb40"
+          },
+          {
+            "type": "PQTZ",
+            "offset": 1790,
+            "len_header": 24,
+            "len_tag": 3640,
+            "sha1": "233e86e837895b3190d1904f335243dd2b3ff322"
+          },
+          {
+            "type": "PWAV",
+            "offset": 5430,
+            "len_header": 20,
+            "len_tag": 420,
+            "sha1": "6634fab45fa5b78078fb573e465bad23340f31d5"
+          },
+          {
+            "type": "PWV2",
+            "offset": 5850,
+            "len_header": 20,
+            "len_tag": 120,
+            "sha1": "f7788bed94ecaa8e8a93dd158a395a75ea0665de"
+          },
+          {
+            "type": "PCOB",
+            "offset": 5970,
+            "len_header": 24,
+            "len_tag": 80,
+            "sha1": "0eb90e61e457cd0b533955a270b8d8129995c8b4"
+          },
+          {
+            "type": "PCOB",
+            "offset": 6050,
+            "len_header": 24,
+            "len_tag": 24,
+            "sha1": "279c54cb0898a7f13ea6be66c47328d4cc7950aa"
+          }
+        ],
+        "pqtz": {
+          "beats": 452,
+          "bpm_avg": 124.0,
+          "first_s": 0.407,
+          "last_s": 218.633
+        },
+        "cue_lists": [
+          {
+            "tag": "cue_list",
+            "count": 1,
+            "entries": [
+              {
+                "type": "single",
+                "hot_cue": 1,
+                "time": 407,
+                "loop_time": 4294967295,
+                "comment": null
+              }
+            ]
+          },
+          {
+            "tag": "cue_list",
+            "count": 0,
+            "entries": []
+          }
+        ]
+      },
+      "EXT": {
+        "file": "ANLZ0000.EXT",
+        "ppth": "/Contents/Yunè Pinku/Affection/01. Affection - Yunè Pinku.flac",
+        "tags": [
+          {
+            "type": "PPTH",
+            "offset": 28,
+            "len_header": 16,
+            "len_tag": 142,
+            "sha1": "6f11e77dcd6fa3d58df067cea8d1646122d285c0"
+          },
+          {
+            "type": "PWV3",
+            "offset": 170,
+            "len_header": 24,
+            "len_tag": 33015,
+            "sha1": "4cea2f5560da64d05239e92b67875a35cddf716e"
+          },
+          {
+            "type": "PCOB",
+            "offset": 33185,
+            "len_header": 24,
+            "len_tag": 24,
+            "sha1": "7a54777fcd4e881526cd1557cf997ee6d2cc844c"
+          },
+          {
+            "type": "PCOB",
+            "offset": 33209,
+            "len_header": 24,
+            "len_tag": 24,
+            "sha1": "279c54cb0898a7f13ea6be66c47328d4cc7950aa"
+          },
+          {
+            "type": "PCO2",
+            "offset": 33233,
+            "len_header": 20,
+            "len_tag": 124,
+            "sha1": "7dbbfc77fa580ef61e34e9ba7650edaa04a60a56"
+          },
+          {
+            "type": "PCO2",
+            "offset": 33357,
+            "len_header": 20,
+            "len_tag": 20,
+            "sha1": "e667389d7fc8e4fa5c1fe3f11be649ff73acc0a8"
+          },
+          {
+            "type": "PWV5",
+            "offset": 33377,
+            "len_header": 24,
+            "len_tag": 66006,
+            "sha1": "2b2b1cc6e09e78c017728f2157f51bc6fa9b1108"
+          },
+          {
+            "type": "PWV4",
+            "offset": 99383,
+            "len_header": 24,
+            "len_tag": 7224,
+            "sha1": "b8ea3f52ea3b512196f7f925eefdc79d0786b338"
+          },
+          {
+            "type": "PVB2",
+            "offset": 106607,
+            "len_header": 32,
+            "len_tag": 8032,
+            "sha1": "967736ab295fd45b7fb4574c2ecb53b81e88d051"
+          },
+          {
+            "type": "PSSI",
+            "offset": 114639,
+            "len_header": 32,
+            "len_tag": 440,
+            "sha1": "b6ac89f0418ba765cf50f19d2516ab2614c7bd41"
+          }
+        ],
+        "cue_lists": [
+          {
+            "tag": "cue_list",
+            "count": 0,
+            "entries": []
+          },
+          {
+            "tag": "cue_list",
+            "count": 0,
+            "entries": []
+          },
+          {
+            "tag": "cue_list2",
+            "count": 1,
+            "entries": [
+              {
+                "type": 1,
+                "hot_cue": 1,
+                "time": 407,
+                "loop_time": 4294967295,
+                "comment": "1.1Bars"
+              }
+            ]
+          },
+          {
+            "tag": "cue_list2",
+            "count": 0,
+            "entries": []
+          }
+        ]
+      }
+    },
+    "P012/0002833E": {
+      "2EX": {
+        "file": "ANLZ0000.2EX",
+        "ppth": "/Contents/hazboy/UnknownAlbum/hazboy - Charli xcx - Spring breakers (hazb.aiff",
+        "tags": [
+          {
+            "type": "PPTH",
+            "offset": 28,
+            "len_header": 16,
+            "len_tag": 174,
+            "sha1": "d6ca7f44855a268c800a4fc05d12dc85cc642489"
+          },
+          {
+            "type": "PWV7",
+            "offset": 202,
+            "len_header": 24,
+            "len_tag": 84624,
+            "sha1": "2a4495ac3e438991d677e470a5cf63d8ce22a8fe"
+          },
+          {
+            "type": "PWV6",
+            "offset": 84826,
+            "len_header": 20,
+            "len_tag": 3620,
+            "sha1": "bee2c4d0dd52b92122128e1c224745be68371814"
+          },
+          {
+            "type": "PWVC",
+            "offset": 88446,
+            "len_header": 14,
+            "len_tag": 20,
+            "sha1": "1dc69b1d462dcd45fdc767ef886de4888d89d57a"
+          },
+          {
+            "type": "PVDI",
+            "offset": 88466,
+            "len_header": 24,
+            "len_tag": 24,
+            "sha1": "125dc395b4cddf91f64a8fed30ef0383dbee91b6"
+          }
+        ]
+      },
+      "DAT": {
+        "file": "ANLZ0000.DAT",
+        "ppth": "/Contents/hazboy/UnknownAlbum/hazboy - Charli xcx - Spring breakers (hazb.aiff",
+        "tags": [
+          {
+            "type": "PPTH",
+            "offset": 28,
+            "len_header": 16,
+            "len_tag": 174,
+            "sha1": "d6ca7f44855a268c800a4fc05d12dc85cc642489"
+          },
+          {
+            "type": "PVBR",
+            "offset": 202,
+            "len_header": 16,
+            "len_tag": 1620,
+            "sha1": "f6983036fa89dc49a51fa4179c3c0dc70a1bdb40"
+          },
+          {
+            "type": "PQTZ",
+            "offset": 1822,
+            "len_header": 24,
+            "len_tag": 3408,
+            "sha1": "928e9842e15bbb57e09ac177dbcfb227fe274989"
+          },
+          {
+            "type": "PWAV",
+            "offset": 5230,
+            "len_header": 20,
+            "len_tag": 420,
+            "sha1": "836f23f1f6621947abc80b8fb43bacfd2f623259"
+          },
+          {
+            "type": "PWV2",
+            "offset": 5650,
+            "len_header": 20,
+            "len_tag": 120,
+            "sha1": "7f741ba5ab2c3f8505f815ad4facf835143c8060"
+          },
+          {
+            "type": "PCOB",
+            "offset": 5770,
+            "len_header": 24,
+            "len_tag": 192,
+            "sha1": "b9a6030933b2314360cf2e695bafd12bb26c3492"
+          },
+          {
+            "type": "PCOB",
+            "offset": 5962,
+            "len_header": 24,
+            "len_tag": 24,
+            "sha1": "279c54cb0898a7f13ea6be66c47328d4cc7950aa"
+          }
+        ],
+        "pqtz": {
+          "beats": 423,
+          "bpm_avg": 135.0,
+          "first_s": 0.001,
+          "last_s": 187.557
+        },
+        "cue_lists": [
+          {
+            "tag": "cue_list",
+            "count": 3,
+            "entries": [
+              {
+                "type": "single",
+                "hot_cue": 3,
+                "time": 17334,
+                "loop_time": 4294967295,
+                "comment": null
+              },
+              {
+                "type": "single",
+                "hot_cue": 2,
+                "time": 3112,
+                "loop_time": 4294967295,
+                "comment": null
+              },
+              {
+                "type": "single",
+                "hot_cue": 1,
+                "time": 1334,
+                "loop_time": 4294967295,
+                "comment": null
+              }
+            ]
+          },
+          {
+            "tag": "cue_list",
+            "count": 0,
+            "entries": []
+          }
+        ]
+      },
+      "EXT": {
+        "file": "ANLZ0000.EXT",
+        "ppth": "/Contents/hazboy/UnknownAlbum/hazboy - Charli xcx - Spring breakers (hazb.aiff",
+        "tags": [
+          {
+            "type": "PPTH",
+            "offset": 28,
+            "len_header": 16,
+            "len_tag": 174,
+            "sha1": "d6ca7f44855a268c800a4fc05d12dc85cc642489"
+          },
+          {
+            "type": "PWV3",
+            "offset": 202,
+            "len_header": 24,
+            "len_tag": 28224,
+            "sha1": "a1f5cad62d8018201df9304646e7d0e8532a3c5a"
+          },
+          {
+            "type": "PCOB",
+            "offset": 28426,
+            "len_header": 24,
+            "len_tag": 80,
+            "sha1": "1c1e796e9c798cc06da09ab8fcbc2bc8b77d7ba6"
+          },
+          {
+            "type": "PCOB",
+            "offset": 28506,
+            "len_header": 24,
+            "len_tag": 24,
+            "sha1": "279c54cb0898a7f13ea6be66c47328d4cc7950aa"
+          },
+          {
+            "type": "PCO2",
+            "offset": 28530,
+            "len_header": 20,
+            "len_tag": 372,
+            "sha1": "ccc35bcad7db9e680ef75d15708d6b9f2ef7f2ee"
+          },
+          {
+            "type": "PCO2",
+            "offset": 28902,
+            "len_header": 20,
+            "len_tag": 20,
+            "sha1": "e667389d7fc8e4fa5c1fe3f11be649ff73acc0a8"
+          },
+          {
+            "type": "PWV5",
+            "offset": 28922,
+            "len_header": 24,
+            "len_tag": 56424,
+            "sha1": "cafe65f68912347935e6c39ba13e2cd29bc31b19"
+          },
+          {
+            "type": "PWV4",
+            "offset": 85346,
+            "len_header": 24,
+            "len_tag": 7224,
+            "sha1": "dc72af1fb10196e36f8acb5a3cd1f17490cf26ca"
+          },
+          {
+            "type": "PSSI",
+            "offset": 92570,
+            "len_header": 32,
+            "len_tag": 416,
+            "sha1": "365c546cfceeb3b59424cac80603f4397fb0797a"
+          }
+        ],
+        "cue_lists": [
+          {
+            "tag": "cue_list",
+            "count": 1,
+            "entries": [
+              {
+                "type": "loop",
+                "hot_cue": 4,
+                "time": 6667,
+                "loop_time": 10223,
+                "comment": null
+              }
+            ]
+          },
+          {
+            "tag": "cue_list",
+            "count": 0,
+            "entries": []
+          },
+          {
+            "tag": "cue_list2",
+            "count": 4,
+            "entries": [
+              {
+                "type": 2,
+                "hot_cue": 4,
+                "time": 6667,
+                "loop_time": 10223,
+                "comment": ""
+              },
+              {
+                "type": 1,
+                "hot_cue": 3,
+                "time": 17334,
+                "loop_time": 4294967295,
+                "comment": ""
+              },
+              {
+                "type": 1,
+                "hot_cue": 2,
+                "time": 3112,
+                "loop_time": 4294967295,
+                "comment": ""
+              },
+              {
+                "type": 1,
+                "hot_cue": 1,
+                "time": 1334,
+                "loop_time": 4294967295,
+                "comment": ""
+              }
+            ]
+          },
+          {
+            "tag": "cue_list2",
+            "count": 0,
+            "entries": []
+          }
+        ]
+      }
+    },
+    "P013/00029E0F": {
+      "2EX": {
+        "file": "ANLZ0000.2EX",
+        "ppth": "/Contents/MIMI ZIMA/UnknownAlbum/MIMI ZIMA - End It.aiff",
+        "tags": [
+          {
+            "type": "PPTH",
+            "offset": 28,
+            "len_header": 16,
+            "len_tag": 130,
+            "sha1": "1632b3f892aa3fe74492fd873936fcac320aa9bb"
+          },
+          {
+            "type": "PWV7",
+            "offset": 158,
+            "len_header": 24,
+            "len_tag": 132948,
+            "sha1": "95b79b140b00ae3891cb989978f455f1790a9f95"
+          },
+          {
+            "type": "PWV6",
+            "offset": 133106,
+            "len_header": 20,
+            "len_tag": 3620,
+            "sha1": "b701a3b154c55ca05ed215c462e6007f6e325291"
+          },
+          {
+            "type": "PWVC",
+            "offset": 136726,
+            "len_header": 14,
+            "len_tag": 20,
+            "sha1": "a1c05c866cce03df971d43c25779549f1dde3a33"
+          },
+          {
+            "type": "PVDI",
+            "offset": 136746,
+            "len_header": 24,
+            "len_tag": 24,
+            "sha1": "125dc395b4cddf91f64a8fed30ef0383dbee91b6"
+          }
+        ]
+      },
+      "DAT": {
+        "file": "ANLZ0000.DAT",
+        "ppth": "/Contents/MIMI ZIMA/UnknownAlbum/MIMI ZIMA - End It.aiff",
+        "tags": [
+          {
+            "type": "PPTH",
+            "offset": 28,
+            "len_header": 16,
+            "len_tag": 130,
+            "sha1": "1632b3f892aa3fe74492fd873936fcac320aa9bb"
+          },
+          {
+            "type": "PVBR",
+            "offset": 158,
+            "len_header": 16,
+            "len_tag": 1620,
+            "sha1": "f6983036fa89dc49a51fa4179c3c0dc70a1bdb40"
+          },
+          {
+            "type": "PQTZ",
+            "offset": 1778,
+            "len_header": 24,
+            "len_tag": 5144,
+            "sha1": "66dd4bf8b6a686310e81f1be257434525be861a5"
+          },
+          {
+            "type": "PWAV",
+            "offset": 6922,
+            "len_header": 20,
+            "len_tag": 420,
+            "sha1": "8c5a31057ca65fbd19ad8dddb71c56b9d2efd450"
+          },
+          {
+            "type": "PWV2",
+            "offset": 7342,
+            "len_header": 20,
+            "len_tag": 120,
+            "sha1": "ae2d8b8e0aae45a56530140da1508275f5440455"
+          },
+          {
+            "type": "PCOB",
+            "offset": 7462,
+            "len_header": 24,
+            "len_tag": 192,
+            "sha1": "230e9b217f0f44e53c08ec92b35ed78089cb29cd"
+          },
+          {
+            "type": "PCOB",
+            "offset": 7654,
+            "len_header": 24,
+            "len_tag": 24,
+            "sha1": "279c54cb0898a7f13ea6be66c47328d4cc7950aa"
+          }
+        ],
+        "pqtz": {
+          "beats": 640,
+          "bpm_avg": 130.11,
+          "first_s": 0.0,
+          "last_s": 294.681
+        },
+        "cue_lists": [
+          {
+            "tag": "cue_list",
+            "count": 3,
+            "entries": [
+              {
+                "type": "single",
+                "hot_cue": 3,
+                "time": 22150,
+                "loop_time": 4294967295,
+                "comment": null
+              },
+              {
+                "type": "single",
+                "hot_cue": 2,
+                "time": 7380,
+                "loop_time": 4294967295,
+                "comment": null
+              },
+              {
+                "type": "single",
+                "hot_cue": 1,
+                "time": 0,
+                "loop_time": 4294967295,
+                "comment": null
+              }
+            ]
+          },
+          {
+            "tag": "cue_list",
+            "count": 0,
+            "entries": []
+          }
+        ]
+      },
+      "EXT": {
+        "file": "ANLZ0000.EXT",
+        "ppth": "/Contents/MIMI ZIMA/UnknownAlbum/MIMI ZIMA - End It.aiff",
+        "tags": [
+          {
+            "type": "PPTH",
+            "offset": 28,
+            "len_header": 16,
+            "len_tag": 130,
+            "sha1": "1632b3f892aa3fe74492fd873936fcac320aa9bb"
+          },
+          {
+            "type": "PWV3",
+            "offset": 158,
+            "len_header": 24,
+            "len_tag": 44332,
+            "sha1": "c7189f164f124a81fb1c3ca7be8ecf8e8b1ff5ff"
+          },
+          {
+            "type": "PCOB",
+            "offset": 44490,
+            "len_header": 24,
+            "len_tag": 80,
+            "sha1": "6a5b0e1f6e99eddeba1fa3bdd62448ae12f1d855"
+          },
+          {
+            "type": "PCOB",
+            "offset": 44570,
+            "len_header": 24,
+            "len_tag": 24,
+            "sha1": "279c54cb0898a7f13ea6be66c47328d4cc7950aa"
+          },
+          {
+            "type": "PCO2",
+            "offset": 44594,
+            "len_header": 20,
+            "len_tag": 372,
+            "sha1": "bee60a9eb8835f83bae476a8b83d5f272b5292f4"
+          },
+          {
+            "type": "PCO2",
+            "offset": 44966,
+            "len_header": 20,
+            "len_tag": 20,
+            "sha1": "e667389d7fc8e4fa5c1fe3f11be649ff73acc0a8"
+          },
+          {
+            "type": "PWV5",
+            "offset": 44986,
+            "len_header": 24,
+            "len_tag": 88640,
+            "sha1": "d192f7413907218da96689a22f396c234fce5e63"
+          },
+          {
+            "type": "PWV4",
+            "offset": 133626,
+            "len_header": 24,
+            "len_tag": 7224,
+            "sha1": "17587354ed4956ee6cce661c60d46a36748d3ad7"
+          },
+          {
+            "type": "PSSI",
+            "offset": 140850,
+            "len_header": 32,
+            "len_tag": 392,
+            "sha1": "159153bdf68e903ab091902a588e6e038765496a"
+          }
+        ],
+        "cue_lists": [
+          {
+            "tag": "cue_list",
+            "count": 1,
+            "entries": [
+              {
+                "type": "single",
+                "hot_cue": 4,
+                "time": 129230,
+                "loop_time": 4294967295,
+                "comment": null
+              }
+            ]
+          },
+          {
+            "tag": "cue_list",
+            "count": 0,
+            "entries": []
+          },
+          {
+            "tag": "cue_list2",
+            "count": 4,
+            "entries": [
+              {
+                "type": 1,
+                "hot_cue": 4,
+                "time": 129230,
+                "loop_time": 4294967295,
+                "comment": ""
+              },
+              {
+                "type": 1,
+                "hot_cue": 3,
+                "time": 22150,
+                "loop_time": 4294967295,
+                "comment": ""
+              },
+              {
+                "type": 1,
+                "hot_cue": 2,
+                "time": 7380,
+                "loop_time": 4294967295,
+                "comment": ""
+              },
+              {
+                "type": 1,
+                "hot_cue": 1,
+                "time": 0,
+                "loop_time": 4294967295,
+                "comment": ""
+              }
+            ]
+          },
+          {
+            "tag": "cue_list2",
+            "count": 0,
+            "entries": []
+          }
+        ]
+      }
+    },
+    "P014/00029652": {
+      "2EX": {
+        "file": "ANLZ0000.2EX",
+        "ppth": "/Contents/Erika de Casier/Essentials/09. Rainy - Erika de Casier.flac",
+        "tags": [
+          {
+            "type": "PPTH",
+            "offset": 28,
+            "len_header": 16,
+            "len_tag": 156,
+            "sha1": "e7e77f74819ecda43062d4fadece90ef53848ccb"
+          },
+          {
+            "type": "PWV7",
+            "offset": 184,
+            "len_header": 24,
+            "len_tag": 111624,
+            "sha1": "3b6d2d897e01bf3753eaf266720538da58f14b20"
+          },
+          {
+            "type": "PWV6",
+            "offset": 111808,
+            "len_header": 20,
+            "len_tag": 3620,
+            "sha1": "c6ca40c8c17cda6771059e943b84af47593caa4b"
+          },
+          {
+            "type": "PWVC",
+            "offset": 115428,
+            "len_header": 14,
+            "len_tag": 20,
+            "sha1": "0dd8326226979d65daa71214dfafa016fc06f2cf"
+          },
+          {
+            "type": "PVDI",
+            "offset": 115448,
+            "len_header": 24,
+            "len_tag": 24,
+            "sha1": "125dc395b4cddf91f64a8fed30ef0383dbee91b6"
+          }
+        ]
+      },
+      "DAT": {
+        "file": "ANLZ0000.DAT",
+        "ppth": "/Contents/Erika de Casier/Essentials/09. Rainy - Erika de Casier.flac",
+        "tags": [
+          {
+            "type": "PPTH",
+            "offset": 28,
+            "len_header": 16,
+            "len_tag": 156,
+            "sha1": "e7e77f74819ecda43062d4fadece90ef53848ccb"
+          },
+          {
+            "type": "PVBR",
+            "offset": 184,
+            "len_header": 16,
+            "len_tag": 1620,
+            "sha1": "f6983036fa89dc49a51fa4179c3c0dc70a1bdb40"
+          },
+          {
+            "type": "PQTZ",
+            "offset": 1804,
+            "len_header": 24,
+            "len_tag": 2840,
+            "sha1": "3eafd9fb550e5d1fe9da54432e719208a2a93f7a"
+          },
+          {
+            "type": "PWAV",
+            "offset": 4644,
+            "len_header": 20,
+            "len_tag": 420,
+            "sha1": "dc470d7ad5f2ff21695837377fd7e2b34b0cc113"
+          },
+          {
+            "type": "PWV2",
+            "offset": 5064,
+            "len_header": 20,
+            "len_tag": 120,
+            "sha1": "f20d795f4787b2753b6d52a4c44c840897aa9f26"
+          },
+          {
+            "type": "PCOB",
+            "offset": 5184,
+            "len_header": 24,
+            "len_tag": 24,
+            "sha1": "7a54777fcd4e881526cd1557cf997ee6d2cc844c"
+          },
+          {
+            "type": "PCOB",
+            "offset": 5208,
+            "len_header": 24,
+            "len_tag": 24,
+            "sha1": "279c54cb0898a7f13ea6be66c47328d4cc7950aa"
+          }
+        ],
+        "pqtz": {
+          "beats": 352,
+          "bpm_avg": 85.0,
+          "first_s": 0.016,
+          "last_s": 247.781
+        },
+        "cue_lists": [
+          {
+            "tag": "cue_list",
+            "count": 0,
+            "entries": []
+          },
+          {
+            "tag": "cue_list",
+            "count": 0,
+            "entries": []
+          }
+        ]
+      },
+      "EXT": {
+        "file": "ANLZ0000.EXT",
+        "ppth": "/Contents/Erika de Casier/Essentials/09. Rainy - Erika de Casier.flac",
+        "tags": [
+          {
+            "type": "PPTH",
+            "offset": 28,
+            "len_header": 16,
+            "len_tag": 156,
+            "sha1": "e7e77f74819ecda43062d4fadece90ef53848ccb"
+          },
+          {
+            "type": "PWV3",
+            "offset": 184,
+            "len_header": 24,
+            "len_tag": 37224,
+            "sha1": "a50745d576e4cadeafc20832888e0f3aeef0525f"
+          },
+          {
+            "type": "PCOB",
+            "offset": 37408,
+            "len_header": 24,
+            "len_tag": 24,
+            "sha1": "7a54777fcd4e881526cd1557cf997ee6d2cc844c"
+          },
+          {
+            "type": "PCOB",
+            "offset": 37432,
+            "len_header": 24,
+            "len_tag": 24,
+            "sha1": "279c54cb0898a7f13ea6be66c47328d4cc7950aa"
+          },
+          {
+            "type": "PCO2",
+            "offset": 37456,
+            "len_header": 20,
+            "len_tag": 20,
+            "sha1": "145d43d9f710f3b7aa0245400390483e390cfaf2"
+          },
+          {
+            "type": "PCO2",
+            "offset": 37476,
+            "len_header": 20,
+            "len_tag": 20,
+            "sha1": "e667389d7fc8e4fa5c1fe3f11be649ff73acc0a8"
+          },
+          {
+            "type": "PWV5",
+            "offset": 37496,
+            "len_header": 24,
+            "len_tag": 74424,
+            "sha1": "212ad7c17aa3be8d27bd2f159fa398fa540883b4"
+          },
+          {
+            "type": "PWV4",
+            "offset": 111920,
+            "len_header": 24,
+            "len_tag": 7224,
+            "sha1": "7c204a95b517588ad9168bb4be4dc834e0b59f4f"
+          },
+          {
+            "type": "PVB2",
+            "offset": 119144,
+            "len_header": 32,
+            "len_tag": 8032,
+            "sha1": "a80d6cbaba99996aa842a215a60fe6c472f3afc6"
+          },
+          {
+            "type": "PSSI",
+            "offset": 127176,
+            "len_header": 32,
+            "len_tag": 272,
+            "sha1": "428cc7d4f0baf7f0286d4248f0f089e87392953f"
+          }
+        ],
+        "cue_lists": [
+          {
+            "tag": "cue_list",
+            "count": 0,
+            "entries": []
+          },
+          {
+            "tag": "cue_list",
+            "count": 0,
+            "entries": []
+          },
+          {
+            "tag": "cue_list2",
+            "count": 0,
+            "entries": []
+          },
+          {
+            "tag": "cue_list2",
+            "count": 0,
+            "entries": []
+          }
+        ]
+      }
+    },
+    "P01B/00000ABF": {
+      "2EX": {
+        "file": "ANLZ0000.2EX",
+        "ppth": "/Contents/Poproboval/Soundz of da Ru$$ia/04 - На такси.flac",
+        "tags": [
+          {
+            "type": "PPTH",
+            "offset": 28,
+            "len_header": 16,
+            "len_tag": 136,
+            "sha1": "5cb05f331ea358045879eb92748342144b1a76ae"
+          },
+          {
+            "type": "PWV7",
+            "offset": 164,
+            "len_header": 24,
+            "len_tag": 55251,
+            "sha1": "e4f1fd6cbae8e40c511ef436c90d5c5e0e60d1e7"
+          },
+          {
+            "type": "PWV6",
+            "offset": 55415,
+            "len_header": 20,
+            "len_tag": 3620,
+            "sha1": "3d5d4b4f43f3b845f428a29ee7e17e6d6d338405"
+          },
+          {
+            "type": "PWVC",
+            "offset": 59035,
+            "len_header": 14,
+            "len_tag": 20,
+            "sha1": "7f65aea9dd976431b8093d909c158f329a65e1a7"
+          },
+          {
+            "type": "PVDI",
+            "offset": 59055,
+            "len_header": 24,
+            "len_tag": 24,
+            "sha1": "125dc395b4cddf91f64a8fed30ef0383dbee91b6"
+          }
+        ]
+      },
+      "DAT": {
+        "file": "ANLZ0000.DAT",
+        "ppth": "/Contents/Poproboval/Soundz of da Ru$$ia/04 - На такси.flac",
+        "tags": [
+          {
+            "type": "PPTH",
+            "offset": 28,
+            "len_header": 16,
+            "len_tag": 136,
+            "sha1": "5cb05f331ea358045879eb92748342144b1a76ae"
+          },
+          {
+            "type": "PVBR",
+            "offset": 164,
+            "len_header": 16,
+            "len_tag": 1620,
+            "sha1": "f6983036fa89dc49a51fa4179c3c0dc70a1bdb40"
+          },
+          {
+            "type": "PQTZ",
+            "offset": 1784,
+            "len_header": 24,
+            "len_tag": 2216,
+            "sha1": "561241dafdfec66dfc51eccbb41752544bfbf32b"
+          },
+          {
+            "type": "PWAV",
+            "offset": 4000,
+            "len_header": 20,
+            "len_tag": 420,
+            "sha1": "6de508c6f0ee8b931d14a7f325262103c3166733"
+          },
+          {
+            "type": "PWV2",
+            "offset": 4420,
+            "len_header": 20,
+            "len_tag": 120,
+            "sha1": "80d37097f4def3f34fff0d9550050359ae749306"
+          },
+          {
+            "type": "PCOB",
+            "offset": 4540,
+            "len_header": 24,
+            "len_tag": 80,
+            "sha1": "94e7616bfc31859fbdf7154d02961ec492846329"
+          },
+          {
+            "type": "PCOB",
+            "offset": 4620,
+            "len_header": 24,
+            "len_tag": 24,
+            "sha1": "279c54cb0898a7f13ea6be66c47328d4cc7950aa"
+          }
+        ],
+        "pqtz": {
+          "beats": 274,
+          "bpm_avg": 135.0,
+          "first_s": 0.26,
+          "last_s": 121.593
+        },
+        "cue_lists": [
+          {
+            "tag": "cue_list",
+            "count": 1,
+            "entries": [
+              {
+                "type": "single",
+                "hot_cue": 1,
+                "time": 1593,
+                "loop_time": 4294967295,
+                "comment": null
+              }
+            ]
+          },
+          {
+            "tag": "cue_list",
+            "count": 0,
+            "entries": []
+          }
+        ]
+      },
+      "EXT": {
+        "file": "ANLZ0000.EXT",
+        "ppth": "/Contents/Poproboval/Soundz of da Ru$$ia/04 - На такси.flac",
+        "tags": [
+          {
+            "type": "PPTH",
+            "offset": 28,
+            "len_header": 16,
+            "len_tag": 136,
+            "sha1": "5cb05f331ea358045879eb92748342144b1a76ae"
+          },
+          {
+            "type": "PWV3",
+            "offset": 164,
+            "len_header": 24,
+            "len_tag": 18433,
+            "sha1": "856af39ff70d83d84f39368567a7fad3d9795d7d"
+          },
+          {
+            "type": "PCOB",
+            "offset": 18597,
+            "len_header": 24,
+            "len_tag": 24,
+            "sha1": "7a54777fcd4e881526cd1557cf997ee6d2cc844c"
+          },
+          {
+            "type": "PCOB",
+            "offset": 18621,
+            "len_header": 24,
+            "len_tag": 24,
+            "sha1": "279c54cb0898a7f13ea6be66c47328d4cc7950aa"
+          },
+          {
+            "type": "PCO2",
+            "offset": 18645,
+            "len_header": 20,
+            "len_tag": 124,
+            "sha1": "278c4b1afcdc3e18783b78cb87bedd3134bedbd0"
+          },
+          {
+            "type": "PCO2",
+            "offset": 18769,
+            "len_header": 20,
+            "len_tag": 20,
+            "sha1": "e667389d7fc8e4fa5c1fe3f11be649ff73acc0a8"
+          },
+          {
+            "type": "PWV5",
+            "offset": 18789,
+            "len_header": 24,
+            "len_tag": 36842,
+            "sha1": "19a809ad27a20df214da653b2de8441f4bc6dfe8"
+          },
+          {
+            "type": "PWV4",
+            "offset": 55631,
+            "len_header": 24,
+            "len_tag": 7224,
+            "sha1": "d855422f828795f743daf2d00e4cf8a0754eea0a"
+          },
+          {
+            "type": "PVB2",
+            "offset": 62855,
+            "len_header": 32,
+            "len_tag": 8032,
+            "sha1": "061726b6d022c260cfa1ddf35c3d45f7c0a81c7f"
+          },
+          {
+            "type": "PSSI",
+            "offset": 70887,
+            "len_header": 32,
+            "len_tag": 272,
+            "sha1": "4e57ca1d5f7b9984f85a294beb1d8074c82b17f9"
+          }
+        ],
+        "cue_lists": [
+          {
+            "tag": "cue_list",
+            "count": 0,
+            "entries": []
+          },
+          {
+            "tag": "cue_list",
+            "count": 0,
+            "entries": []
+          },
+          {
+            "tag": "cue_list2",
+            "count": 1,
+            "entries": [
+              {
+                "type": 1,
+                "hot_cue": 1,
+                "time": 1593,
+                "loop_time": 4294967295,
+                "comment": "1.1Bars"
+              }
+            ]
+          },
+          {
+            "tag": "cue_list2",
+            "count": 0,
+            "entries": []
+          }
+        ]
+      }
+    },
+    "P01C/0002CEC8": {
+      "2EX": {
+        "file": "ANLZ0000.2EX",
+        "ppth": "/Contents/Charli xcx, Shygirl/Brat and it’s completely different but also stil/15. 365 featuring shygirl.flac",
+        "tags": [
+          {
+            "type": "PPTH",
+            "offset": 28,
+            "len_header": 16,
+            "len_tag": 236,
+            "sha1": "2dce81fd5bcbda3a1440f12202cc8a399f562bd9"
+          },
+          {
+            "type": "PWV7",
+            "offset": 264,
+            "len_header": 24,
+            "len_tag": 54600,
+            "sha1": "7fc2659099a48a05f91eb7487d620db0a39639c4"
+          },
+          {
+            "type": "PWV6",
+            "offset": 54864,
+            "len_header": 20,
+            "len_tag": 3620,
+            "sha1": "0d3949d06a07287f7475f5ef48d78f71977f5a08"
+          },
+          {
+            "type": "PWVC",
+            "offset": 58484,
+            "len_header": 14,
+            "len_tag": 20,
+            "sha1": "a8fbc4b566399828cbed1f5a45a4035c8cf25d45"
+          },
+          {
+            "type": "PVDI",
+            "offset": 58504,
+            "len_header": 24,
+            "len_tag": 24,
+            "sha1": "125dc395b4cddf91f64a8fed30ef0383dbee91b6"
+          }
+        ]
+      },
+      "DAT": {
+        "file": "ANLZ0000.DAT",
+        "ppth": "/Contents/Charli xcx, Shygirl/Brat and it’s completely different but also stil/15. 365 featuring shygirl.flac",
+        "tags": [
+          {
+            "type": "PPTH",
+            "offset": 28,
+            "len_header": 16,
+            "len_tag": 236,
+            "sha1": "2dce81fd5bcbda3a1440f12202cc8a399f562bd9"
+          },
+          {
+            "type": "PVBR",
+            "offset": 264,
+            "len_header": 16,
+            "len_tag": 1620,
+            "sha1": "f6983036fa89dc49a51fa4179c3c0dc70a1bdb40"
+          },
+          {
+            "type": "PQTZ",
+            "offset": 1884,
+            "len_header": 24,
+            "len_tag": 2248,
+            "sha1": "795647b34ad452639aedd4b8af88d5086706d124"
+          },
+          {
+            "type": "PWAV",
+            "offset": 4132,
+            "len_header": 20,
+            "len_tag": 420,
+            "sha1": "78c6d846841c2d2740ae5ff973d0fe164ebf4bea"
+          },
+          {
+            "type": "PWV2",
+            "offset": 4552,
+            "len_header": 20,
+            "len_tag": 120,
+            "sha1": "c57936d869cbe8ae3a05271bd40314b1adaf4f5e"
+          },
+          {
+            "type": "PCOB",
+            "offset": 4672,
+            "len_header": 24,
+            "len_tag": 80,
+            "sha1": "18d2c34de51276d944258055a6fb6e0a01dbad57"
+          },
+          {
+            "type": "PCOB",
+            "offset": 4752,
+            "len_header": 24,
+            "len_tag": 24,
+            "sha1": "279c54cb0898a7f13ea6be66c47328d4cc7950aa"
+          }
+        ],
+        "pqtz": {
+          "beats": 278,
+          "bpm_avg": 137.711,
+          "first_s": 0.19,
+          "last_s": 120.887
+        },
+        "cue_lists": [
+          {
+            "tag": "cue_list",
+            "count": 1,
+            "entries": [
+              {
+                "type": "single",
+                "hot_cue": 1,
+                "time": 1500,
+                "loop_time": 4294967295,
+                "comment": null
+              }
+            ]
+          },
+          {
+            "tag": "cue_list",
+            "count": 0,
+            "entries": []
+          }
+        ]
+      },
+      "EXT": {
+        "file": "ANLZ0000.EXT",
+        "ppth": "/Contents/Charli xcx, Shygirl/Brat and it’s completely different but also stil/15. 365 featuring shygirl.flac",
+        "tags": [
+          {
+            "type": "PPTH",
+            "offset": 28,
+            "len_header": 16,
+            "len_tag": 236,
+            "sha1": "2dce81fd5bcbda3a1440f12202cc8a399f562bd9"
+          },
+          {
+            "type": "PWV3",
+            "offset": 264,
+            "len_header": 24,
+            "len_tag": 18215,
+            "sha1": "deca293d1f05276856f0f7bb623f8b68d72029fa"
+          },
+          {
+            "type": "PCOB",
+            "offset": 18479,
+            "len_header": 24,
+            "len_tag": 24,
+            "sha1": "7a54777fcd4e881526cd1557cf997ee6d2cc844c"
+          },
+          {
+            "type": "PCOB",
+            "offset": 18503,
+            "len_header": 24,
+            "len_tag": 24,
+            "sha1": "279c54cb0898a7f13ea6be66c47328d4cc7950aa"
+          },
+          {
+            "type": "PCO2",
+            "offset": 18527,
+            "len_header": 20,
+            "len_tag": 124,
+            "sha1": "5c9fd790eb4a7dda9f2b965602e41f95568f2659"
+          },
+          {
+            "type": "PCO2",
+            "offset": 18651,
+            "len_header": 20,
+            "len_tag": 20,
+            "sha1": "e667389d7fc8e4fa5c1fe3f11be649ff73acc0a8"
+          },
+          {
+            "type": "PWV5",
+            "offset": 18671,
+            "len_header": 24,
+            "len_tag": 36408,
+            "sha1": "2210e0dd9decda0c6c1ca6d92c8bcf7f5a03a64b"
+          },
+          {
+            "type": "PWV4",
+            "offset": 55079,
+            "len_header": 24,
+            "len_tag": 7224,
+            "sha1": "e8707caf8adfb76907461f626dfe637942ce22ad"
+          },
+          {
+            "type": "PVB2",
+            "offset": 62303,
+            "len_header": 32,
+            "len_tag": 8032,
+            "sha1": "20b35c96f9b95580c27f8c84fdc7c486e0a2502b"
+          },
+          {
+            "type": "PSSI",
+            "offset": 70335,
+            "len_header": 32,
+            "len_tag": 272,
+            "sha1": "c851a19a38d711bcf17ce3e53b64f963e509ca1a"
+          }
+        ],
+        "cue_lists": [
+          {
+            "tag": "cue_list",
+            "count": 0,
+            "entries": []
+          },
+          {
+            "tag": "cue_list",
+            "count": 0,
+            "entries": []
+          },
+          {
+            "tag": "cue_list2",
+            "count": 1,
+            "entries": [
+              {
+                "type": 1,
+                "hot_cue": 1,
+                "time": 1500,
+                "loop_time": 4294967295,
+                "comment": "1.1Bars"
+              }
+            ]
+          },
+          {
+            "tag": "cue_list2",
+            "count": 0,
+            "entries": []
+          }
+        ]
+      }
+    },
+    "P021/0002252B": {
+      "2EX": {
+        "file": "ANLZ0000.2EX",
+        "ppth": "/Contents/Pelada/Movimiento Para Cambio/03. Habla Tu Verdad - Pelada.flac",
+        "tags": [
+          {
+            "type": "PPTH",
+            "offset": 28,
+            "len_header": 16,
+            "len_tag": 164,
+            "sha1": "0cec65ed326c7a8f33a0af2971eaa68a1c12ec82"
+          },
+          {
+            "type": "PWV7",
+            "offset": 192,
+            "len_header": 24,
+            "len_tag": 172911,
+            "sha1": "b17f1bd3930a906ecb02b3fbb8ad37422dd8596d"
+          },
+          {
+            "type": "PWV6",
+            "offset": 173103,
+            "len_header": 20,
+            "len_tag": 3620,
+            "sha1": "9e0e893bb0de601dc7572cd2414842ccf5e14a9d"
+          },
+          {
+            "type": "PWVC",
+            "offset": 176723,
+            "len_header": 14,
+            "len_tag": 20,
+            "sha1": "fe556546a4965db7f4d86c9d7732e8a316aa0b42"
+          },
+          {
+            "type": "PVDI",
+            "offset": 176743,
+            "len_header": 24,
+            "len_tag": 24,
+            "sha1": "125dc395b4cddf91f64a8fed30ef0383dbee91b6"
+          }
+        ]
+      },
+      "DAT": {
+        "file": "ANLZ0000.DAT",
+        "ppth": "/Contents/Pelada/Movimiento Para Cambio/03. Habla Tu Verdad - Pelada.flac",
+        "tags": [
+          {
+            "type": "PPTH",
+            "offset": 28,
+            "len_header": 16,
+            "len_tag": 164,
+            "sha1": "0cec65ed326c7a8f33a0af2971eaa68a1c12ec82"
+          },
+          {
+            "type": "PVBR",
+            "offset": 192,
+            "len_header": 16,
+            "len_tag": 1620,
+            "sha1": "f6983036fa89dc49a51fa4179c3c0dc70a1bdb40"
+          },
+          {
+            "type": "PQTZ",
+            "offset": 1812,
+            "len_header": 24,
+            "len_tag": 6704,
+            "sha1": "e2b74affb67b35991b5590e2d088e6d8e4c19105"
+          },
+          {
+            "type": "PWAV",
+            "offset": 8516,
+            "len_header": 20,
+            "len_tag": 420,
+            "sha1": "aa55be2be39b26d4c746a738f6bc8e21ddb951d1"
+          },
+          {
+            "type": "PWV2",
+            "offset": 8936,
+            "len_header": 20,
+            "len_tag": 120,
+            "sha1": "a4a9255fb0e6d3a8de36dc4ca4f7278dc9d62293"
+          },
+          {
+            "type": "PCOB",
+            "offset": 9056,
+            "len_header": 24,
+            "len_tag": 80,
+            "sha1": "5ad662e10ee2bd0c430f6374b623b30f6c9c4e17"
+          },
+          {
+            "type": "PCOB",
+            "offset": 9136,
+            "len_header": 24,
+            "len_tag": 24,
+            "sha1": "279c54cb0898a7f13ea6be66c47328d4cc7950aa"
+          }
+        ],
+        "pqtz": {
+          "beats": 835,
+          "bpm_avg": 130.4,
+          "first_s": 0.0,
+          "last_s": 383.742
+        },
+        "cue_lists": [
+          {
+            "tag": "cue_list",
+            "count": 1,
+            "entries": [
+              {
+                "type": "single",
+                "hot_cue": 1,
+                "time": 0,
+                "loop_time": 4294967295,
+                "comment": null
+              }
+            ]
+          },
+          {
+            "tag": "cue_list",
+            "count": 0,
+            "entries": []
+          }
+        ]
+      },
+      "EXT": {
+        "file": "ANLZ0000.EXT",
+        "ppth": "/Contents/Pelada/Movimiento Para Cambio/03. Habla Tu Verdad - Pelada.flac",
+        "tags": [
+          {
+            "type": "PPTH",
+            "offset": 28,
+            "len_header": 16,
+            "len_tag": 164,
+            "sha1": "0cec65ed326c7a8f33a0af2971eaa68a1c12ec82"
+          },
+          {
+            "type": "PWV3",
+            "offset": 192,
+            "len_header": 24,
+            "len_tag": 57653,
+            "sha1": "37c5f3beeb58d0e812e67bb57af546ed2507ae46"
+          },
+          {
+            "type": "PCOB",
+            "offset": 57845,
+            "len_header": 24,
+            "len_tag": 24,
+            "sha1": "7a54777fcd4e881526cd1557cf997ee6d2cc844c"
+          },
+          {
+            "type": "PCOB",
+            "offset": 57869,
+            "len_header": 24,
+            "len_tag": 24,
+            "sha1": "279c54cb0898a7f13ea6be66c47328d4cc7950aa"
+          },
+          {
+            "type": "PCO2",
+            "offset": 57893,
+            "len_header": 20,
+            "len_tag": 108,
+            "sha1": "63a6627dce709cacad3229f7eeb5600314b82c14"
+          },
+          {
+            "type": "PCO2",
+            "offset": 58001,
+            "len_header": 20,
+            "len_tag": 20,
+            "sha1": "e667389d7fc8e4fa5c1fe3f11be649ff73acc0a8"
+          },
+          {
+            "type": "PWV5",
+            "offset": 58021,
+            "len_header": 24,
+            "len_tag": 115282,
+            "sha1": "81077c2a884ef7a08fce3a014849cd5b97fe5e66"
+          },
+          {
+            "type": "PWV4",
+            "offset": 173303,
+            "len_header": 24,
+            "len_tag": 7224,
+            "sha1": "f6916b28b15e569c96419291a23b5c52d9e1846c"
+          },
+          {
+            "type": "PVB2",
+            "offset": 180527,
+            "len_header": 32,
+            "len_tag": 8032,
+            "sha1": "894e2ec4eb1f875cabf88fd2576a9c94e48afc62"
+          },
+          {
+            "type": "PSSI",
+            "offset": 188559,
+            "len_header": 32,
+            "len_tag": 560,
+            "sha1": "c1cfde43ff711df7c9ed396fb9d3eae4f16f608e"
+          }
+        ],
+        "cue_lists": [
+          {
+            "tag": "cue_list",
+            "count": 0,
+            "entries": []
+          },
+          {
+            "tag": "cue_list",
+            "count": 0,
+            "entries": []
+          },
+          {
+            "tag": "cue_list2",
+            "count": 1,
+            "entries": [
+              {
+                "type": 1,
+                "hot_cue": 1,
+                "time": 0,
+                "loop_time": 4294967295,
+                "comment": ""
+              }
+            ]
+          },
+          {
+            "tag": "cue_list2",
+            "count": 0,
+            "entries": []
+          }
+        ]
+      }
+    },
+    "P022/0002EC14": {
+      "2EX": {
+        "file": "ANLZ0000.2EX",
+        "ppth": "/Contents/Erika de Casier/Essentials/12. Intimate (Club Mix) - Erika de Casier.flac",
+        "tags": [
+          {
+            "type": "PPTH",
+            "offset": 28,
+            "len_header": 16,
+            "len_tag": 184,
+            "sha1": "424910c1d7dfa84be815992675d48630003f83c4"
+          },
+          {
+            "type": "PWV7",
+            "offset": 212,
+            "len_header": 24,
+            "len_tag": 98145,
+            "sha1": "9ab68aa2e594bce6d716deb6fe43cdb622475341"
+          },
+          {
+            "type": "PWV6",
+            "offset": 98357,
+            "len_header": 20,
+            "len_tag": 3620,
+            "sha1": "67a292b2230a43bb90bcb3cddac8362ce0242d0c"
+          },
+          {
+            "type": "PWVC",
+            "offset": 101977,
+            "len_header": 14,
+            "len_tag": 20,
+            "sha1": "33ffe416b972e1d6a695efcbb2065891bf0b1daa"
+          },
+          {
+            "type": "PVDI",
+            "offset": 101997,
+            "len_header": 24,
+            "len_tag": 24,
+            "sha1": "125dc395b4cddf91f64a8fed30ef0383dbee91b6"
+          }
+        ]
+      },
+      "DAT": {
+        "file": "ANLZ0000.DAT",
+        "ppth": "/Contents/Erika de Casier/Essentials/12. Intimate (Club Mix) - Erika de Casier.flac",
+        "tags": [
+          {
+            "type": "PPTH",
+            "offset": 28,
+            "len_header": 16,
+            "len_tag": 184,
+            "sha1": "424910c1d7dfa84be815992675d48630003f83c4"
+          },
+          {
+            "type": "PVBR",
+            "offset": 212,
+            "len_header": 16,
+            "len_tag": 1620,
+            "sha1": "f6983036fa89dc49a51fa4179c3c0dc70a1bdb40"
+          },
+          {
+            "type": "PQTZ",
+            "offset": 1832,
+            "len_header": 24,
+            "len_tag": 4528,
+            "sha1": "c40eaa2377935e08e4c2ade3ad9d9fe3279bd6f6"
+          },
+          {
+            "type": "PWAV",
+            "offset": 6360,
+            "len_header": 20,
+            "len_tag": 420,
+            "sha1": "0943199a69d98d06a253a8a11e4e423ae08e21ab"
+          },
+          {
+            "type": "PWV2",
+            "offset": 6780,
+            "len_header": 20,
+            "len_tag": 120,
+            "sha1": "282e22843d2c3dd077e98338ea2783c97d29dfc9"
+          },
+          {
+            "type": "PCOB",
+            "offset": 6900,
+            "len_header": 24,
+            "len_tag": 24,
+            "sha1": "7a54777fcd4e881526cd1557cf997ee6d2cc844c"
+          },
+          {
+            "type": "PCOB",
+            "offset": 6924,
+            "len_header": 24,
+            "len_tag": 24,
+            "sha1": "279c54cb0898a7f13ea6be66c47328d4cc7950aa"
+          }
+        ],
+        "pqtz": {
+          "beats": 563,
+          "bpm_avg": 155.0,
+          "first_s": 0.128,
+          "last_s": 217.677
+        },
+        "cue_lists": [
+          {
+            "tag": "cue_list",
+            "count": 0,
+            "entries": []
+          },
+          {
+            "tag": "cue_list",
+            "count": 0,
+            "entries": []
+          }
+        ]
+      },
+      "EXT": {
+        "file": "ANLZ0000.EXT",
+        "ppth": "/Contents/Erika de Casier/Essentials/12. Intimate (Club Mix) - Erika de Casier.flac",
+        "tags": [
+          {
+            "type": "PPTH",
+            "offset": 28,
+            "len_header": 16,
+            "len_tag": 184,
+            "sha1": "424910c1d7dfa84be815992675d48630003f83c4"
+          },
+          {
+            "type": "PWV3",
+            "offset": 212,
+            "len_header": 24,
+            "len_tag": 32731,
+            "sha1": "132b8a7d0ca9dc484f284fa16b988f51a9dfe4c3"
+          },
+          {
+            "type": "PCOB",
+            "offset": 32943,
+            "len_header": 24,
+            "len_tag": 24,
+            "sha1": "7a54777fcd4e881526cd1557cf997ee6d2cc844c"
+          },
+          {
+            "type": "PCOB",
+            "offset": 32967,
+            "len_header": 24,
+            "len_tag": 24,
+            "sha1": "279c54cb0898a7f13ea6be66c47328d4cc7950aa"
+          },
+          {
+            "type": "PCO2",
+            "offset": 32991,
+            "len_header": 20,
+            "len_tag": 20,
+            "sha1": "145d43d9f710f3b7aa0245400390483e390cfaf2"
+          },
+          {
+            "type": "PCO2",
+            "offset": 33011,
+            "len_header": 20,
+            "len_tag": 20,
+            "sha1": "e667389d7fc8e4fa5c1fe3f11be649ff73acc0a8"
+          },
+          {
+            "type": "PWV5",
+            "offset": 33031,
+            "len_header": 24,
+            "len_tag": 65438,
+            "sha1": "e1fde362d1dc993b439e40088c82c9465f7e9abe"
+          },
+          {
+            "type": "PWV4",
+            "offset": 98469,
+            "len_header": 24,
+            "len_tag": 7224,
+            "sha1": "6a2015d3ca78f4392fc6114233c4c0af42385f5d"
+          },
+          {
+            "type": "PVB2",
+            "offset": 105693,
+            "len_header": 32,
+            "len_tag": 8032,
+            "sha1": "115cfc6b0afa0457688197041a1702953eee3217"
+          },
+          {
+            "type": "PSSI",
+            "offset": 113725,
+            "len_header": 32,
+            "len_tag": 440,
+            "sha1": "b5404d90125f6a3c7cb39a42792fc58d2f9d4323"
+          }
+        ],
+        "cue_lists": [
+          {
+            "tag": "cue_list",
+            "count": 0,
+            "entries": []
+          },
+          {
+            "tag": "cue_list",
+            "count": 0,
+            "entries": []
+          },
+          {
+            "tag": "cue_list2",
+            "count": 0,
+            "entries": []
+          },
+          {
+            "tag": "cue_list2",
+            "count": 0,
+            "entries": []
+          }
+        ]
+      }
+    },
+    "P029/0002E481": {
+      "2EX": {
+        "file": "ANLZ0000.2EX",
+        "ppth": "/Contents/JIALING & Kade Young/DUMMY/JIALING & Kade Young - DUMMY - 03 DUMMY (JI.flac",
+        "tags": [
+          {
+            "type": "PPTH",
+            "offset": 28,
+            "len_header": 16,
+            "len_tag": 188,
+            "sha1": "36d5e1cc5f3d9e8852ce42fd19597c276118d1d1"
+          },
+          {
+            "type": "PWV7",
+            "offset": 216,
+            "len_header": 24,
+            "len_tag": 115473,
+            "sha1": "13091e14e41648422c8b3b629fe5a2e3d42e67b9"
+          },
+          {
+            "type": "PWV6",
+            "offset": 115689,
+            "len_header": 20,
+            "len_tag": 3620,
+            "sha1": "825c3f9effa646124e7dbbf39be267722d8a9ddb"
+          },
+          {
+            "type": "PWVC",
+            "offset": 119309,
+            "len_header": 14,
+            "len_tag": 20,
+            "sha1": "796cf1bcbda1c942ac9bfbe135887cc7dde17a56"
+          },
+          {
+            "type": "PVDI",
+            "offset": 119329,
+            "len_header": 24,
+            "len_tag": 24,
+            "sha1": "125dc395b4cddf91f64a8fed30ef0383dbee91b6"
+          }
+        ]
+      },
+      "DAT": {
+        "file": "ANLZ0000.DAT",
+        "ppth": "/Contents/JIALING & Kade Young/DUMMY/JIALING & Kade Young - DUMMY - 03 DUMMY (JI.flac",
+        "tags": [
+          {
+            "type": "PPTH",
+            "offset": 28,
+            "len_header": 16,
+            "len_tag": 188,
+            "sha1": "36d5e1cc5f3d9e8852ce42fd19597c276118d1d1"
+          },
+          {
+            "type": "PVBR",
+            "offset": 216,
+            "len_header": 16,
+            "len_tag": 1620,
+            "sha1": "f6983036fa89dc49a51fa4179c3c0dc70a1bdb40"
+          },
+          {
+            "type": "PQTZ",
+            "offset": 1836,
+            "len_header": 24,
+            "len_tag": 4976,
+            "sha1": "0d9564a48b7160a262100a5b7106ab8eaeb4e63a"
+          },
+          {
+            "type": "PWAV",
+            "offset": 6812,
+            "len_header": 20,
+            "len_tag": 420,
+            "sha1": "06b0a602fd1d4c6ac68a32c070ec33a81b2f22b8"
+          },
+          {
+            "type": "PWV2",
+            "offset": 7232,
+            "len_header": 20,
+            "len_tag": 120,
+            "sha1": "dea5603385cc45eaf3806bcf451f83dd038d5fa4"
+          },
+          {
+            "type": "PCOB",
+            "offset": 7352,
+            "len_header": 24,
+            "len_tag": 80,
+            "sha1": "5ad662e10ee2bd0c430f6374b623b30f6c9c4e17"
+          },
+          {
+            "type": "PCOB",
+            "offset": 7432,
+            "len_header": 24,
+            "len_tag": 24,
+            "sha1": "279c54cb0898a7f13ea6be66c47328d4cc7950aa"
+          }
+        ],
+        "pqtz": {
+          "beats": 619,
+          "bpm_avg": 145.0,
+          "first_s": 0.0,
+          "last_s": 255.724
+        },
+        "cue_lists": [
+          {
+            "tag": "cue_list",
+            "count": 1,
+            "entries": [
+              {
+                "type": "single",
+                "hot_cue": 1,
+                "time": 0,
+                "loop_time": 4294967295,
+                "comment": null
+              }
+            ]
+          },
+          {
+            "tag": "cue_list",
+            "count": 0,
+            "entries": []
+          }
+        ]
+      },
+      "EXT": {
+        "file": "ANLZ0000.EXT",
+        "ppth": "/Contents/JIALING & Kade Young/DUMMY/JIALING & Kade Young - DUMMY - 03 DUMMY (JI.flac",
+        "tags": [
+          {
+            "type": "PPTH",
+            "offset": 28,
+            "len_header": 16,
+            "len_tag": 188,
+            "sha1": "36d5e1cc5f3d9e8852ce42fd19597c276118d1d1"
+          },
+          {
+            "type": "PWV3",
+            "offset": 216,
+            "len_header": 24,
+            "len_tag": 38507,
+            "sha1": "68bf7fc50396731c752d160eef3337bf7072b442"
+          },
+          {
+            "type": "PCOB",
+            "offset": 38723,
+            "len_header": 24,
+            "len_tag": 24,
+            "sha1": "7a54777fcd4e881526cd1557cf997ee6d2cc844c"
+          },
+          {
+            "type": "PCOB",
+            "offset": 38747,
+            "len_header": 24,
+            "len_tag": 24,
+            "sha1": "279c54cb0898a7f13ea6be66c47328d4cc7950aa"
+          },
+          {
+            "type": "PCO2",
+            "offset": 38771,
+            "len_header": 20,
+            "len_tag": 108,
+            "sha1": "00c1e04c1328863951cdc2c9e3051e5ef4a2e0b1"
+          },
+          {
+            "type": "PCO2",
+            "offset": 38879,
+            "len_header": 20,
+            "len_tag": 20,
+            "sha1": "e667389d7fc8e4fa5c1fe3f11be649ff73acc0a8"
+          },
+          {
+            "type": "PWV5",
+            "offset": 38899,
+            "len_header": 24,
+            "len_tag": 76990,
+            "sha1": "cf481a615d7629447dd486d945f0982248517478"
+          },
+          {
+            "type": "PWV4",
+            "offset": 115889,
+            "len_header": 24,
+            "len_tag": 7224,
+            "sha1": "79c7789d9c4e51edbc9e3c49fff12f1d84e58e45"
+          },
+          {
+            "type": "PVB2",
+            "offset": 123113,
+            "len_header": 32,
+            "len_tag": 8032,
+            "sha1": "bb9ea64f8a5c650cde2496e919f7c252c850d830"
+          },
+          {
+            "type": "PSSI",
+            "offset": 131145,
+            "len_header": 32,
+            "len_tag": 512,
+            "sha1": "a2c88480b92fc784cb7280dc63a2e71e97d107de"
+          }
+        ],
+        "cue_lists": [
+          {
+            "tag": "cue_list",
+            "count": 0,
+            "entries": []
+          },
+          {
+            "tag": "cue_list",
+            "count": 0,
+            "entries": []
+          },
+          {
+            "tag": "cue_list2",
+            "count": 1,
+            "entries": [
+              {
+                "type": 1,
+                "hot_cue": 1,
+                "time": 0,
+                "loop_time": 4294967295,
+                "comment": ""
+              }
+            ]
+          },
+          {
+            "tag": "cue_list2",
+            "count": 0,
+            "entries": []
+          }
+        ]
+      }
+    },
+    "P031/0000BE0B": {
+      "2EX": {
+        "file": "ANLZ0000.2EX",
+        "ppth": "/Contents/Shygirl, Club Shy, Yseult/F_Me/01. F-Me.flac",
+        "tags": [
+          {
+            "type": "PPTH",
+            "offset": 28,
+            "len_header": 16,
+            "len_tag": 126,
+            "sha1": "c400ad861df9923d2f97e8ee1db1eb71e67e5576"
+          },
+          {
+            "type": "PWV7",
+            "offset": 154,
+            "len_header": 24,
+            "len_tag": 84783,
+            "sha1": "7b72c821af7a7e98953d8ffb3b688a51bf606215"
+          },
+          {
+            "type": "PWV6",
+            "offset": 84937,
+            "len_header": 20,
+            "len_tag": 3620,
+            "sha1": "543e49295810ebe824e99d453cab2b2ffabae207"
+          },
+          {
+            "type": "PWVC",
+            "offset": 88557,
+            "len_header": 14,
+            "len_tag": 20,
+            "sha1": "cc07899f5ad23755045cc887fe82225e5a21016f"
+          },
+          {
+            "type": "PVDI",
+            "offset": 88577,
+            "len_header": 24,
+            "len_tag": 24,
+            "sha1": "125dc395b4cddf91f64a8fed30ef0383dbee91b6"
+          }
+        ]
+      },
+      "DAT": {
+        "file": "ANLZ0000.DAT",
+        "ppth": "/Contents/Shygirl, Club Shy, Yseult/F_Me/01. F-Me.flac",
+        "tags": [
+          {
+            "type": "PPTH",
+            "offset": 28,
+            "len_header": 16,
+            "len_tag": 126,
+            "sha1": "c400ad861df9923d2f97e8ee1db1eb71e67e5576"
+          },
+          {
+            "type": "PVBR",
+            "offset": 154,
+            "len_header": 16,
+            "len_tag": 1620,
+            "sha1": "f6983036fa89dc49a51fa4179c3c0dc70a1bdb40"
+          },
+          {
+            "type": "PQTZ",
+            "offset": 1774,
+            "len_header": 24,
+            "len_tag": 3352,
+            "sha1": "d495d586df34bae110b1c682bfd6c374baec392b"
+          },
+          {
+            "type": "PWAV",
+            "offset": 5126,
+            "len_header": 20,
+            "len_tag": 420,
+            "sha1": "212745dad86a86cecb6b659dbb3c7fec8874bd4f"
+          },
+          {
+            "type": "PWV2",
+            "offset": 5546,
+            "len_header": 20,
+            "len_tag": 120,
+            "sha1": "833b8ea755f8ce6e40c1655e98c05aeae98db24a"
+          },
+          {
+            "type": "PCOB",
+            "offset": 5666,
+            "len_header": 24,
+            "len_tag": 80,
+            "sha1": "2059994cbceee8b794aa5648493c41acc1a5aa8d"
+          },
+          {
+            "type": "PCOB",
+            "offset": 5746,
+            "len_header": 24,
+            "len_tag": 24,
+            "sha1": "279c54cb0898a7f13ea6be66c47328d4cc7950aa"
+          }
+        ],
+        "pqtz": {
+          "beats": 416,
+          "bpm_avg": 133.0,
+          "first_s": 0.45,
+          "last_s": 187.668
+        },
+        "cue_lists": [
+          {
+            "tag": "cue_list",
+            "count": 1,
+            "entries": [
+              {
+                "type": "single",
+                "hot_cue": 1,
+                "time": 1803,
+                "loop_time": 4294967295,
+                "comment": null
+              }
+            ]
+          },
+          {
+            "tag": "cue_list",
+            "count": 0,
+            "entries": []
+          }
+        ]
+      },
+      "EXT": {
+        "file": "ANLZ0000.EXT",
+        "ppth": "/Contents/Shygirl, Club Shy, Yseult/F_Me/01. F-Me.flac",
+        "tags": [
+          {
+            "type": "PPTH",
+            "offset": 28,
+            "len_header": 16,
+            "len_tag": 126,
+            "sha1": "c400ad861df9923d2f97e8ee1db1eb71e67e5576"
+          },
+          {
+            "type": "PWV3",
+            "offset": 154,
+            "len_header": 24,
+            "len_tag": 28277,
+            "sha1": "7105315e336fcedcfdf03e426ea1969a06257a44"
+          },
+          {
+            "type": "PCOB",
+            "offset": 28431,
+            "len_header": 24,
+            "len_tag": 24,
+            "sha1": "7a54777fcd4e881526cd1557cf997ee6d2cc844c"
+          },
+          {
+            "type": "PCOB",
+            "offset": 28455,
+            "len_header": 24,
+            "len_tag": 24,
+            "sha1": "279c54cb0898a7f13ea6be66c47328d4cc7950aa"
+          },
+          {
+            "type": "PCO2",
+            "offset": 28479,
+            "len_header": 20,
+            "len_tag": 124,
+            "sha1": "e5321485eb35bbcf706660a469a5ca4f61b7bbec"
+          },
+          {
+            "type": "PCO2",
+            "offset": 28603,
+            "len_header": 20,
+            "len_tag": 20,
+            "sha1": "e667389d7fc8e4fa5c1fe3f11be649ff73acc0a8"
+          },
+          {
+            "type": "PWV5",
+            "offset": 28623,
+            "len_header": 24,
+            "len_tag": 56530,
+            "sha1": "e5039bcd323aa236288e10be4a5259fd7d0540ed"
+          },
+          {
+            "type": "PWV4",
+            "offset": 85153,
+            "len_header": 24,
+            "len_tag": 7224,
+            "sha1": "7c6fd24f0658a3a4d524122fe8e79cecd33dcd25"
+          },
+          {
+            "type": "PVB2",
+            "offset": 92377,
+            "len_header": 32,
+            "len_tag": 8032,
+            "sha1": "06efbf9bed91447f7109400074ea10df9e3ffd37"
+          },
+          {
+            "type": "PSSI",
+            "offset": 100409,
+            "len_header": 32,
+            "len_tag": 344,
+            "sha1": "1a7d1321ec2c7a5c6f015bd612bd37adaa04bdc3"
+          }
+        ],
+        "cue_lists": [
+          {
+            "tag": "cue_list",
+            "count": 0,
+            "entries": []
+          },
+          {
+            "tag": "cue_list",
+            "count": 0,
+            "entries": []
+          },
+          {
+            "tag": "cue_list2",
+            "count": 1,
+            "entries": [
+              {
+                "type": 1,
+                "hot_cue": 1,
+                "time": 1803,
+                "loop_time": 4294967295,
+                "comment": "1.1Bars"
+              }
+            ]
+          },
+          {
+            "tag": "cue_list2",
+            "count": 0,
+            "entries": []
+          }
+        ]
+      }
+    },
+    "P032/0002670E": {
+      "2EX": {
+        "file": "ANLZ0000.2EX",
+        "ppth": "/Contents/Tessela/Hackney Parrot _ Helter Skelter/01 - Hackney Parrot.flac",
+        "tags": [
+          {
+            "type": "PPTH",
+            "offset": 28,
+            "len_header": 16,
+            "len_tag": 166,
+            "sha1": "863ddda10813628ba1e2ace128f3a59af1eaf985"
+          },
+          {
+            "type": "PWV7",
+            "offset": 194,
+            "len_header": 24,
+            "len_tag": 154956,
+            "sha1": "0726816e0d3b31fea710365d820251b0172841bc"
+          },
+          {
+            "type": "PWV6",
+            "offset": 155150,
+            "len_header": 20,
+            "len_tag": 3620,
+            "sha1": "09abf61dcd95d54b9cb048936024c404d0d4aa0c"
+          },
+          {
+            "type": "PWVC",
+            "offset": 158770,
+            "len_header": 14,
+            "len_tag": 20,
+            "sha1": "9e51e4f4720618766ba49eb6c2ac8b262f1e9ba6"
+          },
+          {
+            "type": "PVDI",
+            "offset": 158790,
+            "len_header": 24,
+            "len_tag": 24,
+            "sha1": "125dc395b4cddf91f64a8fed30ef0383dbee91b6"
+          }
+        ]
+      },
+      "DAT": {
+        "file": "ANLZ0000.DAT",
+        "ppth": "/Contents/Tessela/Hackney Parrot _ Helter Skelter/01 - Hackney Parrot.flac",
+        "tags": [
+          {
+            "type": "PPTH",
+            "offset": 28,
+            "len_header": 16,
+            "len_tag": 166,
+            "sha1": "863ddda10813628ba1e2ace128f3a59af1eaf985"
+          },
+          {
+            "type": "PVBR",
+            "offset": 194,
+            "len_header": 16,
+            "len_tag": 1620,
+            "sha1": "f6983036fa89dc49a51fa4179c3c0dc70a1bdb40"
+          },
+          {
+            "type": "PQTZ",
+            "offset": 1814,
+            "len_header": 24,
+            "len_tag": 6152,
+            "sha1": "ede7c15b6ebe956a5f04bbdfc4f2cddb41c78a2e"
+          },
+          {
+            "type": "PWAV",
+            "offset": 7966,
+            "len_header": 20,
+            "len_tag": 420,
+            "sha1": "6e4b0f3b74ffc74352a5b1bd5854186ca01b0aa1"
+          },
+          {
+            "type": "PWV2",
+            "offset": 8386,
+            "len_header": 20,
+            "len_tag": 120,
+            "sha1": "4a4439e86af7914476cf6e24eea6fd51eb4e5352"
+          },
+          {
+            "type": "PCOB",
+            "offset": 8506,
+            "len_header": 24,
+            "len_tag": 80,
+            "sha1": "5ad662e10ee2bd0c430f6374b623b30f6c9c4e17"
+          },
+          {
+            "type": "PCOB",
+            "offset": 8586,
+            "len_header": 24,
+            "len_tag": 24,
+            "sha1": "279c54cb0898a7f13ea6be66c47328d4cc7950aa"
+          }
+        ],
+        "pqtz": {
+          "beats": 766,
+          "bpm_avg": 134.68,
+          "first_s": 0.0,
+          "last_s": 343.79
+        },
+        "cue_lists": [
+          {
+            "tag": "cue_list",
+            "count": 1,
+            "entries": [
+              {
+                "type": "single",
+                "hot_cue": 1,
+                "time": 0,
+                "loop_time": 4294967295,
+                "comment": null
+              }
+            ]
+          },
+          {
+            "tag": "cue_list",
+            "count": 0,
+            "entries": []
+          }
+        ]
+      },
+      "EXT": {
+        "file": "ANLZ0000.EXT",
+        "ppth": "/Contents/Tessela/Hackney Parrot _ Helter Skelter/01 - Hackney Parrot.flac",
+        "tags": [
+          {
+            "type": "PPTH",
+            "offset": 28,
+            "len_header": 16,
+            "len_tag": 166,
+            "sha1": "863ddda10813628ba1e2ace128f3a59af1eaf985"
+          },
+          {
+            "type": "PWV3",
+            "offset": 194,
+            "len_header": 24,
+            "len_tag": 51668,
+            "sha1": "c563a03e34c669e0d022f85a1859079a956133da"
+          },
+          {
+            "type": "PCOB",
+            "offset": 51862,
+            "len_header": 24,
+            "len_tag": 24,
+            "sha1": "7a54777fcd4e881526cd1557cf997ee6d2cc844c"
+          },
+          {
+            "type": "PCOB",
+            "offset": 51886,
+            "len_header": 24,
+            "len_tag": 24,
+            "sha1": "279c54cb0898a7f13ea6be66c47328d4cc7950aa"
+          },
+          {
+            "type": "PCO2",
+            "offset": 51910,
+            "len_header": 20,
+            "len_tag": 124,
+            "sha1": "4224ffe4aeaad391bca05c44b6d693fed83ee510"
+          },
+          {
+            "type": "PCO2",
+            "offset": 52034,
+            "len_header": 20,
+            "len_tag": 20,
+            "sha1": "e667389d7fc8e4fa5c1fe3f11be649ff73acc0a8"
+          },
+          {
+            "type": "PWV5",
+            "offset": 52054,
+            "len_header": 24,
+            "len_tag": 103312,
+            "sha1": "5ec8be450164fac29bd78ef48f64a9a10858724b"
+          },
+          {
+            "type": "PWV4",
+            "offset": 155366,
+            "len_header": 24,
+            "len_tag": 7224,
+            "sha1": "e1d5455717e801ae4ae781c43a3d4690f8dde216"
+          },
+          {
+            "type": "PVB2",
+            "offset": 162590,
+            "len_header": 32,
+            "len_tag": 8032,
+            "sha1": "213974b7b889f4e93a8eed64ffa2e21e4caf5dc8"
+          },
+          {
+            "type": "PSSI",
+            "offset": 170622,
+            "len_header": 32,
+            "len_tag": 512,
+            "sha1": "ab3d3a73bfb3faf04172fbc76e22bc0250f75f61"
+          }
+        ],
+        "cue_lists": [
+          {
+            "tag": "cue_list",
+            "count": 0,
+            "entries": []
+          },
+          {
+            "tag": "cue_list",
+            "count": 0,
+            "entries": []
+          },
+          {
+            "tag": "cue_list2",
+            "count": 1,
+            "entries": [
+              {
+                "type": 1,
+                "hot_cue": 1,
+                "time": 0,
+                "loop_time": 4294967295,
+                "comment": "1.1Bars"
+              }
+            ]
+          },
+          {
+            "tag": "cue_list2",
+            "count": 0,
+            "entries": []
+          }
+        ]
+      }
+    },
+    "P038/000073AA": {
+      "2EX": {
+        "file": "ANLZ0000.2EX",
+        "ppth": "/Contents/Charli xcx, Shygirl/Brat and it’s completely different but also stil/15. 365 featuring shygirl.mp3",
+        "tags": [
+          {
+            "type": "PPTH",
+            "offset": 28,
+            "len_header": 16,
+            "len_tag": 234,
+            "sha1": "83054aa57f77d6b359791123b67b451da37e68d4"
+          },
+          {
+            "type": "PWV7",
+            "offset": 262,
+            "len_header": 24,
+            "len_tag": 54600,
+            "sha1": "7fc2659099a48a05f91eb7487d620db0a39639c4"
+          },
+          {
+            "type": "PWV6",
+            "offset": 54862,
+            "len_header": 20,
+            "len_tag": 3620,
+            "sha1": "0d3949d06a07287f7475f5ef48d78f71977f5a08"
+          },
+          {
+            "type": "PWVC",
+            "offset": 58482,
+            "len_header": 14,
+            "len_tag": 20,
+            "sha1": "a8fbc4b566399828cbed1f5a45a4035c8cf25d45"
+          },
+          {
+            "type": "PVDI",
+            "offset": 58502,
+            "len_header": 24,
+            "len_tag": 24,
+            "sha1": "125dc395b4cddf91f64a8fed30ef0383dbee91b6"
+          }
+        ]
+      },
+      "DAT": {
+        "file": "ANLZ0000.DAT",
+        "ppth": "/Contents/Charli xcx, Shygirl/Brat and it’s completely different but also stil/15. 365 featuring shygirl.mp3",
+        "tags": [
+          {
+            "type": "PPTH",
+            "offset": 28,
+            "len_header": 16,
+            "len_tag": 234,
+            "sha1": "83054aa57f77d6b359791123b67b451da37e68d4"
+          },
+          {
+            "type": "PVBR",
+            "offset": 262,
+            "len_header": 16,
+            "len_tag": 1620,
+            "sha1": "f6983036fa89dc49a51fa4179c3c0dc70a1bdb40"
+          },
+          {
+            "type": "PQTZ",
+            "offset": 1882,
+            "len_header": 24,
+            "len_tag": 2248,
+            "sha1": "795647b34ad452639aedd4b8af88d5086706d124"
+          },
+          {
+            "type": "PWAV",
+            "offset": 4130,
+            "len_header": 20,
+            "len_tag": 420,
+            "sha1": "78c6d846841c2d2740ae5ff973d0fe164ebf4bea"
+          },
+          {
+            "type": "PWV2",
+            "offset": 4550,
+            "len_header": 20,
+            "len_tag": 120,
+            "sha1": "c57936d869cbe8ae3a05271bd40314b1adaf4f5e"
+          },
+          {
+            "type": "PCOB",
+            "offset": 4670,
+            "len_header": 24,
+            "len_tag": 80,
+            "sha1": "18d2c34de51276d944258055a6fb6e0a01dbad57"
+          },
+          {
+            "type": "PCOB",
+            "offset": 4750,
+            "len_header": 24,
+            "len_tag": 24,
+            "sha1": "279c54cb0898a7f13ea6be66c47328d4cc7950aa"
+          }
+        ],
+        "pqtz": {
+          "beats": 278,
+          "bpm_avg": 137.711,
+          "first_s": 0.19,
+          "last_s": 120.887
+        },
+        "cue_lists": [
+          {
+            "tag": "cue_list",
+            "count": 1,
+            "entries": [
+              {
+                "type": "single",
+                "hot_cue": 1,
+                "time": 1500,
+                "loop_time": 4294967295,
+                "comment": null
+              }
+            ]
+          },
+          {
+            "tag": "cue_list",
+            "count": 0,
+            "entries": []
+          }
+        ]
+      },
+      "EXT": {
+        "file": "ANLZ0000.EXT",
+        "ppth": "/Contents/Charli xcx, Shygirl/Brat and it’s completely different but also stil/15. 365 featuring shygirl.mp3",
+        "tags": [
+          {
+            "type": "PPTH",
+            "offset": 28,
+            "len_header": 16,
+            "len_tag": 234,
+            "sha1": "83054aa57f77d6b359791123b67b451da37e68d4"
+          },
+          {
+            "type": "PWV3",
+            "offset": 262,
+            "len_header": 24,
+            "len_tag": 18215,
+            "sha1": "deca293d1f05276856f0f7bb623f8b68d72029fa"
+          },
+          {
+            "type": "PCOB",
+            "offset": 18477,
+            "len_header": 24,
+            "len_tag": 24,
+            "sha1": "7a54777fcd4e881526cd1557cf997ee6d2cc844c"
+          },
+          {
+            "type": "PCOB",
+            "offset": 18501,
+            "len_header": 24,
+            "len_tag": 24,
+            "sha1": "279c54cb0898a7f13ea6be66c47328d4cc7950aa"
+          },
+          {
+            "type": "PCO2",
+            "offset": 18525,
+            "len_header": 20,
+            "len_tag": 124,
+            "sha1": "5c9fd790eb4a7dda9f2b965602e41f95568f2659"
+          },
+          {
+            "type": "PCO2",
+            "offset": 18649,
+            "len_header": 20,
+            "len_tag": 20,
+            "sha1": "e667389d7fc8e4fa5c1fe3f11be649ff73acc0a8"
+          },
+          {
+            "type": "PWV5",
+            "offset": 18669,
+            "len_header": 24,
+            "len_tag": 36408,
+            "sha1": "2210e0dd9decda0c6c1ca6d92c8bcf7f5a03a64b"
+          },
+          {
+            "type": "PWV4",
+            "offset": 55077,
+            "len_header": 24,
+            "len_tag": 7224,
+            "sha1": "e8707caf8adfb76907461f626dfe637942ce22ad"
+          },
+          {
+            "type": "PSSI",
+            "offset": 62301,
+            "len_header": 32,
+            "len_tag": 272,
+            "sha1": "c851a19a38d711bcf17ce3e53b64f963e509ca1a"
+          }
+        ],
+        "cue_lists": [
+          {
+            "tag": "cue_list",
+            "count": 0,
+            "entries": []
+          },
+          {
+            "tag": "cue_list",
+            "count": 0,
+            "entries": []
+          },
+          {
+            "tag": "cue_list2",
+            "count": 1,
+            "entries": [
+              {
+                "type": 1,
+                "hot_cue": 1,
+                "time": 1500,
+                "loop_time": 4294967295,
+                "comment": "1.1Bars"
+              }
+            ]
+          },
+          {
+            "tag": "cue_list2",
+            "count": 0,
+            "entries": []
+          }
+        ]
+      }
+    },
+    "P03F/0000B6E7": {
+      "2EX": {
+        "file": "ANLZ0000.2EX",
+        "ppth": "/Contents/Erika de Casier/Essentials/11. Story of My Life - Erika de Casier.flac",
+        "tags": [
+          {
+            "type": "PPTH",
+            "offset": 28,
+            "len_header": 16,
+            "len_tag": 178,
+            "sha1": "69314fd2a21e7042c66777c727c038010468e258"
+          },
+          {
+            "type": "PWV7",
+            "offset": 206,
+            "len_header": 24,
+            "len_tag": 100374,
+            "sha1": "81d0013587765694d9fafef18c4af4d3c6a1cacb"
+          },
+          {
+            "type": "PWV6",
+            "offset": 100580,
+            "len_header": 20,
+            "len_tag": 3620,
+            "sha1": "f4d7d71a6f084926f6e50b75acc0ec2dd77efff9"
+          },
+          {
+            "type": "PWVC",
+            "offset": 104200,
+            "len_header": 14,
+            "len_tag": 20,
+            "sha1": "fb38062a83d3ce89a5e574f773323c7edf0175df"
+          },
+          {
+            "type": "PVDI",
+            "offset": 104220,
+            "len_header": 24,
+            "len_tag": 24,
+            "sha1": "125dc395b4cddf91f64a8fed30ef0383dbee91b6"
+          }
+        ]
+      },
+      "DAT": {
+        "file": "ANLZ0000.DAT",
+        "ppth": "/Contents/Erika de Casier/Essentials/11. Story of My Life - Erika de Casier.flac",
+        "tags": [
+          {
+            "type": "PPTH",
+            "offset": 28,
+            "len_header": 16,
+            "len_tag": 178,
+            "sha1": "69314fd2a21e7042c66777c727c038010468e258"
+          },
+          {
+            "type": "PVBR",
+            "offset": 206,
+            "len_header": 16,
+            "len_tag": 1620,
+            "sha1": "f6983036fa89dc49a51fa4179c3c0dc70a1bdb40"
+          },
+          {
+            "type": "PQTZ",
+            "offset": 1826,
+            "len_header": 24,
+            "len_tag": 4192,
+            "sha1": "50a78c7eba434d8aa08dc7ced076c05bacdc6d2a"
+          },
+          {
+            "type": "PWAV",
+            "offset": 6018,
+            "len_header": 20,
+            "len_tag": 420,
+            "sha1": "1e207d0e1b2b92c0708ccd55ed30741d6fd617a5"
+          },
+          {
+            "type": "PWV2",
+            "offset": 6438,
+            "len_header": 20,
+            "len_tag": 120,
+            "sha1": "868168c3fa1e10c1f9deae7927f9db28507e848c"
+          },
+          {
+            "type": "PCOB",
+            "offset": 6558,
+            "len_header": 24,
+            "len_tag": 24,
+            "sha1": "7a54777fcd4e881526cd1557cf997ee6d2cc844c"
+          },
+          {
+            "type": "PCOB",
+            "offset": 6582,
+            "len_header": 24,
+            "len_tag": 24,
+            "sha1": "279c54cb0898a7f13ea6be66c47328d4cc7950aa"
+          }
+        ],
+        "pqtz": {
+          "beats": 521,
+          "bpm_avg": 140.0,
+          "first_s": 0.003,
+          "last_s": 222.86
+        },
+        "cue_lists": [
+          {
+            "tag": "cue_list",
+            "count": 0,
+            "entries": []
+          },
+          {
+            "tag": "cue_list",
+            "count": 0,
+            "entries": []
+          }
+        ]
+      },
+      "EXT": {
+        "file": "ANLZ0000.EXT",
+        "ppth": "/Contents/Erika de Casier/Essentials/11. Story of My Life - Erika de Casier.flac",
+        "tags": [
+          {
+            "type": "PPTH",
+            "offset": 28,
+            "len_header": 16,
+            "len_tag": 178,
+            "sha1": "69314fd2a21e7042c66777c727c038010468e258"
+          },
+          {
+            "type": "PWV3",
+            "offset": 206,
+            "len_header": 24,
+            "len_tag": 33474,
+            "sha1": "8fc2f80c8c5789a74b5cfd0764d33f0133be45b3"
+          },
+          {
+            "type": "PCOB",
+            "offset": 33680,
+            "len_header": 24,
+            "len_tag": 24,
+            "sha1": "7a54777fcd4e881526cd1557cf997ee6d2cc844c"
+          },
+          {
+            "type": "PCOB",
+            "offset": 33704,
+            "len_header": 24,
+            "len_tag": 24,
+            "sha1": "279c54cb0898a7f13ea6be66c47328d4cc7950aa"
+          },
+          {
+            "type": "PCO2",
+            "offset": 33728,
+            "len_header": 20,
+            "len_tag": 20,
+            "sha1": "145d43d9f710f3b7aa0245400390483e390cfaf2"
+          },
+          {
+            "type": "PCO2",
+            "offset": 33748,
+            "len_header": 20,
+            "len_tag": 20,
+            "sha1": "e667389d7fc8e4fa5c1fe3f11be649ff73acc0a8"
+          },
+          {
+            "type": "PWV5",
+            "offset": 33768,
+            "len_header": 24,
+            "len_tag": 66924,
+            "sha1": "5d08cd11d057c40b208362ab7e20320222c2743e"
+          },
+          {
+            "type": "PWV4",
+            "offset": 100692,
+            "len_header": 24,
+            "len_tag": 7224,
+            "sha1": "d4fb6723e151d3a740d602ea93394a6b6e19932e"
+          },
+          {
+            "type": "PVB2",
+            "offset": 107916,
+            "len_header": 32,
+            "len_tag": 8032,
+            "sha1": "122f274b2102acc7ed245040de711007481f53a8"
+          },
+          {
+            "type": "PSSI",
+            "offset": 115948,
+            "len_header": 32,
+            "len_tag": 536,
+            "sha1": "51500c2bbffd372011b7ec07330656b354825552"
+          }
+        ],
+        "cue_lists": [
+          {
+            "tag": "cue_list",
+            "count": 0,
+            "entries": []
+          },
+          {
+            "tag": "cue_list",
+            "count": 0,
+            "entries": []
+          },
+          {
+            "tag": "cue_list2",
+            "count": 0,
+            "entries": []
+          },
+          {
+            "tag": "cue_list2",
+            "count": 0,
+            "entries": []
+          }
+        ]
+      }
+    },
+    "P040/0001C838": {
+      "2EX": {
+        "file": "ANLZ0000.2EX",
+        "ppth": "/Contents/hazboy/UnknownAlbum/hazboy - Charli xcx - Spring breakers (hazbo.wav",
+        "tags": [
+          {
+            "type": "PPTH",
+            "offset": 28,
+            "len_header": 16,
+            "len_tag": 174,
+            "sha1": "2b46c02bb9a3d63fd73f260ad51d5db4c568e841"
+          },
+          {
+            "type": "PWV7",
+            "offset": 202,
+            "len_header": 24,
+            "len_tag": 84624,
+            "sha1": "2a4495ac3e438991d677e470a5cf63d8ce22a8fe"
+          },
+          {
+            "type": "PWV6",
+            "offset": 84826,
+            "len_header": 20,
+            "len_tag": 3620,
+            "sha1": "bee2c4d0dd52b92122128e1c224745be68371814"
+          },
+          {
+            "type": "PWVC",
+            "offset": 88446,
+            "len_header": 14,
+            "len_tag": 20,
+            "sha1": "1dc69b1d462dcd45fdc767ef886de4888d89d57a"
+          },
+          {
+            "type": "PVDI",
+            "offset": 88466,
+            "len_header": 24,
+            "len_tag": 24,
+            "sha1": "125dc395b4cddf91f64a8fed30ef0383dbee91b6"
+          }
+        ]
+      },
+      "DAT": {
+        "file": "ANLZ0000.DAT",
+        "ppth": "/Contents/hazboy/UnknownAlbum/hazboy - Charli xcx - Spring breakers (hazbo.wav",
+        "tags": [
+          {
+            "type": "PPTH",
+            "offset": 28,
+            "len_header": 16,
+            "len_tag": 174,
+            "sha1": "2b46c02bb9a3d63fd73f260ad51d5db4c568e841"
+          },
+          {
+            "type": "PVBR",
+            "offset": 202,
+            "len_header": 16,
+            "len_tag": 1620,
+            "sha1": "f6983036fa89dc49a51fa4179c3c0dc70a1bdb40"
+          },
+          {
+            "type": "PQTZ",
+            "offset": 1822,
+            "len_header": 24,
+            "len_tag": 3408,
+            "sha1": "928e9842e15bbb57e09ac177dbcfb227fe274989"
+          },
+          {
+            "type": "PWAV",
+            "offset": 5230,
+            "len_header": 20,
+            "len_tag": 420,
+            "sha1": "836f23f1f6621947abc80b8fb43bacfd2f623259"
+          },
+          {
+            "type": "PWV2",
+            "offset": 5650,
+            "len_header": 20,
+            "len_tag": 120,
+            "sha1": "7f741ba5ab2c3f8505f815ad4facf835143c8060"
+          },
+          {
+            "type": "PCOB",
+            "offset": 5770,
+            "len_header": 24,
+            "len_tag": 192,
+            "sha1": "b9a6030933b2314360cf2e695bafd12bb26c3492"
+          },
+          {
+            "type": "PCOB",
+            "offset": 5962,
+            "len_header": 24,
+            "len_tag": 24,
+            "sha1": "279c54cb0898a7f13ea6be66c47328d4cc7950aa"
+          }
+        ],
+        "pqtz": {
+          "beats": 423,
+          "bpm_avg": 135.0,
+          "first_s": 0.001,
+          "last_s": 187.557
+        },
+        "cue_lists": [
+          {
+            "tag": "cue_list",
+            "count": 3,
+            "entries": [
+              {
+                "type": "single",
+                "hot_cue": 3,
+                "time": 17334,
+                "loop_time": 4294967295,
+                "comment": null
+              },
+              {
+                "type": "single",
+                "hot_cue": 2,
+                "time": 3112,
+                "loop_time": 4294967295,
+                "comment": null
+              },
+              {
+                "type": "single",
+                "hot_cue": 1,
+                "time": 1334,
+                "loop_time": 4294967295,
+                "comment": null
+              }
+            ]
+          },
+          {
+            "tag": "cue_list",
+            "count": 0,
+            "entries": []
+          }
+        ]
+      },
+      "EXT": {
+        "file": "ANLZ0000.EXT",
+        "ppth": "/Contents/hazboy/UnknownAlbum/hazboy - Charli xcx - Spring breakers (hazbo.wav",
+        "tags": [
+          {
+            "type": "PPTH",
+            "offset": 28,
+            "len_header": 16,
+            "len_tag": 174,
+            "sha1": "2b46c02bb9a3d63fd73f260ad51d5db4c568e841"
+          },
+          {
+            "type": "PWV3",
+            "offset": 202,
+            "len_header": 24,
+            "len_tag": 28224,
+            "sha1": "a1f5cad62d8018201df9304646e7d0e8532a3c5a"
+          },
+          {
+            "type": "PCOB",
+            "offset": 28426,
+            "len_header": 24,
+            "len_tag": 80,
+            "sha1": "1c1e796e9c798cc06da09ab8fcbc2bc8b77d7ba6"
+          },
+          {
+            "type": "PCOB",
+            "offset": 28506,
+            "len_header": 24,
+            "len_tag": 24,
+            "sha1": "279c54cb0898a7f13ea6be66c47328d4cc7950aa"
+          },
+          {
+            "type": "PCO2",
+            "offset": 28530,
+            "len_header": 20,
+            "len_tag": 372,
+            "sha1": "ccc35bcad7db9e680ef75d15708d6b9f2ef7f2ee"
+          },
+          {
+            "type": "PCO2",
+            "offset": 28902,
+            "len_header": 20,
+            "len_tag": 20,
+            "sha1": "e667389d7fc8e4fa5c1fe3f11be649ff73acc0a8"
+          },
+          {
+            "type": "PWV5",
+            "offset": 28922,
+            "len_header": 24,
+            "len_tag": 56424,
+            "sha1": "cafe65f68912347935e6c39ba13e2cd29bc31b19"
+          },
+          {
+            "type": "PWV4",
+            "offset": 85346,
+            "len_header": 24,
+            "len_tag": 7224,
+            "sha1": "dc72af1fb10196e36f8acb5a3cd1f17490cf26ca"
+          },
+          {
+            "type": "PSSI",
+            "offset": 92570,
+            "len_header": 32,
+            "len_tag": 416,
+            "sha1": "365c546cfceeb3b59424cac80603f4397fb0797a"
+          }
+        ],
+        "cue_lists": [
+          {
+            "tag": "cue_list",
+            "count": 1,
+            "entries": [
+              {
+                "type": "loop",
+                "hot_cue": 4,
+                "time": 6667,
+                "loop_time": 10223,
+                "comment": null
+              }
+            ]
+          },
+          {
+            "tag": "cue_list",
+            "count": 0,
+            "entries": []
+          },
+          {
+            "tag": "cue_list2",
+            "count": 4,
+            "entries": [
+              {
+                "type": 2,
+                "hot_cue": 4,
+                "time": 6667,
+                "loop_time": 10223,
+                "comment": ""
+              },
+              {
+                "type": 1,
+                "hot_cue": 3,
+                "time": 17334,
+                "loop_time": 4294967295,
+                "comment": ""
+              },
+              {
+                "type": 1,
+                "hot_cue": 2,
+                "time": 3112,
+                "loop_time": 4294967295,
+                "comment": ""
+              },
+              {
+                "type": 1,
+                "hot_cue": 1,
+                "time": 1334,
+                "loop_time": 4294967295,
+                "comment": ""
+              }
+            ]
+          },
+          {
+            "tag": "cue_list2",
+            "count": 0,
+            "entries": []
+          }
+        ]
+      }
+    },
+    "P05A/0001128C": {
+      "2EX": {
+        "file": "ANLZ0000.2EX",
+        "ppth": "/Contents/MIMI ZIMA/UnknownAlbum/MIMI ZIMA - End It.flac",
+        "tags": [
+          {
+            "type": "PPTH",
+            "offset": 28,
+            "len_header": 16,
+            "len_tag": 130,
+            "sha1": "49a04958ea929daff31e3892bb693d9107eb61ef"
+          },
+          {
+            "type": "PWV7",
+            "offset": 158,
+            "len_header": 24,
+            "len_tag": 132948,
+            "sha1": "95b79b140b00ae3891cb989978f455f1790a9f95"
+          },
+          {
+            "type": "PWV6",
+            "offset": 133106,
+            "len_header": 20,
+            "len_tag": 3620,
+            "sha1": "b701a3b154c55ca05ed215c462e6007f6e325291"
+          },
+          {
+            "type": "PWVC",
+            "offset": 136726,
+            "len_header": 14,
+            "len_tag": 20,
+            "sha1": "a1c05c866cce03df971d43c25779549f1dde3a33"
+          },
+          {
+            "type": "PVDI",
+            "offset": 136746,
+            "len_header": 24,
+            "len_tag": 24,
+            "sha1": "125dc395b4cddf91f64a8fed30ef0383dbee91b6"
+          }
+        ]
+      },
+      "DAT": {
+        "file": "ANLZ0000.DAT",
+        "ppth": "/Contents/MIMI ZIMA/UnknownAlbum/MIMI ZIMA - End It.flac",
+        "tags": [
+          {
+            "type": "PPTH",
+            "offset": 28,
+            "len_header": 16,
+            "len_tag": 130,
+            "sha1": "49a04958ea929daff31e3892bb693d9107eb61ef"
+          },
+          {
+            "type": "PVBR",
+            "offset": 158,
+            "len_header": 16,
+            "len_tag": 1620,
+            "sha1": "f6983036fa89dc49a51fa4179c3c0dc70a1bdb40"
+          },
+          {
+            "type": "PQTZ",
+            "offset": 1778,
+            "len_header": 24,
+            "len_tag": 5144,
+            "sha1": "66dd4bf8b6a686310e81f1be257434525be861a5"
+          },
+          {
+            "type": "PWAV",
+            "offset": 6922,
+            "len_header": 20,
+            "len_tag": 420,
+            "sha1": "8c5a31057ca65fbd19ad8dddb71c56b9d2efd450"
+          },
+          {
+            "type": "PWV2",
+            "offset": 7342,
+            "len_header": 20,
+            "len_tag": 120,
+            "sha1": "ae2d8b8e0aae45a56530140da1508275f5440455"
+          },
+          {
+            "type": "PCOB",
+            "offset": 7462,
+            "len_header": 24,
+            "len_tag": 192,
+            "sha1": "230e9b217f0f44e53c08ec92b35ed78089cb29cd"
+          },
+          {
+            "type": "PCOB",
+            "offset": 7654,
+            "len_header": 24,
+            "len_tag": 24,
+            "sha1": "279c54cb0898a7f13ea6be66c47328d4cc7950aa"
+          }
+        ],
+        "pqtz": {
+          "beats": 640,
+          "bpm_avg": 130.11,
+          "first_s": 0.0,
+          "last_s": 294.681
+        },
+        "cue_lists": [
+          {
+            "tag": "cue_list",
+            "count": 3,
+            "entries": [
+              {
+                "type": "single",
+                "hot_cue": 3,
+                "time": 22150,
+                "loop_time": 4294967295,
+                "comment": null
+              },
+              {
+                "type": "single",
+                "hot_cue": 2,
+                "time": 7380,
+                "loop_time": 4294967295,
+                "comment": null
+              },
+              {
+                "type": "single",
+                "hot_cue": 1,
+                "time": 0,
+                "loop_time": 4294967295,
+                "comment": null
+              }
+            ]
+          },
+          {
+            "tag": "cue_list",
+            "count": 0,
+            "entries": []
+          }
+        ]
+      },
+      "EXT": {
+        "file": "ANLZ0000.EXT",
+        "ppth": "/Contents/MIMI ZIMA/UnknownAlbum/MIMI ZIMA - End It.flac",
+        "tags": [
+          {
+            "type": "PPTH",
+            "offset": 28,
+            "len_header": 16,
+            "len_tag": 130,
+            "sha1": "49a04958ea929daff31e3892bb693d9107eb61ef"
+          },
+          {
+            "type": "PWV3",
+            "offset": 158,
+            "len_header": 24,
+            "len_tag": 44332,
+            "sha1": "c7189f164f124a81fb1c3ca7be8ecf8e8b1ff5ff"
+          },
+          {
+            "type": "PCOB",
+            "offset": 44490,
+            "len_header": 24,
+            "len_tag": 80,
+            "sha1": "6a5b0e1f6e99eddeba1fa3bdd62448ae12f1d855"
+          },
+          {
+            "type": "PCOB",
+            "offset": 44570,
+            "len_header": 24,
+            "len_tag": 24,
+            "sha1": "279c54cb0898a7f13ea6be66c47328d4cc7950aa"
+          },
+          {
+            "type": "PCO2",
+            "offset": 44594,
+            "len_header": 20,
+            "len_tag": 372,
+            "sha1": "bee60a9eb8835f83bae476a8b83d5f272b5292f4"
+          },
+          {
+            "type": "PCO2",
+            "offset": 44966,
+            "len_header": 20,
+            "len_tag": 20,
+            "sha1": "e667389d7fc8e4fa5c1fe3f11be649ff73acc0a8"
+          },
+          {
+            "type": "PWV5",
+            "offset": 44986,
+            "len_header": 24,
+            "len_tag": 88640,
+            "sha1": "d192f7413907218da96689a22f396c234fce5e63"
+          },
+          {
+            "type": "PWV4",
+            "offset": 133626,
+            "len_header": 24,
+            "len_tag": 7224,
+            "sha1": "17587354ed4956ee6cce661c60d46a36748d3ad7"
+          },
+          {
+            "type": "PVB2",
+            "offset": 140850,
+            "len_header": 32,
+            "len_tag": 8032,
+            "sha1": "3952e8ef22f4ddebee6a2502e9f46ded528114e4"
+          },
+          {
+            "type": "PSSI",
+            "offset": 148882,
+            "len_header": 32,
+            "len_tag": 392,
+            "sha1": "159153bdf68e903ab091902a588e6e038765496a"
+          }
+        ],
+        "cue_lists": [
+          {
+            "tag": "cue_list",
+            "count": 1,
+            "entries": [
+              {
+                "type": "single",
+                "hot_cue": 4,
+                "time": 129230,
+                "loop_time": 4294967295,
+                "comment": null
+              }
+            ]
+          },
+          {
+            "tag": "cue_list",
+            "count": 0,
+            "entries": []
+          },
+          {
+            "tag": "cue_list2",
+            "count": 4,
+            "entries": [
+              {
+                "type": 1,
+                "hot_cue": 4,
+                "time": 129230,
+                "loop_time": 4294967295,
+                "comment": ""
+              },
+              {
+                "type": 1,
+                "hot_cue": 3,
+                "time": 22150,
+                "loop_time": 4294967295,
+                "comment": ""
+              },
+              {
+                "type": 1,
+                "hot_cue": 2,
+                "time": 7380,
+                "loop_time": 4294967295,
+                "comment": ""
+              },
+              {
+                "type": 1,
+                "hot_cue": 1,
+                "time": 0,
+                "loop_time": 4294967295,
+                "comment": ""
+              }
+            ]
+          },
+          {
+            "tag": "cue_list2",
+            "count": 0,
+            "entries": []
+          }
+        ]
+      }
+    },
+    "P05C/000306E2": {
+      "2EX": {
+        "file": "ANLZ0000.2EX",
+        "ppth": "/Contents/Erika de Casier/Essentials/10. Space - Erika de Casier.flac",
+        "tags": [
+          {
+            "type": "PPTH",
+            "offset": 28,
+            "len_header": 16,
+            "len_tag": 156,
+            "sha1": "6d4c0aa98025d38015eb86dc23e0056f8ea23a5c"
+          },
+          {
+            "type": "PWV7",
+            "offset": 184,
+            "len_header": 24,
+            "len_tag": 114810,
+            "sha1": "ab0874457d084535f52b3e82d957b41598cdf29b"
+          },
+          {
+            "type": "PWV6",
+            "offset": 114994,
+            "len_header": 20,
+            "len_tag": 3620,
+            "sha1": "6bb66bd1a380340499d84553104d15e540dff5d5"
+          },
+          {
+            "type": "PWVC",
+            "offset": 118614,
+            "len_header": 14,
+            "len_tag": 20,
+            "sha1": "67832ed37423889e91b24229d9764ecc9dce7ed2"
+          },
+          {
+            "type": "PVDI",
+            "offset": 118634,
+            "len_header": 24,
+            "len_tag": 24,
+            "sha1": "125dc395b4cddf91f64a8fed30ef0383dbee91b6"
+          }
+        ]
+      },
+      "DAT": {
+        "file": "ANLZ0000.DAT",
+        "ppth": "/Contents/Erika de Casier/Essentials/10. Space - Erika de Casier.flac",
+        "tags": [
+          {
+            "type": "PPTH",
+            "offset": 28,
+            "len_header": 16,
+            "len_tag": 156,
+            "sha1": "6d4c0aa98025d38015eb86dc23e0056f8ea23a5c"
+          },
+          {
+            "type": "PVBR",
+            "offset": 184,
+            "len_header": 16,
+            "len_tag": 1620,
+            "sha1": "f6983036fa89dc49a51fa4179c3c0dc70a1bdb40"
+          },
+          {
+            "type": "PQTZ",
+            "offset": 1804,
+            "len_header": 24,
+            "len_tag": 3272,
+            "sha1": "b5dae156fa0c3848bce09368624e3cd43caf4d71"
+          },
+          {
+            "type": "PWAV",
+            "offset": 5076,
+            "len_header": 20,
+            "len_tag": 420,
+            "sha1": "9324c0804418e699517eab6d58fd39b29433e296"
+          },
+          {
+            "type": "PWV2",
+            "offset": 5496,
+            "len_header": 20,
+            "len_tag": 120,
+            "sha1": "8df6716c29dd1f25755a303bdfcac28ab5c07ded"
+          },
+          {
+            "type": "PCOB",
+            "offset": 5616,
+            "len_header": 24,
+            "len_tag": 24,
+            "sha1": "7a54777fcd4e881526cd1557cf997ee6d2cc844c"
+          },
+          {
+            "type": "PCOB",
+            "offset": 5640,
+            "len_header": 24,
+            "len_tag": 24,
+            "sha1": "279c54cb0898a7f13ea6be66c47328d4cc7950aa"
+          }
+        ],
+        "pqtz": {
+          "beats": 406,
+          "bpm_avg": 95.5,
+          "first_s": 0.317,
+          "last_s": 254.768
+        },
+        "cue_lists": [
+          {
+            "tag": "cue_list",
+            "count": 0,
+            "entries": []
+          },
+          {
+            "tag": "cue_list",
+            "count": 0,
+            "entries": []
+          }
+        ]
+      },
+      "EXT": {
+        "file": "ANLZ0000.EXT",
+        "ppth": "/Contents/Erika de Casier/Essentials/10. Space - Erika de Casier.flac",
+        "tags": [
+          {
+            "type": "PPTH",
+            "offset": 28,
+            "len_header": 16,
+            "len_tag": 156,
+            "sha1": "6d4c0aa98025d38015eb86dc23e0056f8ea23a5c"
+          },
+          {
+            "type": "PWV3",
+            "offset": 184,
+            "len_header": 24,
+            "len_tag": 38286,
+            "sha1": "b9812c033800bb162bcbe704259b0922b710e842"
+          },
+          {
+            "type": "PCOB",
+            "offset": 38470,
+            "len_header": 24,
+            "len_tag": 24,
+            "sha1": "7a54777fcd4e881526cd1557cf997ee6d2cc844c"
+          },
+          {
+            "type": "PCOB",
+            "offset": 38494,
+            "len_header": 24,
+            "len_tag": 24,
+            "sha1": "279c54cb0898a7f13ea6be66c47328d4cc7950aa"
+          },
+          {
+            "type": "PCO2",
+            "offset": 38518,
+            "len_header": 20,
+            "len_tag": 20,
+            "sha1": "145d43d9f710f3b7aa0245400390483e390cfaf2"
+          },
+          {
+            "type": "PCO2",
+            "offset": 38538,
+            "len_header": 20,
+            "len_tag": 20,
+            "sha1": "e667389d7fc8e4fa5c1fe3f11be649ff73acc0a8"
+          },
+          {
+            "type": "PWV5",
+            "offset": 38558,
+            "len_header": 24,
+            "len_tag": 76548,
+            "sha1": "47b1c157a5816db471c555028d4351abc76ba19c"
+          },
+          {
+            "type": "PWV4",
+            "offset": 115106,
+            "len_header": 24,
+            "len_tag": 7224,
+            "sha1": "2324454ce16d16a660da3418d5da9e7b610ab371"
+          },
+          {
+            "type": "PVB2",
+            "offset": 122330,
+            "len_header": 32,
+            "len_tag": 8032,
+            "sha1": "b5a2841b3c7c85559e68b95ed7cc664615c94a9f"
+          },
+          {
+            "type": "PSSI",
+            "offset": 130362,
+            "len_header": 32,
+            "len_tag": 248,
+            "sha1": "20939b5e110738b43afc5b4fcd70fd7e3f9a9a1f"
+          }
+        ],
+        "cue_lists": [
+          {
+            "tag": "cue_list",
+            "count": 0,
+            "entries": []
+          },
+          {
+            "tag": "cue_list",
+            "count": 0,
+            "entries": []
+          },
+          {
+            "tag": "cue_list2",
+            "count": 0,
+            "entries": []
+          },
+          {
+            "tag": "cue_list2",
+            "count": 0,
+            "entries": []
+          }
+        ]
+      }
+    },
+    "P06B/000171B7": {
+      "2EX": {
+        "file": "ANLZ0000.2EX",
+        "ppth": "/Contents/DJ これからの緊急災害/Like a Switchblade/02. Flow 2000 Edit.flac",
+        "tags": [
+          {
+            "type": "PPTH",
+            "offset": 28,
+            "len_header": 16,
+            "len_tag": 148,
+            "sha1": "18ab63d638d280f2e035cd04c389a46a4f01fe32"
+          },
+          {
+            "type": "PWV7",
+            "offset": 176,
+            "len_header": 24,
+            "len_tag": 85698,
+            "sha1": "6c3d13d4a8abf5115bc29746a0aab2b9cf664ffc"
+          },
+          {
+            "type": "PWV6",
+            "offset": 85874,
+            "len_header": 20,
+            "len_tag": 3620,
+            "sha1": "4f069e096440a3225858be62aa8c3fff08c1708d"
+          },
+          {
+            "type": "PWVC",
+            "offset": 89494,
+            "len_header": 14,
+            "len_tag": 20,
+            "sha1": "0d1881e9f35c617de4aa242f27cc60f14b97e63c"
+          },
+          {
+            "type": "PVDI",
+            "offset": 89514,
+            "len_header": 24,
+            "len_tag": 24,
+            "sha1": "125dc395b4cddf91f64a8fed30ef0383dbee91b6"
+          }
+        ]
+      },
+      "DAT": {
+        "file": "ANLZ0000.DAT",
+        "ppth": "/Contents/DJ これからの緊急災害/Like a Switchblade/02. Flow 2000 Edit.flac",
+        "tags": [
+          {
+            "type": "PPTH",
+            "offset": 28,
+            "len_header": 16,
+            "len_tag": 148,
+            "sha1": "18ab63d638d280f2e035cd04c389a46a4f01fe32"
+          },
+          {
+            "type": "PVBR",
+            "offset": 176,
+            "len_header": 16,
+            "len_tag": 1620,
+            "sha1": "f6983036fa89dc49a51fa4179c3c0dc70a1bdb40"
+          },
+          {
+            "type": "PQTZ",
+            "offset": 1796,
+            "len_header": 24,
+            "len_tag": 3320,
+            "sha1": "2c43d1ee204b668b8ac30d1d52b46dfd1f2787da"
+          },
+          {
+            "type": "PWAV",
+            "offset": 5116,
+            "len_header": 20,
+            "len_tag": 420,
+            "sha1": "2298c37b6175a683a6523948a53ebcb45f29d26a"
+          },
+          {
+            "type": "PWV2",
+            "offset": 5536,
+            "len_header": 20,
+            "len_tag": 120,
+            "sha1": "41a91d8a12c0c7c6527de2ea0897224f4a235961"
+          },
+          {
+            "type": "PCOB",
+            "offset": 5656,
+            "len_header": 24,
+            "len_tag": 80,
+            "sha1": "c8e7c24fa4a68ecdf546f274e5383ff032ab3517"
+          },
+          {
+            "type": "PCOB",
+            "offset": 5736,
+            "len_header": 24,
+            "len_tag": 24,
+            "sha1": "279c54cb0898a7f13ea6be66c47328d4cc7950aa"
+          }
+        ],
+        "pqtz": {
+          "beats": 412,
+          "bpm_avg": 130.0,
+          "first_s": 0.051,
+          "last_s": 189.743
+        },
+        "cue_lists": [
+          {
+            "tag": "cue_list",
+            "count": 1,
+            "entries": [
+              {
+                "type": "single",
+                "hot_cue": 1,
+                "time": 51,
+                "loop_time": 4294967295,
+                "comment": null
+              }
+            ]
+          },
+          {
+            "tag": "cue_list",
+            "count": 0,
+            "entries": []
+          }
+        ]
+      },
+      "EXT": {
+        "file": "ANLZ0000.EXT",
+        "ppth": "/Contents/DJ これからの緊急災害/Like a Switchblade/02. Flow 2000 Edit.flac",
+        "tags": [
+          {
+            "type": "PPTH",
+            "offset": 28,
+            "len_header": 16,
+            "len_tag": 148,
+            "sha1": "18ab63d638d280f2e035cd04c389a46a4f01fe32"
+          },
+          {
+            "type": "PWV3",
+            "offset": 176,
+            "len_header": 24,
+            "len_tag": 28582,
+            "sha1": "b6eafbc236f4dbe50c0d5b428ec7e6f803fee038"
+          },
+          {
+            "type": "PCOB",
+            "offset": 28758,
+            "len_header": 24,
+            "len_tag": 24,
+            "sha1": "7a54777fcd4e881526cd1557cf997ee6d2cc844c"
+          },
+          {
+            "type": "PCOB",
+            "offset": 28782,
+            "len_header": 24,
+            "len_tag": 24,
+            "sha1": "279c54cb0898a7f13ea6be66c47328d4cc7950aa"
+          },
+          {
+            "type": "PCO2",
+            "offset": 28806,
+            "len_header": 20,
+            "len_tag": 124,
+            "sha1": "dc007832b855b79ee532b3d76d3c16cd381a55d4"
+          },
+          {
+            "type": "PCO2",
+            "offset": 28930,
+            "len_header": 20,
+            "len_tag": 20,
+            "sha1": "e667389d7fc8e4fa5c1fe3f11be649ff73acc0a8"
+          },
+          {
+            "type": "PWV5",
+            "offset": 28950,
+            "len_header": 24,
+            "len_tag": 57140,
+            "sha1": "b621c09defaa31c05c3534859a443c6ca14d0b17"
+          },
+          {
+            "type": "PWV4",
+            "offset": 86090,
+            "len_header": 24,
+            "len_tag": 7224,
+            "sha1": "039141d00a7bfecdd7589edfa49d0e31df83175c"
+          },
+          {
+            "type": "PVB2",
+            "offset": 93314,
+            "len_header": 32,
+            "len_tag": 8032,
+            "sha1": "20e773517aff2df490f4870054d86af13e11bd9d"
+          },
+          {
+            "type": "PSSI",
+            "offset": 101346,
+            "len_header": 32,
+            "len_tag": 368,
+            "sha1": "5fb08684ee50fc63cfcf1a575e343e95f298ffc5"
+          }
+        ],
+        "cue_lists": [
+          {
+            "tag": "cue_list",
+            "count": 0,
+            "entries": []
+          },
+          {
+            "tag": "cue_list",
+            "count": 0,
+            "entries": []
+          },
+          {
+            "tag": "cue_list2",
+            "count": 1,
+            "entries": [
+              {
+                "type": 1,
+                "hot_cue": 1,
+                "time": 51,
+                "loop_time": 4294967295,
+                "comment": "1.1Bars"
+              }
+            ]
+          },
+          {
+            "tag": "cue_list2",
+            "count": 0,
+            "entries": []
+          }
+        ]
+      }
+    },
+    "P07D/00013EE3": {
+      "2EX": {
+        "file": "ANLZ0000.2EX",
+        "ppth": "/Contents/Yunè Pinku/Affection/01. Affection.flac",
+        "tags": [
+          {
+            "type": "PPTH",
+            "offset": 28,
+            "len_header": 16,
+            "len_tag": 116,
+            "sha1": "e344b1a963c213a342a336f7ac92dc0ccb13d930"
+          },
+          {
+            "type": "PWV7",
+            "offset": 144,
+            "len_header": 24,
+            "len_tag": 98997,
+            "sha1": "716f17b8ea3de7885f64e854799fa6e9a86eb7be"
+          },
+          {
+            "type": "PWV6",
+            "offset": 99141,
+            "len_header": 20,
+            "len_tag": 3620,
+            "sha1": "799b6719e183723059db90f492c5756c90164745"
+          },
+          {
+            "type": "PWVC",
+            "offset": 102761,
+            "len_header": 14,
+            "len_tag": 20,
+            "sha1": "9f6b718e444fcea6a5ad63c967d0d6940a513856"
+          },
+          {
+            "type": "PVDI",
+            "offset": 102781,
+            "len_header": 24,
+            "len_tag": 24,
+            "sha1": "125dc395b4cddf91f64a8fed30ef0383dbee91b6"
+          }
+        ]
+      },
+      "DAT": {
+        "file": "ANLZ0000.DAT",
+        "ppth": "/Contents/Yunè Pinku/Affection/01. Affection.flac",
+        "tags": [
+          {
+            "type": "PPTH",
+            "offset": 28,
+            "len_header": 16,
+            "len_tag": 116,
+            "sha1": "e344b1a963c213a342a336f7ac92dc0ccb13d930"
+          },
+          {
+            "type": "PVBR",
+            "offset": 144,
+            "len_header": 16,
+            "len_tag": 1620,
+            "sha1": "f6983036fa89dc49a51fa4179c3c0dc70a1bdb40"
+          },
+          {
+            "type": "PQTZ",
+            "offset": 1764,
+            "len_header": 24,
+            "len_tag": 3640,
+            "sha1": "233e86e837895b3190d1904f335243dd2b3ff322"
+          },
+          {
+            "type": "PWAV",
+            "offset": 5404,
+            "len_header": 20,
+            "len_tag": 420,
+            "sha1": "6634fab45fa5b78078fb573e465bad23340f31d5"
+          },
+          {
+            "type": "PWV2",
+            "offset": 5824,
+            "len_header": 20,
+            "len_tag": 120,
+            "sha1": "f7788bed94ecaa8e8a93dd158a395a75ea0665de"
+          },
+          {
+            "type": "PCOB",
+            "offset": 5944,
+            "len_header": 24,
+            "len_tag": 80,
+            "sha1": "0eb90e61e457cd0b533955a270b8d8129995c8b4"
+          },
+          {
+            "type": "PCOB",
+            "offset": 6024,
+            "len_header": 24,
+            "len_tag": 24,
+            "sha1": "279c54cb0898a7f13ea6be66c47328d4cc7950aa"
+          }
+        ],
+        "pqtz": {
+          "beats": 452,
+          "bpm_avg": 124.0,
+          "first_s": 0.407,
+          "last_s": 218.633
+        },
+        "cue_lists": [
+          {
+            "tag": "cue_list",
+            "count": 1,
+            "entries": [
+              {
+                "type": "single",
+                "hot_cue": 1,
+                "time": 407,
+                "loop_time": 4294967295,
+                "comment": null
+              }
+            ]
+          },
+          {
+            "tag": "cue_list",
+            "count": 0,
+            "entries": []
+          }
+        ]
+      },
+      "EXT": {
+        "file": "ANLZ0000.EXT",
+        "ppth": "/Contents/Yunè Pinku/Affection/01. Affection.flac",
+        "tags": [
+          {
+            "type": "PPTH",
+            "offset": 28,
+            "len_header": 16,
+            "len_tag": 116,
+            "sha1": "e344b1a963c213a342a336f7ac92dc0ccb13d930"
+          },
+          {
+            "type": "PWV3",
+            "offset": 144,
+            "len_header": 24,
+            "len_tag": 33015,
+            "sha1": "4cea2f5560da64d05239e92b67875a35cddf716e"
+          },
+          {
+            "type": "PCOB",
+            "offset": 33159,
+            "len_header": 24,
+            "len_tag": 24,
+            "sha1": "7a54777fcd4e881526cd1557cf997ee6d2cc844c"
+          },
+          {
+            "type": "PCOB",
+            "offset": 33183,
+            "len_header": 24,
+            "len_tag": 24,
+            "sha1": "279c54cb0898a7f13ea6be66c47328d4cc7950aa"
+          },
+          {
+            "type": "PCO2",
+            "offset": 33207,
+            "len_header": 20,
+            "len_tag": 124,
+            "sha1": "7dbbfc77fa580ef61e34e9ba7650edaa04a60a56"
+          },
+          {
+            "type": "PCO2",
+            "offset": 33331,
+            "len_header": 20,
+            "len_tag": 20,
+            "sha1": "e667389d7fc8e4fa5c1fe3f11be649ff73acc0a8"
+          },
+          {
+            "type": "PWV5",
+            "offset": 33351,
+            "len_header": 24,
+            "len_tag": 66006,
+            "sha1": "2b2b1cc6e09e78c017728f2157f51bc6fa9b1108"
+          },
+          {
+            "type": "PWV4",
+            "offset": 99357,
+            "len_header": 24,
+            "len_tag": 7224,
+            "sha1": "b8ea3f52ea3b512196f7f925eefdc79d0786b338"
+          },
+          {
+            "type": "PVB2",
+            "offset": 106581,
+            "len_header": 32,
+            "len_tag": 8032,
+            "sha1": "967736ab295fd45b7fb4574c2ecb53b81e88d051"
+          },
+          {
+            "type": "PSSI",
+            "offset": 114613,
+            "len_header": 32,
+            "len_tag": 440,
+            "sha1": "b6ac89f0418ba765cf50f19d2516ab2614c7bd41"
+          }
+        ],
+        "cue_lists": [
+          {
+            "tag": "cue_list",
+            "count": 0,
+            "entries": []
+          },
+          {
+            "tag": "cue_list",
+            "count": 0,
+            "entries": []
+          },
+          {
+            "tag": "cue_list2",
+            "count": 1,
+            "entries": [
+              {
+                "type": 1,
+                "hot_cue": 1,
+                "time": 407,
+                "loop_time": 4294967295,
+                "comment": "1.1Bars"
+              }
+            ]
+          },
+          {
+            "tag": "cue_list2",
+            "count": 0,
+            "entries": []
+          }
+        ]
+      }
+    }
+  },
+  "device_dbs": {
+    "export.pdb": {
+      "size": 221184,
+      "mtime": 1785563562,
+      "sha1": "e64c128d5bc51642f29e5e05e55fde45bf328420"
+    },
+    "exportExt.pdb": {
+      "size": 73728,
+      "mtime": 1785563562,
+      "sha1": "cda278a29df048a4b229d19a08403836a83da14d"
+    },
+    "exportLibrary.db": {
+      "size": 126976,
+      "mtime": 1785563558,
+      "sha1": "21b138dc4a0a52fb0dee9e3a1cda4ef2a360fe45"
+    },
+    "exportLibrary.db-wal": null,
+    "exportLibrary.db-shm": null,
+    "playlists3.sync": {
+      "size": 403,
+      "mtime": 1785563550,
+      "sha1": "6a85857fcf473a85e0b44fc2ca802456ccdac37a"
+    },
+    "playlists3Plus.sync": {
+      "size": 403,
+      "mtime": 1785563546,
+      "sha1": "f3e38f6ac59d54133b02c0761cb1ee71ced4e762"
+    }
+  }
+}

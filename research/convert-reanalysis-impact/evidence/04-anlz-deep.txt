@@ -1,0 +1,93 @@
+
+########## real MP3 w/ cues ID=131718786 type=1 name='01. Melt!.mp3' len=214s ##########
+
+  === DAT : ...\a90\af2bc-81b0-4a73-88df-ef5d3b4ae45e\ANLZ0000.DAT
+      raw tags (type, len_header, len_tag):
+        PPTH  lh=16 lt=48
+        PVBR  lh=16 lt=1620
+        PQTZ  lh=24 lt=3760
+        PWAV  lh=20 lt=420
+        PWV2  lh=20 lt=120
+        PCOB  lh=24 lt=24
+        PCOB  lh=24 lt=24
+
+  === EXT : ...\a90\af2bc-81b0-4a73-88df-ef5d3b4ae45e\ANLZ0000.EXT
+      raw tags (type, len_header, len_tag):
+        PPTH  lh=16 lt=48
+        PWV3  lh=24 lt=32179
+        PCOB  lh=24 lt=24
+        PCOB  lh=24 lt=24
+        PCO2  lh=20 lt=20
+        PCO2  lh=20 lt=20
+        PWV5  lh=24 lt=64334
+        PWV4  lh=24 lt=7224
+        PSSI  lh=32 lt=320
+
+  === 2EX : ...\a90\af2bc-81b0-4a73-88df-ef5d3b4ae45e\ANLZ0000.2EX
+      raw tags (type, len_header, len_tag):
+        PPTH  lh=16 lt=48
+        PWV7  lh=24 lt=96489
+        PWV6  lh=20 lt=3620
+        PWVC  lh=14 lt=20
+
+  PQTZ beats=467 bpm_avg=131.00 first=0.187s last=213.623s
+  PVBR nonzero=0/400 max=0
+  PCO2 obj_type=hotcue count=0
+  PCO2 obj_type=memory count=0
+  PWV3 len_entries=32155  dur*150=32100  ratio=1.002
+  PWV5 len_entries=32155  dur*150=32100
+  PSSI phrases=12 end_beat=463 kinds=[1, 1, 2, 5, 2, 5, 5, 2, 5, 5, 3, 6]
+
+########## real FLAC w/ cues ID=80401918 type=5 name='01. NUEVAYoL - Bad Bunny.flac' len=183s ##########
+
+  === DAT : ...\4ab\e364c-0167-4808-91b0-8e87283d6b03\ANLZ0000.DAT
+      raw tags (type, len_header, len_tag):
+        PPTH  lh=16 lt=80
+        PVBR  lh=16 lt=1620
+        PQTZ  lh=24 lt=2872
+        PWAV  lh=20 lt=420
+        PWV2  lh=20 lt=120
+        PCOB  lh=24 lt=24
+        PCOB  lh=24 lt=24
+
+  PQTZ beats=356 bpm_avg=116.78 first=0.368s last=182.904s
+  PVBR nonzero=0/400 max=0
+
+########## real AAC/m4a w/ cues ID=211711899 type=4 name='05 - Nigeria What-.m4a' len=233s ##########
+
+  === DAT : ...\91b\5ad0d-2bfa-4f23-aaf1-8343ad755101\ANLZ0000.DAT
+      raw tags (type, len_header, len_tag):
+        PPTH  lh=16 lt=66
+        PVBR  lh=16 lt=1620
+        PQTZ  lh=24 lt=4064
+        PWAV  lh=20 lt=420
+        PWV2  lh=20 lt=120
+        PCOB  lh=24 lt=24
+        PCOB  lh=24 lt=24
+
+  === EXT : ...\91b\5ad0d-2bfa-4f23-aaf1-8343ad755101\ANLZ0000.EXT
+      raw tags (type, len_header, len_tag):
+        PPTH  lh=16 lt=66
+        PWV3  lh=24 lt=35011
+        PCOB  lh=24 lt=24
+        PCOB  lh=24 lt=24
+        PCO2  lh=20 lt=20
+        PCO2  lh=20 lt=20
+        PWV5  lh=24 lt=69998
+        PWV4  lh=24 lt=7224
+        PSSI  lh=32 lt=392
+
+  === 2EX : ...\91b\5ad0d-2bfa-4f23-aaf1-8343ad755101\ANLZ0000.2EX
+      raw tags (type, len_header, len_tag):
+        PPTH  lh=16 lt=66
+        PWV7  lh=24 lt=104985
+        PWV6  lh=20 lt=3620
+        PWVC  lh=14 lt=20
+
+  PQTZ beats=505 bpm_avg=130.00 first=0.091s last=232.706s
+  PVBR nonzero=0/400 max=0
+  PCO2 obj_type=hotcue count=0
+  PCO2 obj_type=memory count=0
+  PWV3 len_entries=34987  dur*150=34950  ratio=1.001
+  PWV5 len_entries=34987  dur*150=34950
+  PSSI phrases=15 end_beat=498 kinds=[1, 2, 5, 5, 5, 2, 5, 5, 5, 2, 5, 5, 5, 5, 6]

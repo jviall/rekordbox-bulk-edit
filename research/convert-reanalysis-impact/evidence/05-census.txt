@@ -1,0 +1,32 @@
+contents scanned: 1230
+contents with no ANLZ files: 2
+ANLZ files scanned: 2676
+contents that have DjmdCue rows: 366
+
+ANLZ files with a NON-EMPTY PCOB/PCO2 cue list: 0
+
+PPTH path forms: {'?/...': 2676}
+
+PVB2 occurrences (first few): [('158539556', 5, '10-üñîcödé-flac-44_1k-16b.flac', 'EXT', 432), ('226724001', 5, '01-flac-44_1k-16b.flac', 'EXT', 432), ('247810405', 5, '02-flac-96k-24b.flac', 'EXT', 512), ('7691309', 5, '02. Do My Thing - Erika de Casier.flac', 'EXT', 8032), ('203729077', 5, '06. Noises - PinkPantheress.flac', 'EXT', 8032), ('244370404', 5, '01. Sex Life - Tracey.flac', 'EXT', 8032), ('264135939', 5, '02 - GOOD PUSS.flac', 'EXT', 8032), ('113355218', 5, '01 - Baby Blizzard.flac', 'EXT', 8032)]
+
+Tag types -> # files containing (all extensions):
+   PPTH: 2676
+   PCOB: 1953
+   PQTZ: 1228
+   PVBR: 1228
+   PWAV: 1228
+   PWV2: 1228
+   PWV3: 725
+   PCO2: 725
+   PWV4: 723
+   PWV5: 723
+   PWV6: 723
+   PWV7: 723
+   PWVC: 723
+   PSSI: 703
+   PVB2: 681
+
+Tag types by extension:
+   .DAT: {'PQTZ': 1228, 'PVBR': 1228, 'PCOB': 1228, 'PWAV': 1228, 'PPTH': 1228, 'PWV2': 1228}
+   .EXT: {'PWV3': 725, 'PCOB': 725, 'PWV4': 723, 'PWV5': 723, 'PPTH': 725, 'PCO2': 725, 'PVB2': 681, 'PSSI': 703}
+   .2EX: {'PWV6': 723, 'PWV7': 723, 'PWVC': 723, 'PPTH': 723}
