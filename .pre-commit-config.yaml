@@ -7,12 +7,13 @@ repos:
     rev: v6.0.0
     hooks:
     -   id: trailing-whitespace
-        exclude: '^tests/e2e/__snapshots__/'
+        exclude: '^(tests/e2e/__snapshots__/|research/)'
     -   id: end-of-file-fixer
-        exclude: '^tests/e2e/__snapshots__/'
+        exclude: '^(tests/e2e/__snapshots__/|research/)'
     -   id: check-yaml
     -   id: check-added-large-files
         args: [--maxkb=1024]
+        exclude: '^research/'
     -   id: check-merge-conflict
     -   id: debug-statements
     -   id: check-toml

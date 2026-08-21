@@ -1,0 +1,26 @@
+Audio/file-coupled DjmdContent columns:
+['FolderPath', 'FileNameL', 'FileNameS', 'Length', 'BitRate', 'BitDepth', 'FileType', 'OrgArtistID', 'ImagePath', 'AnalysisDataPath', 'FileSize', 'SampleRate', 'Analysed', 'AnalysisUpdated', 'OrgFolderPath', 'rb_file_id', 'rb_LocalFolderPath', 'SrcLength']
+
+Example values (real MP3 ID=131718786):
+   FolderPath = 'A:/Music/Kelly Lee Owens - Melt! (2020) - WEB 320/01. Melt!.mp3'
+   FileNameL = '01. Melt!.mp3'
+   FileNameS = ''
+   Length = 214
+   BitRate = 320
+   BitDepth = 16
+   FileType = 1
+   OrgArtistID = None
+   ImagePath = ''
+   AnalysisDataPath = '/PIONEER/USBANLZ/a90/af2bc-81b0-4a73-88df-ef5d3b4ae45e/ANLZ0000.DAT'
+   FileSize = 8596920
+   SampleRate = 44100
+   Analysed = 105
+   AnalysisUpdated = '3'
+   OrgFolderPath = ''
+   rb_file_id = '3096224743833404'
+   rb_LocalFolderPath = None
+   SrcLength = None
+
+Convert WRITES: ['BitDepth', 'BitRate', 'FileNameL', 'FileType', 'FolderPath', 'SampleRate']
+Potentially-stale audio/file columns convert does NOT write:
+['Analysed', 'AnalysisDataPath', 'AnalysisUpdated', 'FileNameS', 'FileSize', 'ImagePath', 'Length', 'OrgArtistID', 'OrgFolderPath', 'SrcLength', 'rb_LocalFolderPath', 'rb_file_id']

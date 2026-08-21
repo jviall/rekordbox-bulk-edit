@@ -1,0 +1,398 @@
+{
+  "content_id": "205157376",
+  "stage": "aiff-postconv",
+  "captured_at": "2026-06-15T17:40:31",
+  "content": {
+    "ID": "205157376",
+    "FolderPath": "A:\\Music\\_ConvertTest/Vuelve.aiff",
+    "FileNameL": "Vuelve.aiff",
+    "FileNameS": "",
+    "Title": "Vuelve",
+    "ArtistID": "1516197091",
+    "AlbumID": "840705083",
+    "GenreID": null,
+    "BPM": 11041,
+    "Length": 210,
+    "TrackNo": 10,
+    "BitRate": 1411,
+    "BitDepth": 16,
+    "Commnt": "Visit https://nyp-records.bandcamp.com",
+    "FileType": 12,
+    "Rating": 0,
+    "ReleaseYear": 2021,
+    "RemixerID": null,
+    "LabelID": null,
+    "OrgArtistID": null,
+    "KeyID": "2713971390",
+    "StockDate": "2026-06-15",
+    "ColorID": "0",
+    "DJPlayCount": 0,
+    "ImagePath": "",
+    "MasterDBID": "616228944",
+    "MasterSongID": "205157376",
+    "AnalysisDataPath": "/PIONEER/USBANLZ/bf7/1f0c1-704d-46fb-b47d-cefb16a5e3aa/ANLZ0000.DAT",
+    "SearchStr": null,
+    "FileSize": 60610566,
+    "DiscNo": 0,
+    "ComposerID": null,
+    "Subtitle": "",
+    "SampleRate": 44100,
+    "DisableQuantize": null,
+    "Analysed": 105,
+    "ReleaseDate": "",
+    "DateCreated": "2026-06-15",
+    "ContentLink": 2950670,
+    "Tag": null,
+    "ModifiedByRBM": "",
+    "HotCueAutoLoad": "on",
+    "DeliveryControl": "on",
+    "DeliveryComment": "",
+    "CueUpdated": "6",
+    "AnalysisUpdated": "5",
+    "TrackInfoUpdated": "5",
+    "Lyricist": "",
+    "ISRC": "",
+    "SamplerTrackInfo": 0,
+    "SamplerPlayOffset": 0,
+    "SamplerGain": 0.0,
+    "VideoAssociate": "0",
+    "LyricStatus": 0,
+    "ServiceID": 0,
+    "OrgFolderPath": "",
+    "Reserved1": "",
+    "Reserved2": null,
+    "Reserved3": null,
+    "Reserved4": null,
+    "ExtInfo": "null",
+    "rb_file_id": "844424930182490",
+    "DeviceID": "29ca5686-14e8-432a-8cf2-ff8c70fb4d90",
+    "rb_LocalFolderPath": null,
+    "SrcID": null,
+    "SrcTitle": null,
+    "SrcArtistName": null,
+    "SrcAlbumName": null,
+    "SrcLength": null,
+    "UUID": "bf71f0c1-704d-46fb-b47d-cefb16a5e3aa",
+    "rb_data_status": 0,
+    "rb_local_data_status": 0,
+    "rb_local_deleted": 0,
+    "rb_local_synced": 0,
+    "usn": null,
+    "rb_local_usn": 38132,
+    "created_at": "2026-06-15 17:22:04.077000",
+    "updated_at": "2026-06-15 17:40:30.821000"
+  },
+  "cues": [
+    {
+      "ID": "3689722100",
+      "ContentID": "205157376",
+      "InMsec": 1194,
+      "InFrame": 179,
+      "InMpegFrame": 0,
+      "InMpegAbs": 0,
+      "OutMsec": -1,
+      "OutFrame": 0,
+      "OutMpegFrame": 0,
+      "OutMpegAbs": 0,
+      "Kind": 1,
+      "Color": -1,
+      "ColorTableIndex": null,
+      "ActiveLoop": null,
+      "Comment": null,
+      "BeatLoopSize": null,
+      "CueMicrosec": null,
+      "InPointSeekInfo": null,
+      "OutPointSeekInfo": null,
+      "ContentUUID": "bf71f0c1-704d-46fb-b47d-cefb16a5e3aa",
+      "UUID": "0451f08d-c99d-407d-b5f2-86c9c0765088",
+      "rb_data_status": 0,
+      "rb_local_data_status": 0,
+      "rb_local_deleted": 0,
+      "rb_local_synced": 0,
+      "usn": null,
+      "rb_local_usn": null,
+      "created_at": "2026-06-15 17:28:13.443000",
+      "updated_at": "2026-06-15 17:28:13.444000"
+    },
+    {
+      "ID": "981205823",
+      "ContentID": "205157376",
+      "InMsec": 1194,
+      "InFrame": 179,
+      "InMpegFrame": 0,
+      "InMpegAbs": 0,
+      "OutMsec": -1,
+      "OutFrame": 0,
+      "OutMpegFrame": 0,
+      "OutMpegAbs": 0,
+      "Kind": 0,
+      "Color": -1,
+      "ColorTableIndex": null,
+      "ActiveLoop": null,
+      "Comment": null,
+      "BeatLoopSize": null,
+      "CueMicrosec": null,
+      "InPointSeekInfo": null,
+      "OutPointSeekInfo": null,
+      "ContentUUID": "bf71f0c1-704d-46fb-b47d-cefb16a5e3aa",
+      "UUID": "89ea4db4-c848-4dbf-979f-5c4d7c989cd5",
+      "rb_data_status": 0,
+      "rb_local_data_status": 0,
+      "rb_local_deleted": 0,
+      "rb_local_synced": 0,
+      "usn": null,
+      "rb_local_usn": null,
+      "created_at": "2026-06-15 17:28:37.789000",
+      "updated_at": "2026-06-15 17:28:37.789000"
+    },
+    {
+      "ID": "1271402976",
+      "ContentID": "205157376",
+      "InMsec": 42630,
+      "InFrame": 6394,
+      "InMpegFrame": 0,
+      "InMpegAbs": 0,
+      "OutMsec": -1,
+      "OutFrame": 0,
+      "OutMpegFrame": 0,
+      "OutMpegAbs": 0,
+      "Kind": 3,
+      "Color": -1,
+      "ColorTableIndex": null,
+      "ActiveLoop": null,
+      "Comment": null,
+      "BeatLoopSize": null,
+      "CueMicrosec": null,
+      "InPointSeekInfo": null,
+      "OutPointSeekInfo": null,
+      "ContentUUID": "bf71f0c1-704d-46fb-b47d-cefb16a5e3aa",
+      "UUID": "1c87c618-066f-4020-903d-ffd31464dd8f",
+      "rb_data_status": 0,
+      "rb_local_data_status": 0,
+      "rb_local_deleted": 0,
+      "rb_local_synced": 0,
+      "usn": null,
+      "rb_local_usn": null,
+      "created_at": "2026-06-15 17:28:17.894000",
+      "updated_at": "2026-06-15 17:28:17.896000"
+    },
+    {
+      "ID": "1583170569",
+      "ContentID": "205157376",
+      "InMsec": 112433,
+      "InFrame": 16864,
+      "InMpegFrame": 0,
+      "InMpegAbs": 0,
+      "OutMsec": 112966,
+      "OutFrame": 16944,
+      "OutMpegFrame": 0,
+      "OutMpegAbs": 0,
+      "Kind": 0,
+      "Color": 255,
+      "ColorTableIndex": 0,
+      "ActiveLoop": 0,
+      "Comment": "",
+      "BeatLoopSize": 65537,
+      "CueMicrosec": 0,
+      "InPointSeekInfo": null,
+      "OutPointSeekInfo": null,
+      "ContentUUID": "bf71f0c1-704d-46fb-b47d-cefb16a5e3aa",
+      "UUID": "d4ce0c73-34f9-4b3c-b3a8-92fb1af1dd58",
+      "rb_data_status": 0,
+      "rb_local_data_status": 0,
+      "rb_local_deleted": 0,
+      "rb_local_synced": 0,
+      "usn": null,
+      "rb_local_usn": null,
+      "created_at": "2026-06-15 17:28:25.677000",
+      "updated_at": "2026-06-15 17:28:25.711000"
+    }
+  ],
+  "anlz": {
+    "DAT": {
+      "path_tail": "\\bf7\\1f0c1-704d-46fb-b47d-cefb16a5e3aa\\ANLZ0000.DAT",
+      "ppth": "?/Vuelve.wav",
+      "tags": [
+        {
+          "type": "PPTH",
+          "offset": 28,
+          "len_header": 16,
+          "len_tag": 42,
+          "sha1": "d010ce2eb0109f0e3cc249d257eab967fb054f39"
+        },
+        {
+          "type": "PVBR",
+          "offset": 70,
+          "len_header": 16,
+          "len_tag": 1620,
+          "sha1": "f6983036fa89dc49a51fa4179c3c0dc70a1bdb40"
+        },
+        {
+          "type": "PQTZ",
+          "offset": 1690,
+          "len_header": 24,
+          "len_tag": 3096,
+          "sha1": "f2d66b5b51199784b27cc483797073625502363e"
+        },
+        {
+          "type": "PWAV",
+          "offset": 4786,
+          "len_header": 20,
+          "len_tag": 420,
+          "sha1": "aef5a94ef83ab2985a1d2ec5c30747281df94e66"
+        },
+        {
+          "type": "PWV2",
+          "offset": 5206,
+          "len_header": 20,
+          "len_tag": 120,
+          "sha1": "bb212a5b1e3c420d825dc2d4ae7e9d1b989dbe21"
+        },
+        {
+          "type": "PCOB",
+          "offset": 5326,
+          "len_header": 24,
+          "len_tag": 24,
+          "sha1": "7a54777fcd4e881526cd1557cf997ee6d2cc844c"
+        },
+        {
+          "type": "PCOB",
+          "offset": 5350,
+          "len_header": 24,
+          "len_tag": 24,
+          "sha1": "279c54cb0898a7f13ea6be66c47328d4cc7950aa"
+        }
+      ],
+      "pqtz": {
+        "beats": 384,
+        "bpm_avg": 109.421,
+        "first_s": 0.055,
+        "last_s": 210.134,
+        "times_sha1": "0bd9886e3de52088718bb6964da77a04600176f6"
+      },
+      "anlz_cue_lists": [
+        {
+          "tag": "PCOB",
+          "obj_type": "hotcue",
+          "count": 0
+        },
+        {
+          "tag": "PCOB",
+          "obj_type": "memory",
+          "count": 0
+        }
+      ]
+    },
+    "EXT": {
+      "path_tail": "\\bf7\\1f0c1-704d-46fb-b47d-cefb16a5e3aa\\ANLZ0000.EXT",
+      "ppth": "?/Vuelve.wav",
+      "tags": [
+        {
+          "type": "PPTH",
+          "offset": 28,
+          "len_header": 16,
+          "len_tag": 42,
+          "sha1": "d010ce2eb0109f0e3cc249d257eab967fb054f39"
+        },
+        {
+          "type": "PWV3",
+          "offset": 70,
+          "len_header": 24,
+          "len_tag": 31592,
+          "sha1": "ce25fdab23556d3e7a0502e8bcbea302df35ad7c"
+        },
+        {
+          "type": "PCOB",
+          "offset": 31662,
+          "len_header": 24,
+          "len_tag": 24,
+          "sha1": "7a54777fcd4e881526cd1557cf997ee6d2cc844c"
+        },
+        {
+          "type": "PCOB",
+          "offset": 31686,
+          "len_header": 24,
+          "len_tag": 24,
+          "sha1": "279c54cb0898a7f13ea6be66c47328d4cc7950aa"
+        },
+        {
+          "type": "PCO2",
+          "offset": 31710,
+          "len_header": 20,
+          "len_tag": 20,
+          "sha1": "145d43d9f710f3b7aa0245400390483e390cfaf2"
+        },
+        {
+          "type": "PCO2",
+          "offset": 31730,
+          "len_header": 20,
+          "len_tag": 20,
+          "sha1": "e667389d7fc8e4fa5c1fe3f11be649ff73acc0a8"
+        },
+        {
+          "type": "PQT2",
+          "offset": 31750,
+          "len_header": 56,
+          "len_tag": 824,
+          "sha1": "1cd239e13d9fc4d6ff115f73d2bb4f1dd6a1a8f2"
+        },
+        {
+          "type": "PWV5",
+          "offset": 32574,
+          "len_header": 24,
+          "len_tag": 63160,
+          "sha1": "d1e7a41d9c16befe747c393442b429377d7e58da"
+        },
+        {
+          "type": "PWV4",
+          "offset": 95734,
+          "len_header": 24,
+          "len_tag": 7224,
+          "sha1": "5be73ffc403e67148e0f88a30d32d35f501bb0d9"
+        },
+        {
+          "type": "PSSI",
+          "offset": 102958,
+          "len_header": 32,
+          "len_tag": 440,
+          "sha1": "aa9f1976dfa92591595c70c17c3a3cfc4dccaea6"
+        }
+      ],
+      "parse_error": "ConstError: Error in path (parsing) -> content -> u1\nparsing expected 16777218 but parsed 33554434"
+    },
+    "2EX": {
+      "path_tail": "\\bf7\\1f0c1-704d-46fb-b47d-cefb16a5e3aa\\ANLZ0000.2EX",
+      "ppth": "?/Vuelve.wav",
+      "tags": [
+        {
+          "type": "PPTH",
+          "offset": 28,
+          "len_header": 16,
+          "len_tag": 42,
+          "sha1": "d010ce2eb0109f0e3cc249d257eab967fb054f39"
+        },
+        {
+          "type": "PWV7",
+          "offset": 70,
+          "len_header": 24,
+          "len_tag": 94728,
+          "sha1": "1ec894b59e4224d04c217f53b64d6ff30cfe45a4"
+        },
+        {
+          "type": "PWV6",
+          "offset": 94798,
+          "len_header": 20,
+          "len_tag": 3620,
+          "sha1": "2d1f3756e96f17f064c88420d0d2f5d1b0d67f98"
+        },
+        {
+          "type": "PWVC",
+          "offset": 98418,
+          "len_header": 14,
+          "len_tag": 20,
+          "sha1": "fe39ddc10d3e2a4496d2e98765160fa7a878054a"
+        }
+      ]
+    }
+  }
+}

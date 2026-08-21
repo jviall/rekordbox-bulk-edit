@@ -1,0 +1,450 @@
+{
+  "content_id": "230928195",
+  "stage": "mp3-unlocked-reanalyze",
+  "captured_at": "2026-06-15T21:37:09",
+  "content": {
+    "ID": "230928195",
+    "FolderPath": "A:\\Music\\_ConvertTest/FodanCia.mp3",
+    "FileNameL": "FodanCia.mp3",
+    "FileNameS": "",
+    "Title": "FodanCia Do Mais Velho Aguado",
+    "ArtistID": "1939876223",
+    "AlbumID": "4046575490",
+    "GenreID": null,
+    "BPM": 9501,
+    "Length": 186,
+    "TrackNo": 1,
+    "BitRate": 320,
+    "BitDepth": 16,
+    "Commnt": "Visit https://principediscos.bandcamp.com",
+    "FileType": 1,
+    "Rating": 0,
+    "ReleaseYear": 2025,
+    "RemixerID": null,
+    "LabelID": null,
+    "OrgArtistID": null,
+    "KeyID": "1085797682",
+    "StockDate": "2026-06-15",
+    "ColorID": "0",
+    "DJPlayCount": 0,
+    "ImagePath": "",
+    "MasterDBID": "616228944",
+    "MasterSongID": "230928195",
+    "AnalysisDataPath": "/PIONEER/USBANLZ/47a/337b6-897a-45a2-a086-f8b88e2f5c40/ANLZ0001.DAT",
+    "SearchStr": null,
+    "FileSize": 49285704,
+    "DiscNo": 0,
+    "ComposerID": null,
+    "Subtitle": "",
+    "SampleRate": 44100,
+    "DisableQuantize": null,
+    "Analysed": 105,
+    "ReleaseDate": "",
+    "DateCreated": "2026-06-15",
+    "ContentLink": 2950670,
+    "Tag": null,
+    "ModifiedByRBM": "",
+    "HotCueAutoLoad": "on",
+    "DeliveryControl": "on",
+    "DeliveryComment": "",
+    "CueUpdated": "5",
+    "AnalysisUpdated": "6",
+    "TrackInfoUpdated": "5",
+    "Lyricist": "",
+    "ISRC": "",
+    "SamplerTrackInfo": 0,
+    "SamplerPlayOffset": 0,
+    "SamplerGain": 0.0,
+    "VideoAssociate": "0",
+    "LyricStatus": 0,
+    "ServiceID": 0,
+    "OrgFolderPath": "",
+    "Reserved1": "",
+    "Reserved2": null,
+    "Reserved3": null,
+    "Reserved4": null,
+    "ExtInfo": "null",
+    "rb_file_id": "281474976761253",
+    "DeviceID": "29ca5686-14e8-432a-8cf2-ff8c70fb4d90",
+    "rb_LocalFolderPath": null,
+    "SrcID": null,
+    "SrcTitle": null,
+    "SrcArtistName": null,
+    "SrcAlbumName": null,
+    "SrcLength": null,
+    "UUID": "47a337b6-897a-45a2-a086-f8b88e2f5c40",
+    "rb_data_status": 0,
+    "rb_local_data_status": 0,
+    "rb_local_deleted": 0,
+    "rb_local_synced": 0,
+    "usn": null,
+    "rb_local_usn": 38150,
+    "created_at": "2026-06-15 17:22:04.084000",
+    "updated_at": "2026-06-15 21:33:53.507000"
+  },
+  "cues": [
+    {
+      "ID": "3484268064",
+      "ContentID": "230928195",
+      "InMsec": 8,
+      "InFrame": 1,
+      "InMpegFrame": 0,
+      "InMpegAbs": 0,
+      "OutMsec": -1,
+      "OutFrame": 0,
+      "OutMpegFrame": 0,
+      "OutMpegAbs": 0,
+      "Kind": 1,
+      "Color": -1,
+      "ColorTableIndex": null,
+      "ActiveLoop": null,
+      "Comment": null,
+      "BeatLoopSize": null,
+      "CueMicrosec": null,
+      "InPointSeekInfo": null,
+      "OutPointSeekInfo": null,
+      "ContentUUID": "47a337b6-897a-45a2-a086-f8b88e2f5c40",
+      "UUID": "26dd7e93-75f1-476f-8129-569b0e5a29ac",
+      "rb_data_status": 0,
+      "rb_local_data_status": 0,
+      "rb_local_deleted": 0,
+      "rb_local_synced": 0,
+      "usn": null,
+      "rb_local_usn": null,
+      "created_at": "2026-06-15 17:24:35.420000",
+      "updated_at": "2026-06-15 17:24:35.421000"
+    },
+    {
+      "ID": "3037067233",
+      "ContentID": "230928195",
+      "InMsec": 8,
+      "InFrame": 1,
+      "InMpegFrame": 0,
+      "InMpegAbs": 0,
+      "OutMsec": -1,
+      "OutFrame": 0,
+      "OutMpegFrame": 0,
+      "OutMpegAbs": 0,
+      "Kind": 0,
+      "Color": -1,
+      "ColorTableIndex": null,
+      "ActiveLoop": null,
+      "Comment": null,
+      "BeatLoopSize": null,
+      "CueMicrosec": null,
+      "InPointSeekInfo": null,
+      "OutPointSeekInfo": null,
+      "ContentUUID": "47a337b6-897a-45a2-a086-f8b88e2f5c40",
+      "UUID": "aae9fca0-88b1-40cf-bb48-1be5cc0d400f",
+      "rb_data_status": 0,
+      "rb_local_data_status": 0,
+      "rb_local_deleted": 0,
+      "rb_local_synced": 0,
+      "usn": null,
+      "rb_local_usn": null,
+      "created_at": "2026-06-15 17:25:47.638000",
+      "updated_at": "2026-06-15 17:25:47.640000"
+    },
+    {
+      "ID": "3738272780",
+      "ContentID": "230928195",
+      "InMsec": 8,
+      "InFrame": 1,
+      "InMpegFrame": 0,
+      "InMpegAbs": 0,
+      "OutMsec": -1,
+      "OutFrame": 0,
+      "OutMpegFrame": 0,
+      "OutMpegAbs": 0,
+      "Kind": 2,
+      "Color": -1,
+      "ColorTableIndex": null,
+      "ActiveLoop": null,
+      "Comment": null,
+      "BeatLoopSize": null,
+      "CueMicrosec": null,
+      "InPointSeekInfo": null,
+      "OutPointSeekInfo": null,
+      "ContentUUID": "47a337b6-897a-45a2-a086-f8b88e2f5c40",
+      "UUID": "c0db1200-d564-4398-bbd9-f579d3608713",
+      "rb_data_status": 0,
+      "rb_local_data_status": 0,
+      "rb_local_deleted": 0,
+      "rb_local_synced": 0,
+      "usn": null,
+      "rb_local_usn": null,
+      "created_at": "2026-06-15 17:25:48.020000",
+      "updated_at": "2026-06-15 17:25:48.022000"
+    },
+    {
+      "ID": "2454386803",
+      "ContentID": "230928195",
+      "InMsec": 10119,
+      "InFrame": 1517,
+      "InMpegFrame": 0,
+      "InMpegAbs": 0,
+      "OutMsec": -1,
+      "OutFrame": 0,
+      "OutMpegFrame": 0,
+      "OutMpegAbs": 0,
+      "Kind": 3,
+      "Color": -1,
+      "ColorTableIndex": null,
+      "ActiveLoop": null,
+      "Comment": null,
+      "BeatLoopSize": null,
+      "CueMicrosec": null,
+      "InPointSeekInfo": null,
+      "OutPointSeekInfo": null,
+      "ContentUUID": "47a337b6-897a-45a2-a086-f8b88e2f5c40",
+      "UUID": "554cc865-6885-465d-90ad-a4993c24a561",
+      "rb_data_status": 0,
+      "rb_local_data_status": 0,
+      "rb_local_deleted": 0,
+      "rb_local_synced": 0,
+      "usn": null,
+      "rb_local_usn": null,
+      "created_at": "2026-06-15 17:25:32.281000",
+      "updated_at": "2026-06-15 17:25:32.284000"
+    },
+    {
+      "ID": "3526234746",
+      "ContentID": "230928195",
+      "InMsec": 10119,
+      "InFrame": 1517,
+      "InMpegFrame": 0,
+      "InMpegAbs": 0,
+      "OutMsec": -1,
+      "OutFrame": 0,
+      "OutMpegFrame": 0,
+      "OutMpegAbs": 0,
+      "Kind": 0,
+      "Color": -1,
+      "ColorTableIndex": null,
+      "ActiveLoop": null,
+      "Comment": null,
+      "BeatLoopSize": null,
+      "CueMicrosec": null,
+      "InPointSeekInfo": null,
+      "OutPointSeekInfo": null,
+      "ContentUUID": "47a337b6-897a-45a2-a086-f8b88e2f5c40",
+      "UUID": "cedb963d-6ff5-43a3-9137-5be1d680caa8",
+      "rb_data_status": 0,
+      "rb_local_data_status": 0,
+      "rb_local_deleted": 0,
+      "rb_local_synced": 0,
+      "usn": null,
+      "rb_local_usn": null,
+      "created_at": "2026-06-15 17:25:55.858000",
+      "updated_at": "2026-06-15 17:25:55.858000"
+    }
+  ],
+  "anlz": {
+    "DAT": {
+      "path_tail": "\\47a\\337b6-897a-45a2-a086-f8b88e2f5c40\\ANLZ0001.DAT",
+      "ppth": "?/FodanCia.mp3",
+      "tags": [
+        {
+          "type": "PPTH",
+          "offset": 28,
+          "len_header": 16,
+          "len_tag": 46,
+          "sha1": "87c09223809e15300c23f5bc93afac3fd6bf2e63"
+        },
+        {
+          "type": "PVBR",
+          "offset": 74,
+          "len_header": 16,
+          "len_tag": 1620,
+          "sha1": "09fd75276218b6615bc96768ca7ce3271bc1e376"
+        },
+        {
+          "type": "PQTZ",
+          "offset": 1694,
+          "len_header": 24,
+          "len_tag": 2384,
+          "sha1": "92215d43f590cfec6b016602634fac5e66cf5e44"
+        },
+        {
+          "type": "PWAV",
+          "offset": 4078,
+          "len_header": 20,
+          "len_tag": 420,
+          "sha1": "2e32ee612901c745d5db392031378e8d7b26d3ed"
+        },
+        {
+          "type": "PWV2",
+          "offset": 4498,
+          "len_header": 20,
+          "len_tag": 120,
+          "sha1": "279911468ae0841e2cd80a8ac6de3859f7f28ca1"
+        },
+        {
+          "type": "PCOB",
+          "offset": 4618,
+          "len_header": 24,
+          "len_tag": 24,
+          "sha1": "7a54777fcd4e881526cd1557cf997ee6d2cc844c"
+        },
+        {
+          "type": "PCOB",
+          "offset": 4642,
+          "len_header": 24,
+          "len_tag": 24,
+          "sha1": "279c54cb0898a7f13ea6be66c47328d4cc7950aa"
+        }
+      ],
+      "pqtz": {
+        "beats": 295,
+        "bpm_avg": 95.01,
+        "first_s": 0.071,
+        "last_s": 185.745,
+        "times_sha1": "5faf8e19648efed353ba246f78683ad40a49a0dc"
+      },
+      "anlz_cue_lists": [
+        {
+          "tag": "PCOB",
+          "obj_type": "hotcue",
+          "count": 0
+        },
+        {
+          "tag": "PCOB",
+          "obj_type": "memory",
+          "count": 0
+        }
+      ]
+    },
+    "EXT": {
+      "path_tail": "\\47a\\337b6-897a-45a2-a086-f8b88e2f5c40\\ANLZ0001.EXT",
+      "ppth": "?/FodanCia.mp3",
+      "tags": [
+        {
+          "type": "PPTH",
+          "offset": 28,
+          "len_header": 16,
+          "len_tag": 46,
+          "sha1": "87c09223809e15300c23f5bc93afac3fd6bf2e63"
+        },
+        {
+          "type": "PWV3",
+          "offset": 74,
+          "len_header": 24,
+          "len_tag": 27970,
+          "sha1": "40ef53ed52f9f16ff5154d51448040d4987f26aa"
+        },
+        {
+          "type": "PCOB",
+          "offset": 28044,
+          "len_header": 24,
+          "len_tag": 24,
+          "sha1": "7a54777fcd4e881526cd1557cf997ee6d2cc844c"
+        },
+        {
+          "type": "PCOB",
+          "offset": 28068,
+          "len_header": 24,
+          "len_tag": 24,
+          "sha1": "279c54cb0898a7f13ea6be66c47328d4cc7950aa"
+        },
+        {
+          "type": "PCO2",
+          "offset": 28092,
+          "len_header": 20,
+          "len_tag": 20,
+          "sha1": "145d43d9f710f3b7aa0245400390483e390cfaf2"
+        },
+        {
+          "type": "PCO2",
+          "offset": 28112,
+          "len_header": 20,
+          "len_tag": 20,
+          "sha1": "e667389d7fc8e4fa5c1fe3f11be649ff73acc0a8"
+        },
+        {
+          "type": "PQT2",
+          "offset": 28132,
+          "len_header": 56,
+          "len_tag": 646,
+          "sha1": "776af34f5164a690198c2f29aa29b2fc56c95658"
+        },
+        {
+          "type": "PWV5",
+          "offset": 28778,
+          "len_header": 24,
+          "len_tag": 55916,
+          "sha1": "cfe23e95b89a90debc4cff560ef58624266e8df1"
+        },
+        {
+          "type": "PWV4",
+          "offset": 84694,
+          "len_header": 24,
+          "len_tag": 7224,
+          "sha1": "34961b142e9a0a6723cebfbef93c24a1ee16b411"
+        },
+        {
+          "type": "PSSI",
+          "offset": 91918,
+          "len_header": 32,
+          "len_tag": 200,
+          "sha1": "f69d0beabfcdfbc8c9daba04c128154033a36eed"
+        }
+      ],
+      "anlz_cue_lists": [
+        {
+          "tag": "PCO2",
+          "obj_type": "hotcue",
+          "count": 0
+        },
+        {
+          "tag": "PCO2",
+          "obj_type": "memory",
+          "count": 0
+        },
+        {
+          "tag": "PCOB",
+          "obj_type": "hotcue",
+          "count": 0
+        },
+        {
+          "tag": "PCOB",
+          "obj_type": "memory",
+          "count": 0
+        }
+      ]
+    },
+    "2EX": {
+      "path_tail": "\\47a\\337b6-897a-45a2-a086-f8b88e2f5c40\\ANLZ0001.2EX",
+      "ppth": "?/FodanCia.mp3",
+      "tags": [
+        {
+          "type": "PPTH",
+          "offset": 28,
+          "len_header": 16,
+          "len_tag": 46,
+          "sha1": "87c09223809e15300c23f5bc93afac3fd6bf2e63"
+        },
+        {
+          "type": "PWV7",
+          "offset": 74,
+          "len_header": 24,
+          "len_tag": 83862,
+          "sha1": "268665bda8ce37dd656e95319a830d577b0f2d98"
+        },
+        {
+          "type": "PWV6",
+          "offset": 83936,
+          "len_header": 20,
+          "len_tag": 3620,
+          "sha1": "faa28788119a76c94e197198cfbf50579222eee9"
+        },
+        {
+          "type": "PWVC",
+          "offset": 87556,
+          "len_header": 14,
+          "len_tag": 20,
+          "sha1": "36867d8d5c18bd54cc16a97eefa193847bd4e0ca"
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,50 @@
+
+===== FileType 1 (MP3) ID=131718786 name='01. Melt!.mp3' cues=6 =====
+  Kind=1 InMsec=187 InFrame=28 InMpegFrame=0 InMpegAbs=0 CueMicrosec=0
+      InPointSeekInfo=None OutPointSeekInfo=None
+  Kind=2 InMsec=14843 InFrame=2226 InMpegFrame=0 InMpegAbs=0 CueMicrosec=0
+      InPointSeekInfo=None OutPointSeekInfo=None
+  Kind=3 InMsec=44157 InFrame=6623 InMpegFrame=0 InMpegAbs=0 CueMicrosec=0
+      InPointSeekInfo=None OutPointSeekInfo=None
+  Kind=5 InMsec=102782 InFrame=15417 InMpegFrame=0 InMpegAbs=0 CueMicrosec=0
+      InPointSeekInfo=None OutPointSeekInfo=None
+  Kind=6 InMsec=132095 InFrame=19814 InMpegFrame=0 InMpegAbs=0 CueMicrosec=0
+      InPointSeekInfo=None OutPointSeekInfo=None
+  Kind=7 InMsec=146752 InFrame=22012 InMpegFrame=0 InMpegAbs=0 CueMicrosec=0
+      InPointSeekInfo=None OutPointSeekInfo=None
+
+===== FileType 4 (M4A) ID=211711899 name='05 - Nigeria What-.m4a' cues=3 =====
+  Kind=1 InMsec=91 InFrame=13 InMpegFrame=0 InMpegAbs=0 CueMicrosec=0
+      InPointSeekInfo=None OutPointSeekInfo=None
+  Kind=2 InMsec=14860 InFrame=2229 InMpegFrame=0 InMpegAbs=0 CueMicrosec=0
+      InPointSeekInfo=None OutPointSeekInfo=None
+  Kind=3 InMsec=48091 InFrame=7213 InMpegFrame=0 InMpegAbs=0 CueMicrosec=0
+      InPointSeekInfo=None OutPointSeekInfo=None
+
+===== FileType 5 (FLAC) ID=80401918 name='01. NUEVAYoL - Bad Bunny.flac' cues=9 =====
+  Kind=1 InMsec=55 InFrame=8 InMpegFrame=0 InMpegAbs=0 CueMicrosec=0
+      InPointSeekInfo=None OutPointSeekInfo=None
+  Kind=0 InMsec=55 InFrame=8 InMpegFrame=0 InMpegAbs=0 CueMicrosec=None
+      InPointSeekInfo=None OutPointSeekInfo=None
+  Kind=2 InMsec=2061 InFrame=309 InMpegFrame=0 InMpegAbs=0 CueMicrosec=0
+      InPointSeekInfo=None OutPointSeekInfo=None
+  Kind=0 InMsec=2061 InFrame=309 InMpegFrame=0 InMpegAbs=0 CueMicrosec=None
+      InPointSeekInfo=None OutPointSeekInfo=None
+  Kind=3 InMsec=20837 InFrame=3125 InMpegFrame=0 InMpegAbs=0 CueMicrosec=0
+      InPointSeekInfo=None OutPointSeekInfo=None
+  Kind=5 InMsec=22725 InFrame=3408 InMpegFrame=0 InMpegAbs=0 CueMicrosec=0
+      InPointSeekInfo=None OutPointSeekInfo=None
+  Kind=0 InMsec=22725 InFrame=3408 InMpegFrame=0 InMpegAbs=0 CueMicrosec=None
+      InPointSeekInfo=None OutPointSeekInfo=None
+  Kind=6 InMsec=124289 InFrame=18643 InMpegFrame=0 InMpegAbs=0 CueMicrosec=0
+      InPointSeekInfo=None OutPointSeekInfo=None
+
+===== FileType 12 (AIFF) ID=87584173 name='03 - UUU.aiff' cues=4 =====
+  Kind=1 InMsec=2 InFrame=0 InMpegFrame=0 InMpegAbs=0 CueMicrosec=0
+      InPointSeekInfo=None OutPointSeekInfo=None
+  Kind=2 InMsec=8697 InFrame=1304 InMpegFrame=0 InMpegAbs=0 CueMicrosec=0
+      InPointSeekInfo=None OutPointSeekInfo=None
+  Kind=3 InMsec=20871 InFrame=3130 InMpegFrame=0 InMpegAbs=0 CueMicrosec=0
+      InPointSeekInfo=None OutPointSeekInfo=None
+  Kind=5 InMsec=22611 InFrame=3391 InMpegFrame=0 InMpegAbs=0 CueMicrosec=0
+      InPointSeekInfo=None OutPointSeekInfo=None

@@ -94,7 +94,12 @@ Every module should get and use its own `logger` for all logging purposes and fo
 - Do not commit spec, brainstorming, or design documents (e.g. anything under `ai-docs/`).
 - **Save plans to:** `ai-docs/YYYYMMDD-HHmm-{session-slug}/plan.md` instead of the plugin or skill presets.
 - **Save specs to:** `ai-docs/YYYYMMDD-HHmm-{session-slug}/specs.md` instead of the plugin or skill presets.
-- **Save decision records to:** `ai-docs/decisions/{topic}.md` (not session-scoped).
+- **Save decision records to:** `research/{task}/decisions/{topic}.md`, committed alongside the investigation they settle.
+
+## Research documents
+
+- In-depth research on Rekordbox behaviors lives under `research/`, one folder per investigation, each self-contained (summary write-ups, `scripts/`, `evidence/`, `decisions/`); shared tooling in `research/shared/scripts/`. It is committed but never linked from the docsite or the application code.
+- Research write-ups follow a formal structure, using the sections that apply: **Question**, **Hypothesis**, **Method**, **Findings**, **Conclusion**. Write in formal, terse, third-person prose; state findings as the evidence supports them and do not narrate the session or process.
 
 ## Tooling
 

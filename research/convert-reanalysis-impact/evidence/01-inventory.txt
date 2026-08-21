@@ -1,0 +1,15 @@
+
+===== Playlist: Compressed (found=True) =====
+  ID=12916491 type=1 name='07-mp3-44_1k-320cbr.mp3' bd=16 sr=44100 br=320 len=2 anlz='/PIONEER/USBANLZ/508/b5e39-20ff-41e4-a1a0-34b768fcf47b/ANLZ0000.DAT'
+  ID=50505288 type=1 name='08-mp3-44_1k-v0vbr.mp3' bd=16 sr=44100 br=0 len=2 anlz='/PIONEER/USBANLZ/056/8cd1e-40b7-4b66-aa03-4311016ef7f8/ANLZ0000.DAT'
+  ID=154551443 type=4 name='09-aac-44_1k-256kbps.m4a' bd=16 sr=44100 br=0 len=2 anlz='/PIONEER/USBANLZ/383/762ac-64ba-4b9d-9e3e-bcf655a94d49/ANLZ0000.DAT'
+
+===== Playlist: Lossless Only (found=True) =====
+  ID=145166719 type=6 name='03-alac-44_1k-16b.m4a' bd=16 sr=44100 br=705 len=1 anlz='/PIONEER/USBANLZ/134/b4cd9-0e92-4490-be83-95a4b3c919d6/ANLZ0000.DAT'
+  ID=100131191 type=6 name='04-alac-48k-24b.m4a' bd=24 sr=48000 br=1152 len=1 anlz='/PIONEER/USBANLZ/77c/b635a-669a-4cd2-a0b0-3c16bd1e49c1/ANLZ0000.DAT'
+  ID=57701453 type=12 name='05-aiff-44_1k-16b.aiff' bd=16 sr=44100 br=705 len=1 anlz='/PIONEER/USBANLZ/806/e455d-c791-4f4e-8f66-959f984f43dd/ANLZ0000.DAT'
+  ID=183309432 type=11 name='06-wav-96k-24b.wav' bd=24 sr=96000 br=2304 len=1 anlz='/PIONEER/USBANLZ/84a/656da-b8d1-4481-9e52-9c21bff6803e/ANLZ0000.DAT'
+  ID=226724001 type=5 name='01-flac-44_1k-16b.flac' bd=16 sr=44100 br=0 len=2 anlz='/PIONEER/USBANLZ/caa/fc88c-1724-4538-9d83-bb6a124f18ba/ANLZ0000.DAT'
+  ID=247810405 type=5 name='02-flac-96k-24b.flac' bd=24 sr=96000 br=0 len=2 anlz='/PIONEER/USBANLZ/a99/3a396-5f3e-4b89-a58b-c422fc409dff/ANLZ0000.DAT'
+
+===== Playlist: CUE Analysis Playlist (found=True) =====

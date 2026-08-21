@@ -1,0 +1,42 @@
+ALL DjmdContent columns:
+['ID', 'FolderPath', 'FileNameL', 'FileNameS', 'Title', 'ArtistID', 'AlbumID', 'GenreID', 'BPM', 'Length', 'TrackNo', 'BitRate', 'BitDepth', 'Commnt', 'FileType', 'Rating', 'ReleaseYear', 'RemixerID', 'LabelID', 'OrgArtistID', 'KeyID', 'StockDate', 'ColorID', 'DJPlayCount', 'ImagePath', 'MasterDBID', 'MasterSongID', 'AnalysisDataPath', 'SearchStr', 'FileSize', 'DiscNo', 'ComposerID', 'Subtitle', 'SampleRate', 'DisableQuantize', 'Analysed', 'ReleaseDate', 'DateCreated', 'ContentLink', 'Tag', 'ModifiedByRBM', 'HotCueAutoLoad', 'DeliveryControl', 'DeliveryComment', 'CueUpdated', 'AnalysisUpdated', 'TrackInfoUpdated', 'Lyricist', 'ISRC', 'SamplerTrackInfo', 'SamplerPlayOffset', 'SamplerGain', 'VideoAssociate', 'LyricStatus', 'ServiceID', 'OrgFolderPath', 'Reserved1', 'Reserved2', 'Reserved3', 'Reserved4', 'ExtInfo', 'rb_file_id', 'DeviceID', 'rb_LocalFolderPath', 'SrcID', 'SrcTitle', 'SrcArtistName', 'SrcAlbumName', 'SrcLength', 'UUID', 'rb_data_status', 'rb_local_data_status', 'rb_local_deleted', 'rb_local_synced', 'usn', 'rb_local_usn', 'created_at', 'updated_at']
+
+Candidate flag / lock / analysis columns: ['BPM', 'AnalysisDataPath', 'DisableQuantize', 'Analysed', 'AnalysisUpdated', 'LyricStatus', 'rb_data_status', 'rb_local_data_status']
+
+total contents: 1230
+
+Analysed distribution (4 distinct): {105: 723, 16: 502, 88: 3, 0: 2}
+
+AnalysisUpdated distribution (4 distinct): {'3': 706, '1': 511, '2': 11, None: 2}
+
+BPM: 438 distinct values; top: [(13000, 46), (12000, 42), (10000, 38), (11000, 37), (12500, 33), (11200, 29), (14000, 26), (9000, 26)]
+
+AnalysisDataPath: 1229 distinct values; top: [('', 2), ('/PIONEER/USBANLZ/134/b4cd9-0e92-4490-be83-95a4b3c919d6/ANLZ0000.DAT', 1), ('/PIONEER/USBANLZ/77c/b635a-669a-4cd2-a0b0-3c16bd1e49c1/ANLZ0000.DAT', 1), ('/PIONEER/USBANLZ/806/e455d-c791-4f4e-8f66-959f984f43dd/ANLZ0000.DAT', 1), ('/PIONEER/USBANLZ/84a/656da-b8d1-4481-9e52-9c21bff6803e/ANLZ0000.DAT', 1), ('/PIONEER/USBANLZ/508/b5e39-20ff-41e4-a1a0-34b768fcf47b/ANLZ0000.DAT', 1), ('/PIONEER/USBANLZ/056/8cd1e-40b7-4b66-aa03-4311016ef7f8/ANLZ0000.DAT', 1), ('/PIONEER/USBANLZ/383/762ac-64ba-4b9d-9e3e-bcf655a94d49/ANLZ0000.DAT', 1)]
+
+DisableQuantize distribution (1 distinct): {None: 1230}
+
+LyricStatus distribution (1 distinct): {0: 1230}
+
+rb_data_status distribution (1 distinct): {0: 1230}
+
+rb_local_data_status distribution (1 distinct): {0: 1230}
+
+Cross-tab Analysed value vs ANLZ depth:
+  Analysed=0: {'none': 2}
+  Analysed=105: {'DAT+EXT+2EX': 723}
+  Analysed=16: {'DAT': 502}
+  Analysed=88: {'DAT+EXT': 2, 'DAT': 1}
+
+Sample rows (ID, FileType, Analysed, AnalysisUpdated):
+  ID=145166719 type=6 Analysed=105 AnalysisUpdated='2'
+  ID=100131191 type=6 Analysed=105 AnalysisUpdated='2'
+  ID=57701453 type=12 Analysed=105 AnalysisUpdated='2'
+  ID=183309432 type=11 Analysed=105 AnalysisUpdated='2'
+  ID=12916491 type=1 Analysed=105 AnalysisUpdated='2'
+  ID=50505288 type=1 Analysed=105 AnalysisUpdated='2'
+  ID=154551443 type=4 Analysed=105 AnalysisUpdated='2'
+  ID=158539556 type=5 Analysed=105 AnalysisUpdated='1'
+  ID=226724001 type=5 Analysed=105 AnalysisUpdated='1'
+  ID=247810405 type=5 Analysed=105 AnalysisUpdated='2'
+  ID=71974950 type=11 Analysed=105 AnalysisUpdated='2'
+  ID=50395296 type=11 Analysed=105 AnalysisUpdated='2'
