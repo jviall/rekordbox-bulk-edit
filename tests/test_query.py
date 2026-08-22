@@ -28,37 +28,49 @@ class TestCollectionQuery:
         assert str(query._stmt).lower().find("djmdcontent") != -1
 
         # Check initial state
-        assert query._conditions == []
+        assert query._conditions == {}
         assert query._limit_count is None
-        assert query._match_all is False
+        assert query._mode == "grouped"
 
-        # Test with match_all=True
-        query_all = CollectionQuery(match_all=True)
-        assert query_all._match_all is True
+        # Test with an explicit mode
+        query_all = CollectionQuery(mode="all")
+        assert query_all._mode == "all"
 
     def test_match_any(self):
-        """Test that the match_any method correctly sets the _match_all field to False."""
-        query = CollectionQuery(match_all=True)
+        """Test that match_any() sets the flat OR mode."""
+        query = CollectionQuery(mode="all")
 
         new_query = query.match_any()
 
         # Should return a new instance
         assert new_query is not query
-        assert new_query._match_all is False
+        assert new_query._mode == "any"
         # Original should be unchanged
-        assert query._match_all is True
+        assert query._mode == "all"
 
     def test_match_all(self):
-        """Test that the match_all method correctly sets the _match_all field to True."""
-        query = CollectionQuery(match_all=False)
+        """Test that match_all() sets the flat AND mode."""
+        query = CollectionQuery()
 
         new_query = query.match_all()
 
         # Should return a new instance
         assert new_query is not query
-        assert new_query._match_all is True
+        assert new_query._mode == "all"
         # Original should be unchanged
-        assert query._match_all is False
+        assert query._mode == "grouped"
+
+    def test_by_title_and_exact_title_share_a_bucket(self):
+        """Plain and exact variants of the same filter land in the same
+        group, so they OR together under the default grouped mode."""
+        query = CollectionQuery().by_title("A").by_title("B", exact=True)
+        assert len(query._conditions["title"]) == 2
+        assert len(query._conditions) == 1
+
+    def test_different_filter_kinds_use_separate_buckets(self):
+        """Different filter kinds land in separate groups."""
+        query = CollectionQuery().by_title("A").by_format("flac")
+        assert set(query._conditions.keys()) == {"title", "format"}
 
     def test_by_artist(self):
         """Test that the by_artist method outer-joins with the DjmdArtist table and
@@ -72,7 +84,7 @@ class TestCollectionQuery:
         assert new_query is not query
 
         # Check that a condition was added
-        assert len(new_query._conditions) == 1
+        assert len(new_query._flat_conditions) == 1
 
         # Check that the statement includes a join
         stmt_str = str(new_query._stmt).lower()
@@ -80,7 +92,7 @@ class TestCollectionQuery:
         assert "djmdartist" in stmt_str
 
         # Check that the condition is an ilike operation
-        condition_str = str(new_query._conditions[0]).lower()
+        condition_str = str(new_query._flat_conditions[0]).lower()
         print(condition_str)
         assert "like lower" in condition_str
         assert '."name"' in condition_str.lower()
@@ -97,7 +109,7 @@ class TestCollectionQuery:
         assert new_query is not query
 
         # Check that a condition was added
-        assert len(new_query._conditions) == 1
+        assert len(new_query._flat_conditions) == 1
 
         # Check that the statement includes a join
         stmt_str = str(new_query._stmt).lower()
@@ -105,7 +117,7 @@ class TestCollectionQuery:
         assert "djmdartist" in stmt_str
 
         # Check that the condition is an equality operation (not ilike)
-        condition_str = str(new_query._conditions[0]).lower()
+        condition_str = str(new_query._flat_conditions[0]).lower()
         assert "like lower" not in condition_str
         assert "=" in condition_str
 
@@ -122,14 +134,14 @@ class TestCollectionQuery:
         assert new_query is not query
 
         # Check that a condition was added
-        assert len(new_query._conditions) == 1
+        assert len(new_query._flat_conditions) == 1
 
         # Statement should not have additional joins (only the original select)
         new_stmt_str = str(new_query._stmt)
         assert new_stmt_str == original_stmt_str
 
         # Check that the condition is an ilike operation on Title
-        condition_str = str(new_query._conditions[0]).lower()
+        condition_str = str(new_query._flat_conditions[0]).lower()
         assert "like lower" in condition_str
         assert "title" in condition_str
 
@@ -146,14 +158,14 @@ class TestCollectionQuery:
         assert new_query is not query
 
         # Check that a condition was added
-        assert len(new_query._conditions) == 1
+        assert len(new_query._flat_conditions) == 1
 
         # Statement should not have additional joins
         new_stmt_str = str(new_query._stmt)
         assert new_stmt_str == original_stmt_str
 
         # Check that the condition is an equality operation (not ilike)
-        condition_str = str(new_query._conditions[0]).lower()
+        condition_str = str(new_query._flat_conditions[0]).lower()
         assert "like lower" not in condition_str
         assert "=" in condition_str
         assert "title" in condition_str
@@ -170,7 +182,7 @@ class TestCollectionQuery:
         assert new_query is not query
 
         # Check that a condition was added
-        assert len(new_query._conditions) == 1
+        assert len(new_query._flat_conditions) == 1
 
         # Check that the statement includes an outer join
         stmt_str = str(new_query._stmt).lower()
@@ -178,7 +190,7 @@ class TestCollectionQuery:
         assert "djmdalbum" in stmt_str
 
         # Check that the condition is an ilike operation
-        condition_str = str(new_query._conditions[0]).lower()
+        condition_str = str(new_query._flat_conditions[0]).lower()
         assert "like lower" in condition_str
 
     def test_by_exact_album(self):
@@ -193,7 +205,7 @@ class TestCollectionQuery:
         assert new_query is not query
 
         # Check that a condition was added
-        assert len(new_query._conditions) == 1
+        assert len(new_query._flat_conditions) == 1
 
         # Check that the statement includes an outer join
         stmt_str = str(new_query._stmt).lower()
@@ -201,7 +213,7 @@ class TestCollectionQuery:
         assert "djmdalbum" in stmt_str
 
         # Check that the condition is an equality operation (not ilike)
-        condition_str = str(new_query._conditions[0]).lower()
+        condition_str = str(new_query._flat_conditions[0]).lower()
         assert "like lower" not in condition_str
         assert "=" in condition_str
 
@@ -217,7 +229,7 @@ class TestCollectionQuery:
         assert new_query is not query
 
         # Check that a condition was added
-        assert len(new_query._conditions) == 1
+        assert len(new_query._flat_conditions) == 1
 
         # Check that the statement includes outer joins with both tables
         stmt_str = str(new_query._stmt).lower()
@@ -226,7 +238,7 @@ class TestCollectionQuery:
         assert "djmdplaylist" in stmt_str
 
         # Check that the condition is an ilike operation
-        condition_str = str(new_query._conditions[0]).lower()
+        condition_str = str(new_query._flat_conditions[0]).lower()
         assert "like lower" in condition_str
 
     def test_by_exact_playlist(self):
@@ -241,7 +253,7 @@ class TestCollectionQuery:
         assert new_query is not query
 
         # Check that a condition was added
-        assert len(new_query._conditions) == 1
+        assert len(new_query._flat_conditions) == 1
 
         # Check that the statement includes outer joins with both tables
         stmt_str = str(new_query._stmt).lower()
@@ -250,7 +262,7 @@ class TestCollectionQuery:
         assert "djmdplaylist" in stmt_str
 
         # Check that the condition is an equality operation (not ilike)
-        condition_str = str(new_query._conditions[0]).lower()
+        condition_str = str(new_query._flat_conditions[0]).lower()
         assert "like lower" not in condition_str
         assert "=" in condition_str
 
@@ -272,14 +284,14 @@ class TestCollectionQuery:
         assert new_query is not query
 
         # Check that a condition was added
-        assert len(new_query._conditions) == 1
+        assert len(new_query._flat_conditions) == 1
 
         # Statement should not have additional joins
         new_stmt_str = str(new_query._stmt)
         assert new_stmt_str == original_stmt_str
 
         # Check that the condition is an IN over FileType
-        condition_str = str(new_query._conditions[0]).lower()
+        condition_str = str(new_query._flat_conditions[0]).lower()
         assert "filetype" in condition_str
         assert "in" in condition_str
 
@@ -291,7 +303,7 @@ class TestCollectionQuery:
         query = CollectionQuery()
         query_copy = query._copy()
 
-        assert query_copy._match_all == query._match_all
+        assert query_copy._mode == query._mode
         assert query_copy._conditions == query._conditions
         assert query_copy._limit_count == query._limit_count
         assert str(query_copy._stmt) == str(query._stmt)
@@ -303,7 +315,7 @@ class TestCollectionQuery:
         query.by_album("Discovery").by_format("flac").by_format("aiff").by_title("")
         query_copy = query._copy()
 
-        assert query_copy._match_all == query._match_all
+        assert query_copy._mode == query._mode
         assert query_copy._conditions == query._conditions
         assert query_copy._limit_count == query._limit_count
         assert str(query_copy._stmt) == str(query._stmt)
@@ -315,8 +327,8 @@ class TestCollectionQuery:
         new_query = query.by_track_ids("123")
 
         assert new_query is not query
-        assert len(new_query._conditions) == 1
-        condition_str = str(new_query._conditions[0]).lower()
+        assert len(new_query._flat_conditions) == 1
+        condition_str = str(new_query._flat_conditions[0]).lower()
         assert "in" in condition_str
 
     def test_by_track_ids_list(self):
@@ -325,8 +337,8 @@ class TestCollectionQuery:
         new_query = query.by_track_ids(["123", "456", "789"])
 
         assert new_query is not query
-        assert len(new_query._conditions) == 1
-        condition_str = str(new_query._conditions[0]).lower()
+        assert len(new_query._flat_conditions) == 1
+        condition_str = str(new_query._flat_conditions[0]).lower()
         assert "in" in condition_str
 
     def test_by_artist_empty_string(self):
@@ -334,8 +346,8 @@ class TestCollectionQuery:
         query = CollectionQuery()
         new_query = query.by_artist("")
 
-        assert len(new_query._conditions) == 1
-        condition_str = str(new_query._conditions[0]).lower()
+        assert len(new_query._flat_conditions) == 1
+        condition_str = str(new_query._flat_conditions[0]).lower()
         assert "null" in condition_str
 
     def test_by_title_empty_string(self):
@@ -343,8 +355,8 @@ class TestCollectionQuery:
         query = CollectionQuery()
         new_query = query.by_title("")
 
-        assert len(new_query._conditions) == 1
-        condition_str = str(new_query._conditions[0]).lower()
+        assert len(new_query._flat_conditions) == 1
+        condition_str = str(new_query._flat_conditions[0]).lower()
         assert "null" in condition_str
 
     def test_by_album_empty_string(self):
@@ -352,8 +364,8 @@ class TestCollectionQuery:
         query = CollectionQuery()
         new_query = query.by_album("")
 
-        assert len(new_query._conditions) == 1
-        condition_str = str(new_query._conditions[0]).lower()
+        assert len(new_query._flat_conditions) == 1
+        condition_str = str(new_query._flat_conditions[0]).lower()
         assert "null" in condition_str
 
     def test_by_playlist_empty_string(self):
@@ -361,8 +373,8 @@ class TestCollectionQuery:
         query = CollectionQuery()
         new_query = query.by_playlist("")
 
-        assert len(new_query._conditions) == 1
-        condition_str = str(new_query._conditions[0]).lower()
+        assert len(new_query._flat_conditions) == 1
+        condition_str = str(new_query._flat_conditions[0]).lower()
         assert "null" in condition_str
 
     def test_by_format_empty_string(self, mocker):
@@ -372,7 +384,7 @@ class TestCollectionQuery:
         result = query.by_format("")
 
         assert result is query
-        assert len(result._conditions) == 0
+        assert len(result._flat_conditions) == 0
         mock_warn.warning.assert_called_once()
 
     def test_by_format_invalid(self, mocker):
@@ -386,7 +398,7 @@ class TestCollectionQuery:
         new_query = query.by_format("xyz")
 
         assert new_query is not query
-        assert len(new_query._conditions) == 0
+        assert len(new_query._flat_conditions) == 0
         mock_warn.warning.assert_called_once()
 
     def test_limit(self):
@@ -455,18 +467,32 @@ class TestCollectionQuery:
             assert stmt_str.index('"folderpath"') < stmt_str.rindex('"id" asc')
 
     def test_get_full_statement_or_logic(self):
-        """Multiple conditions with default OR logic produces OR in the WHERE clause."""
+        """Repeated values of the same filter OR together by default."""
         query = CollectionQuery().by_title("A").by_title("B")
         stmt_str = str(query._get_full_statement()).lower()
         assert " or " in stmt_str
         assert " and " not in stmt_str
 
     def test_get_full_statement_and_logic(self):
-        """Multiple conditions with match_all=True produces AND in the WHERE clause."""
+        """match_all() flattens everything, including repeats, into one AND."""
         query = CollectionQuery().by_title("A").by_title("B").match_all()
         stmt_str = str(query._get_full_statement()).lower()
         assert " and " in stmt_str
         assert " or " not in stmt_str
+
+    def test_get_full_statement_grouped_ands_across_filter_kinds(self):
+        """Default grouped mode ORs same-kind values, then ANDs across kinds."""
+        query = CollectionQuery().by_title("A").by_title("B").by_format("flac")
+        stmt_str = str(query._get_full_statement()).lower()
+        assert " and " in stmt_str
+        assert " or " in stmt_str
+
+    def test_get_full_statement_match_any_flattens_across_kinds(self):
+        """match_any() flattens every condition, ignoring grouping, into one OR."""
+        query = CollectionQuery().by_title("A").by_format("flac").match_any()
+        stmt_str = str(query._get_full_statement()).lower()
+        assert " or " in stmt_str
+        assert " and " not in stmt_str
 
     def test_by_path_substring_against_folderpath_only(self):
         """A --path arg adds a single case-insensitive substring condition on
@@ -475,8 +501,8 @@ class TestCollectionQuery:
         new_query = query.by_path("Daft Punk")
 
         assert new_query is not query
-        assert len(new_query._conditions) == 1
-        condition_str = str(new_query._conditions[0])
+        assert len(new_query._flat_conditions) == 1
+        condition_str = str(new_query._flat_conditions[0])
         assert "FolderPath" in condition_str
         assert "FileNameL" not in condition_str
         assert "LIKE lower" in condition_str
@@ -486,7 +512,7 @@ class TestCollectionQuery:
         query = CollectionQuery()
         new_query = query.by_path("track.mp3")
 
-        condition_str = _compile(new_query._conditions[0])
+        condition_str = _compile(new_query._flat_conditions[0])
         assert "%track.mp3%" in condition_str
 
     def test_by_path_preserves_trailing_slash(self):
@@ -495,7 +521,7 @@ class TestCollectionQuery:
         query = CollectionQuery()
         new_query = query.by_path("Daft Punk/")
 
-        condition_str = _compile(new_query._conditions[0])
+        condition_str = _compile(new_query._flat_conditions[0])
         assert "%Daft Punk/%" in condition_str
 
     def test_by_path_backslash_normalised_to_forward_slash(self):
@@ -503,7 +529,7 @@ class TestCollectionQuery:
         query = CollectionQuery()
         new_query = query.by_path("Music\\Artist\\")
 
-        condition_str = _compile(new_query._conditions[0])
+        condition_str = _compile(new_query._flat_conditions[0])
         assert "\\" not in condition_str
         assert "%Music/Artist/%" in condition_str
 
@@ -512,7 +538,7 @@ class TestCollectionQuery:
         query = CollectionQuery()
         new_query = query.by_path("../some/relative/track.mp3")
 
-        condition_str = _compile(new_query._conditions[0])
+        condition_str = _compile(new_query._flat_conditions[0])
         # The raw string (or parts of it) must appear, not a resolved absolute path
         assert ".." in condition_str and "relative" in condition_str
 
@@ -521,7 +547,7 @@ class TestCollectionQuery:
         query = CollectionQuery()
         new_query = query.by_path("")
 
-        assert new_query._conditions == []
+        assert new_query._conditions == {}
 
     # --- by_path resolved mode ---
 
@@ -531,7 +557,7 @@ class TestCollectionQuery:
         query = CollectionQuery()
         new_query = query.by_path("Album/track.mp3", resolved=True)
 
-        condition_str = _compile(new_query._conditions[0])
+        condition_str = _compile(new_query._flat_conditions[0])
         assert f"%{cwd}/Album/track.mp3%" in condition_str
 
     def test_by_resolved_path_substring_case_insensitive(self):
@@ -540,8 +566,8 @@ class TestCollectionQuery:
         query = CollectionQuery()
         new_query = query.by_path("/Test/Artist/file.mp3", resolved=True)
 
-        assert len(new_query._conditions) == 1
-        condition_str = str(new_query._conditions[0])
+        assert len(new_query._flat_conditions) == 1
+        condition_str = str(new_query._flat_conditions[0])
         assert "FolderPath" in condition_str
         assert "FileNameL" not in condition_str
         assert "LIKE lower" in condition_str
@@ -554,7 +580,7 @@ class TestCollectionQuery:
         query = CollectionQuery()
         new_query = query.by_path(f"{miscased_cwd}/track.mp3", resolved=True)
 
-        condition_str = _compile(new_query._conditions[0])
+        condition_str = _compile(new_query._flat_conditions[0])
         assert f"{miscased_cwd}/track.mp3" in condition_str
 
     def test_by_resolved_path_preserves_trailing_slash(self):
@@ -563,7 +589,7 @@ class TestCollectionQuery:
         query = CollectionQuery()
         new_query = query.by_path("Album/", resolved=True)
 
-        condition_str = _compile(new_query._conditions[0])
+        condition_str = _compile(new_query._flat_conditions[0])
         assert f"{Path(os.getcwd()).as_posix()}/Album/" in condition_str
 
     @pytest.mark.skipif(
@@ -577,7 +603,7 @@ class TestCollectionQuery:
             "C:\\Users\\foo\\music\\Artist\\track.mp3", resolved=True
         )
 
-        condition_str = _compile(new_query._conditions[0])
+        condition_str = _compile(new_query._flat_conditions[0])
         assert "\\" not in condition_str
         assert "C:/Users/foo/music/Artist/track.mp3" in condition_str
 
@@ -586,7 +612,7 @@ class TestCollectionQuery:
         query = CollectionQuery()
         new_query = query.by_path("", resolved=True)
 
-        assert new_query._conditions == []
+        assert new_query._conditions == {}
 
     def test_by_path_returns_new_instance(self):
         """by_path always returns a new CollectionQuery instance."""
@@ -723,8 +749,9 @@ class TestGetFilteredContent:
         mock_query.by_artist.assert_called_once_with("Justice")
         mock_query.match_all.assert_called_once()
 
-    def test_track_id_args_or_with_artist(self, mock_db, mock_query):
-        """Piped IDs OR'd with artist expands the result set."""
+    def test_track_id_args_and_with_artist_by_default(self, mock_db, mock_query):
+        """Piped IDs AND artist filter narrow to their intersection by
+        default, since track ID and artist are different filter kinds."""
         get_filtered_content(mock_db, FilterArgs(track_ids=["123"], artist=["Justice"]))
         mock_query.by_track_ids.assert_called_once_with(track_ids=["123"])
         mock_query.by_artist.assert_called_once_with("Justice")

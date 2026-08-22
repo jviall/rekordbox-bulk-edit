@@ -1,7 +1,7 @@
 import logging
 import os
 from pathlib import Path
-from typing import List, Tuple, Union
+from typing import List, Literal, Tuple, Union
 
 from pyrekordbox import Rekordbox6Database
 from pyrekordbox.db6.tables import (
@@ -18,35 +18,47 @@ from rekordbox_edit.models import FilterArgs
 
 logger = logging.getLogger(__name__)
 
+MatchMode = Literal["grouped", "all", "any"]
+
 
 class CollectionQuery:
-    def __init__(self, match_all=False):
+    def __init__(self, mode: MatchMode = "grouped"):
         self._stmt = select(DjmdContent)
-        self._conditions: list[ColumnElement[bool]] = []
+        self._conditions: dict[str, list[ColumnElement[bool]]] = {}
         self._limit_count = None
         self._last_count = None
-        self._match_all = match_all
+        self._mode: MatchMode = mode
+
+    @property
+    def _flat_conditions(self) -> list[ColumnElement[bool]]:
+        """Every condition across every filter-kind bucket, as one flat list."""
+        return [c for conditions in self._conditions.values() for c in conditions]
 
     def _copy(self) -> "CollectionQuery":
         """Create a copy of this query in its current state."""
         new_inst = CollectionQuery.__new__(CollectionQuery)
         new_inst._stmt = self._stmt._clone()
-        new_inst._conditions = self._conditions.copy()
+        new_inst._conditions = {
+            group: conditions.copy() for group, conditions in self._conditions.items()
+        }
         new_inst._limit_count = self._limit_count
         new_inst._last_count = self._last_count
-        new_inst._match_all = self._match_all
+        new_inst._mode = self._mode
         return new_inst
 
+    def _append_condition(self, group: str, condition: ColumnElement[bool]) -> None:
+        self._conditions.setdefault(group, []).append(condition)
+
     def match_any(self) -> "CollectionQuery":
-        """Set the filter combination logic to use the OR operator (the default)."""
+        """Flatten every condition, across every filter kind, into one OR."""
         new_inst = self._copy()
-        new_inst._match_all = False
+        new_inst._mode = "any"
         return new_inst
 
     def match_all(self) -> "CollectionQuery":
-        """Set the filter combination logic to use the AND operator."""
+        """Flatten every condition, across every filter kind, into one AND."""
         new_inst = self._copy()
-        new_inst._match_all = True
+        new_inst._mode = "all"
         return new_inst
 
     def by_track_ids(self, track_ids: Union[str, List[str]]) -> "CollectionQuery":
@@ -54,7 +66,7 @@ class CollectionQuery:
         new_inst = self._copy()
         if isinstance(track_ids, str):
             track_ids = [track_ids]
-        new_inst._conditions.append(DjmdContent.ID.in_(track_ids))
+        new_inst._append_condition("track_id", DjmdContent.ID.in_(track_ids))
         return new_inst
 
     def by_artist(self, artist_name: str, exact: bool = False) -> "CollectionQuery":
@@ -73,7 +85,7 @@ class CollectionQuery:
         else:
             condition = ArtistAlias.Name.ilike(f"%{artist_name}%")
 
-        new_inst._conditions.append(condition)
+        new_inst._append_condition("artist", condition)
         return new_inst
 
     def by_title(self, title: str, exact: bool = False) -> "CollectionQuery":
@@ -88,7 +100,7 @@ class CollectionQuery:
         else:
             condition = DjmdContent.Title.ilike(f"%{title}%")
 
-        new_inst._conditions.append(condition)
+        new_inst._append_condition("title", condition)
         return new_inst
 
     def by_album(self, album_name: str, exact: bool = False) -> "CollectionQuery":
@@ -107,7 +119,7 @@ class CollectionQuery:
         else:
             condition = AlbumAlias.Name.ilike(f"%{album_name}%")
 
-        new_inst._conditions.append(condition)
+        new_inst._append_condition("album", condition)
         return new_inst
 
     def by_playlist(self, playlist_name: str, exact: bool = False) -> "CollectionQuery":
@@ -128,7 +140,7 @@ class CollectionQuery:
         else:
             condition = PlaylistAlias.Name.ilike(f"%{playlist_name}%")
 
-        new_inst._conditions.append(condition)
+        new_inst._append_condition("playlist", condition)
         return new_inst
 
     def by_format(self, format_name: str) -> "CollectionQuery":
@@ -144,7 +156,7 @@ class CollectionQuery:
         try:
             file_type_codes = get_file_type_codes_for_format(format_name)
             condition = DjmdContent.FileType.in_(file_type_codes)
-            new_inst._conditions.append(condition)
+            new_inst._append_condition("format", condition)
         except ValueError:
             logger.warning(f"Invalid format: {format_name}")
         return new_inst
@@ -174,7 +186,7 @@ class CollectionQuery:
         else:
             pattern = path_str.replace("\\", "/")
 
-        new_inst._conditions.append(DjmdContent.FolderPath.ilike(f"%{pattern}%"))
+        new_inst._append_condition("path", DjmdContent.FolderPath.ilike(f"%{pattern}%"))
         return new_inst
 
     def limit(self, count: int) -> "CollectionQuery":
@@ -214,14 +226,24 @@ class CollectionQuery:
         stmt = self._stmt
 
         if self._conditions:
-            logic = "AND" if self._match_all else "OR"
-            logger.debug(
-                f"Building query with {len(self._conditions)} condition(s) using {logic} logic"
-            )
-            if self._match_all:
-                combined_condition = and_(*self._conditions)
+            if self._mode == "all":
+                logger.debug(
+                    f"Building query with {len(self._flat_conditions)} condition(s) using flat AND logic"
+                )
+                combined_condition = and_(*self._flat_conditions)
+            elif self._mode == "any":
+                logger.debug(
+                    f"Building query with {len(self._flat_conditions)} condition(s) using flat OR logic"
+                )
+                combined_condition = or_(*self._flat_conditions)
             else:
-                combined_condition = or_(*self._conditions)
+                logger.debug(
+                    f"Building query with {len(self._conditions)} filter group(s) using grouped AND-of-OR logic"
+                )
+                group_conditions = [
+                    or_(*conditions) for conditions in self._conditions.values()
+                ]
+                combined_condition = and_(*group_conditions)
             stmt = stmt.where(combined_condition)
 
         if self._last_count is not None:
