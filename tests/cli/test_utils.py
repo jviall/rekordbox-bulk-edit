@@ -140,6 +140,14 @@ class TestNarrowToTrackIds:
 
         assert narrowed.last is None
 
+    def test_clears_match_modes(self):
+        args = SearchRequest(match_any=True)
+
+        narrowed = _narrow_to_track_ids(args, ["a"])
+
+        assert narrowed.match_all is False
+        assert narrowed.match_any is False
+
 
 class TestPrintResponseIds:
     def test_prints_space_separated_ids(self, capsys):

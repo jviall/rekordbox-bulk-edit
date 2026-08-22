@@ -115,7 +115,13 @@ global_click_filters = [
         "--match-all",
         type=bool,
         is_flag=True,
-        help="Results must match all given filters",
+        help="Flatten every filter value, including repeats, into one AND",
+    ),
+    click.option(
+        "--match-any",
+        type=bool,
+        is_flag=True,
+        help="Flatten every filter value into one OR, ignoring the default grouping",
     ),
 ]
 

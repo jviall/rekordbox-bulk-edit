@@ -99,6 +99,15 @@ class TestSearchCommand:
         assert "mutually exclusive" in result.output
 
     @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
+    def test_match_all_and_match_any_together_is_usage_error(self, mock_db_class):
+        mock_db_class.return_value = Mock(session=Mock())
+
+        result = CliRunner().invoke(search_command, ["--match-all", "--match-any"])
+
+        assert result.exit_code == 2
+        assert "mutually exclusive" in result.output
+
+    @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
     def test_first_rejects_zero(self, mock_db_class):
         mock_db_class.return_value = Mock(session=Mock())
 

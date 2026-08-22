@@ -320,6 +320,8 @@ def get_filtered_content(
 
     if filters.match_all:
         query = query.match_all()
+    elif filters.match_any:
+        query = query.match_any()
 
     if filters.first is not None:
         query = query.limit(filters.first)
