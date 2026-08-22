@@ -73,6 +73,13 @@ class TestFilterArgs:
         with pytest.raises(ValidationError, match="mutually exclusive"):
             FilterArgs(first=2, last=3)
 
+    def test_match_any_defaults_false(self):
+        assert FilterArgs().match_any is False
+
+    def test_match_all_and_match_any_mutually_exclusive(self):
+        with pytest.raises(ValidationError, match="mutually exclusive"):
+            FilterArgs(match_all=True, match_any=True)
+
 
 class TestSearchRequest:
     def test_is_filter_args(self):

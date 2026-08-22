@@ -729,6 +729,15 @@ class TestGetFilteredContent:
         get_filtered_content(mock_db, FilterArgs(artist=["Daft Punk"]))
         mock_query.match_all.assert_not_called()
 
+    def test_match_any(self, mock_db, mock_query):
+        get_filtered_content(mock_db, FilterArgs(artist=["Daft Punk"], match_any=True))
+        mock_query.match_any.assert_called_once()
+        mock_query.match_all.assert_not_called()
+
+    def test_default_no_match_any(self, mock_db, mock_query):
+        get_filtered_content(mock_db, FilterArgs(artist=["Daft Punk"]))
+        mock_query.match_any.assert_not_called()
+
     def test_track_id_args_combined_with_format(self, mock_db, mock_query):
         """Positional track IDs should combine with other filters, not override them."""
         get_filtered_content(
