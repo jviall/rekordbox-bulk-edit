@@ -88,6 +88,45 @@ def test_search_match_all_combo(cli):
     assert len(matches) == 1
 
 
+def test_search_title_and_format_intersect_by_default(cli):
+    """The original bug report: different filter kinds AND by default now.
+    Title narrows to track 1 ("Wave Alpha"); format narrows to all 3 FLACs.
+    The intersection is just track 1 — no --match-all needed."""
+    matches = _tracks(
+        cli(
+            "search", "--title", WAVE_ALPHA_TITLE, "--format", "flac", "--print", "json"
+        )
+    )
+    assert len(matches) == 1
+
+
+def test_search_default_matches_old_match_all_combo(cli):
+    """Same combo as test_search_match_all_combo, without the flag —
+    different filter kinds (format, artist) AND by default now."""
+    matches = _tracks(
+        cli("search", "--format", "flac", "--artist", "Beta", "--print", "json")
+    )
+    assert len(matches) == 1
+
+
+def test_search_match_any_flattens_across_filter_kinds(cli):
+    """--match-any flattens everything to OR: track 1 (by title) plus both
+    mp3 tracks (by format) — zero overlap, since track 1 is FLAC."""
+    matches = _tracks(
+        cli(
+            "search",
+            "--title",
+            WAVE_ALPHA_TITLE,
+            "--format",
+            "mp3",
+            "--match-any",
+            "--print",
+            "json",
+        )
+    )
+    assert len(matches) == 3
+
+
 def test_search_empty_result_exits_zero(cli):
     result = cli("search", "--title", "DefinitelyNotInLibrary", "--print", "json")
     assert result.returncode == 0
