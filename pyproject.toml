@@ -62,6 +62,9 @@ exclude-newer = "3 days"
 
 [tool.coverage.run]
 branch = true
+omit = [
+  "research"
+]
 data_file = ".coverage/coverage.db"
 [tool.coverage.html]
 directory = ".coverage/html/"
@@ -77,6 +80,9 @@ python-version = "3.11"
 
 [tool.ty.analysis]
 allowed-unresolved-imports = ["pyrekordbox", "ffmpeg"]
+
+[tool.ty.src]
+exclude = ["research/"]
 
 [tool.commitizen]
 name = "cz_customize"

@@ -11,8 +11,8 @@ rbe search --artist "Aphex Twin" --format flac
 # Get all the track IDs in a playlist
 rbe search --playlist "Techno" --print ids
 
-# Find tracks matching ALL filters (AND logic)
-rbe search --artist "Burial" --album "Untrue" --match-all
+# Tracks that are either flac, or in this playlist
+rbe search --playlist "Techno" --format flac --match-any
 
 # Feed results to another command
 rbe search --artist "Lauryn Hill" --print ids | rbe convert --yes
@@ -23,7 +23,7 @@ See [Filtering](../filtering.md) for the full filter language and piping recipes
 ## Reference
 
 ::: mkdocs-click
-    :module: rekordbox_edit.cli.search
-    :command: search_command
-    :prog_name: rbe search
-    :depth: 1
+:module: rekordbox_edit.cli.search
+:command: search_command
+:prog_name: rbe search
+:depth: 1

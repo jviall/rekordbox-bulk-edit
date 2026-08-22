@@ -50,13 +50,7 @@ class FilterArgs(BaseModel):
     first: int | None = Field(default=None, gt=0)
     last: int | None = Field(default=None, gt=0)
     match_all: bool = False
-    """Flatten every filter condition, including repeated values of the same
-    filter, into one AND. Mutually exclusive with match_any. By default
-    (neither set), repeated values of the same filter OR together and
-    different filters AND together."""
     match_any: bool = False
-    """Flatten every filter condition into one OR, matching tracks that
-    satisfy any single filter value. Mutually exclusive with match_all."""
 
     @model_validator(mode="after")
     def _check_first_last_exclusive(self) -> "FilterArgs":
