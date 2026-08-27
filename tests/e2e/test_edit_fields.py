@@ -126,3 +126,82 @@ def test_rating_written_as_stored_value(fresh_db):
     moved = db.session.query(tb.DjmdContent).filter_by(Title="Apple Alpha").one()
     assert moved.Rating == 204
     db.close()
+
+
+def test_folderpath_relocation_updates_paths_only(fresh_db, staged_audio, tmp_path):
+    new_dir = tmp_path / "moved"
+    new_dir.mkdir()
+    shutil.copy(staged_audio / "01-flac-44_1k-16b.flac", new_dir)
+
+    db = Rekordbox6Database(fresh_db)
+    assert db.session is not None
+    before = db.session.query(tb.DjmdContent).filter_by(Title="Wave Alpha").one()
+    old_size, old_type, old_rate = before.FileSize, before.FileType, before.SampleRate
+
+    edit(
+        db,
+        EditRequest(
+            exact_title=["Wave Alpha"],
+            field="FolderPath",
+            match_pattern=staged_audio.as_posix(),
+            replace_value=new_dir.as_posix(),
+        ),
+    )
+
+    moved = db.session.query(tb.DjmdContent).filter_by(Title="Wave Alpha").one()
+    assert moved.FolderPath == f"{new_dir.as_posix()}/01-flac-44_1k-16b.flac"
+    assert moved.FileNameL == "01-flac-44_1k-16b.flac"
+    # Byte-identical file: the technical columns stay as they were.
+    assert moved.FileSize == old_size
+    assert moved.FileType == old_type
+    assert moved.SampleRate == old_rate
+    db.close()
+
+
+def test_folderpath_repoint_syncs_metadata(fresh_db, staged_audio):
+    target = staged_audio / "05-aiff-44_1k-16b.aiff"
+
+    db = Rekordbox6Database(fresh_db)
+    assert db.session is not None
+
+    # Repoint the FLAC track "Wave Alpha" at a staged AIFF file.
+    edit(
+        db,
+        EditRequest(
+            exact_title=["Wave Alpha"],
+            field="FolderPath",
+            replace_value=target.as_posix(),
+            force=True,
+        ),
+    )
+
+    moved = db.session.query(tb.DjmdContent).filter_by(Title="Wave Alpha").one()
+    assert moved.FolderPath == target.as_posix()
+    assert moved.FileNameL == "05-aiff-44_1k-16b.aiff"
+    assert moved.FileType == 12  # AIFF
+    assert moved.FileSize == target.stat().st_size
+    assert moved.SampleRate == 44100
+    assert moved.BitDepth == 16
+    db.close()
+
+
+def test_folderpath_missing_file_skips_track(fresh_db):
+    db = Rekordbox6Database(fresh_db)
+    assert db.session is not None
+    before = db.session.query(tb.DjmdContent).filter_by(Title="Wave Alpha").one()
+    old_path = before.FolderPath
+
+    response = edit(
+        db,
+        EditRequest(
+            exact_title=["Wave Alpha"],
+            field="FolderPath",
+            replace_value="/nowhere/does-not-exist.flac",
+        ),
+    )
+
+    assert [s.reason for s in response.result.skipped] == ["file_not_found"]
+    assert response.result.edits == []
+    unchanged = db.session.query(tb.DjmdContent).filter_by(Title="Wave Alpha").one()
+    assert unchanged.FolderPath == old_path
+    db.close()
