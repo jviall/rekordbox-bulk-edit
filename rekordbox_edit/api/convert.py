@@ -11,7 +11,11 @@ from pyrekordbox import Rekordbox6Database
 from pyrekordbox.db6 import DjmdContent
 from sqlalchemy import select
 
-from rekordbox_edit.api._utils import _order_tracks_by_op, _update_anlz_paths
+from rekordbox_edit.api._utils import (
+    _order_tracks_by_op,
+    _sync_audio_columns,
+    _update_anlz_paths,
+)
 from rekordbox_edit.models import (
     ConvertOp,
     ConvertRequest,
@@ -162,33 +166,19 @@ def _update_database_record(
     if not file_type:
         raise Exception(f"Unsupported output format: {output_format}")
 
-    converted_sample_rate = converted_audio_info["sample_rate"]
-    if converted_sample_rate:
-        content.SampleRate = converted_sample_rate
-
-    if output_format.upper() == "MP3":
-        # Rekordbox records MP3s as 16-bit (see the e2e DB fixtures); probes
-        # report no bit depth for them.
-        content.BitDepth = 16
-    else:
-        converted_bit_depth = converted_audio_info["bit_depth"]
-        if converted_bit_depth:
-            content.BitDepth = converted_bit_depth
-
     content.FileNameL = new_filename
     content.FolderPath = converted_db_path
-    content.FileType = file_type
-    content.FileSize = os.path.getsize(converted_file_path)
 
     # Original location: only update if it matches FolderPath
     if content.OrgFolderPath == old_path:
         content.OrgFolderPath = converted_db_path
 
-    # FLAC stores bitrate as 0 in Rekordbox to represent VBR
-    if output_format.upper() == "FLAC":
-        content.BitRate = 0
-    else:
-        content.BitRate = converted_bitrate
+    _sync_audio_columns(
+        content,
+        {**converted_audio_info, "bitrate": converted_bitrate},
+        file_type,
+        os.path.getsize(converted_file_path),
+    )
 
 
 def _cleanup_converted_files(converted_ops: list[ConvertOp]) -> None:
