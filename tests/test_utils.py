@@ -225,6 +225,64 @@ class TestGetAudioInfo:
         assert result["bitrate"] == 1411
 
     @patch("rekordbox_edit.utils.ffmpeg.probe")
+    def test_get_audio_info__duration_from_format(self, mock_probe, ffmpeg_exists):
+        """Duration comes from the probe's format section."""
+        mock_probe.return_value = {
+            "streams": [
+                {
+                    "codec_type": "audio",
+                    "bits_per_sample": 16,
+                    "sample_rate": "44100",
+                    "channels": 2,
+                }
+            ],
+            "format": {"format_name": "wav", "duration": "214.398"},
+        }
+
+        result = get_audio_info("/path/to/audio.wav")
+
+        assert result["duration"] == pytest.approx(214.398)
+
+    @patch("rekordbox_edit.utils.ffmpeg.probe")
+    def test_get_audio_info__duration_falls_back_to_stream(
+        self, mock_probe, ffmpeg_exists
+    ):
+        """Stream duration is used when the format section has none."""
+        mock_probe.return_value = {
+            "streams": [
+                {
+                    "codec_type": "audio",
+                    "bits_per_sample": 16,
+                    "sample_rate": "44100",
+                    "channels": 2,
+                    "duration": "183.02",
+                }
+            ],
+            "format": {"format_name": "flac"},
+        }
+
+        result = get_audio_info("/path/to/audio.flac")
+
+        assert result["duration"] == pytest.approx(183.02)
+
+    @patch("rekordbox_edit.utils.ffmpeg.probe")
+    def test_get_audio_info__duration_missing_is_none(self, mock_probe, ffmpeg_exists):
+        mock_probe.return_value = {
+            "streams": [
+                {
+                    "codec_type": "audio",
+                    "bits_per_sample": 16,
+                    "sample_rate": "44100",
+                    "channels": 2,
+                }
+            ]
+        }
+
+        result = get_audio_info("/path/to/audio.wav")
+
+        assert result["duration"] is None
+
+    @patch("rekordbox_edit.utils.ffmpeg.probe")
     def test_get_audio_info__no_audio_stream(self, mock_probe, ffmpeg_exists):
         """Test exception is raised when no audio stream exists."""
         # Setup mock probe response without audio stream
