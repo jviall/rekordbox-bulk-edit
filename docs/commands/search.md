@@ -23,7 +23,7 @@ See [Filtering](../filtering.md) for the full filter language and piping recipes
 ## Reference
 
 ::: mkdocs-click
-:module: rekordbox_edit.cli.search
-:command: search_command
-:prog_name: rbe search
-:depth: 1
+    :module: rekordbox_edit.cli.search
+    :command: search_command
+    :prog_name: rbe search
+    :depth: 1
