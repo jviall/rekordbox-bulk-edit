@@ -142,6 +142,16 @@ def probe_matches_file_type(
     return True
 
 
+def get_file_type_for_probe(codec: str | None, container: str | None) -> int | None:
+    """The Rekordbox FileType code for a probed codec/container, or None when
+    no code matches. Only codes with declared codecs are candidates, so the
+    catch-all codes (INVALID, MP4, VIDEO) are never inferred from a probe."""
+    for code, info in FILE_TYPES.items():
+        if info.codecs and probe_matches_file_type(code, codec, container):
+            return code
+    return None
+
+
 class OutputFormats(Enum):
     MP3 = "mp3"
     FLAC = "flac"

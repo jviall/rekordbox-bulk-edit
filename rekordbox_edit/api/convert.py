@@ -11,7 +11,7 @@ from pyrekordbox import Rekordbox6Database
 from pyrekordbox.db6 import DjmdContent
 from sqlalchemy import select
 
-from rekordbox_edit.api._utils import _order_tracks_by_op
+from rekordbox_edit.api._utils import _order_tracks_by_op, _update_anlz_paths
 from rekordbox_edit.models import (
     ConvertOp,
     ConvertRequest,
@@ -189,24 +189,6 @@ def _update_database_record(
         content.BitRate = 0
     else:
         content.BitRate = converted_bitrate
-
-
-def _update_anlz_paths(
-    db: Rekordbox6Database, content: DjmdContent, new_filename: str
-) -> None:
-    """Rewrite the PPTH path tag in a track's ANLZ files to the converted file
-    name, in rekordbox's device-relative ``?/<name>`` form.
-
-    No-op for tracks without an analysis.
-    """
-    if not content.AnalysisDataPath:
-        return
-    new_ppth = f"?/{new_filename}"
-    anlz_files = db.read_anlz_files(content.ID)
-    for anlz_path, anlz in anlz_files.items():
-        anlz.set_path(new_ppth)
-        anlz.save(anlz_path)
-        logger.debug(f"Updated PPTH of {anlz_path} to {new_ppth}")
 
 
 def _cleanup_converted_files(converted_ops: list[ConvertOp]) -> None:

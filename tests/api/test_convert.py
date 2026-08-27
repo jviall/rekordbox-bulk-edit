@@ -1203,6 +1203,7 @@ class TestClassifyFidelity:
             "bitrate": None,
             "codec": "flac",
             "container": "flac",
+            "duration": None,
         }
 
         assert _classify_fidelity(audio_info) == expected

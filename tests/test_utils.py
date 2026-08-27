@@ -12,6 +12,7 @@ from rekordbox_edit.utils import (
     get_file_type_for_format,
     get_file_type_name,
     parse_star_rating,
+    get_file_type_for_probe,
     probe_matches_file_type,
     star_rating_to_stored,
     stored_to_star_rating,
@@ -549,6 +550,24 @@ class TestProbeMatchesFileType:
     )
     def test_matching(self, code, codec, container, expected):
         assert probe_matches_file_type(code, codec, container) is expected
+
+
+class TestGetFileTypeForProbe:
+    @pytest.mark.parametrize(
+        "codec,container,expected",
+        [
+            ("flac", "flac", 5),
+            ("alac", "mov,mp4,m4a,3gp,3g2,mj2", 6),
+            ("aac", "mov,mp4,m4a,3gp,3g2,mj2", 4),
+            ("pcm_s16le", "wav", 11),
+            ("pcm_s16be", "aiff", 12),
+            ("mp3", "mp3", 1),
+            ("vorbis", "ogg", None),  # no Rekordbox FileType for this codec
+            (None, None, None),
+        ],
+    )
+    def test_mapping(self, codec, container, expected):
+        assert get_file_type_for_probe(codec, container) == expected
 
 
 @pytest.mark.parametrize("stars,stored", [(0, 0), (1, 51), (3, 153), (5, 255)])
