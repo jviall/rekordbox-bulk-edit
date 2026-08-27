@@ -6,7 +6,7 @@ import pytest
 from click.testing import CliRunner
 
 from rekordbox_edit.cli.edit import edit_command
-from rekordbox_edit.models import EditOp, EditResponse, EditResult, Track
+from rekordbox_edit.models import EditOp, EditResponse, EditResult, SkippedTrack, Track
 from rekordbox_edit.utils import UserQuit
 
 
@@ -237,3 +237,117 @@ class TestEditCommand:
 
         assert result.exit_code == 0
         mock_edit.assert_called_once()  # preview only — UserQuit on first track
+
+
+def _gated_response(tracks=None, edits=None):
+    tracks = (
+        tracks
+        if tracks is not None
+        else [Track(ID="1", Title="T", FileNameL="x.wav", FolderPath="/x.wav")]
+    )
+    edits = (
+        edits
+        if edits is not None
+        else [EditOp(id=t.ID, new_value="/new/x.wav") for t in tracks]
+    )
+    return EditResponse(
+        tracks=tracks,
+        result=EditResult(
+            field="FolderPath",
+            edits=edits,
+            skipped=[SkippedTrack(id="9", reason="file_not_found")],
+        ),
+    )
+
+
+class TestEditForceFlow:
+    @patch("rekordbox_edit.cli.edit.edit")
+    @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
+    def test_force_flag_passes_through(self, mock_db_class, mock_edit):
+        mock_db_class.return_value = Mock(session=Mock())
+        mock_edit.return_value = _response()
+
+        result = CliRunner().invoke(
+            edit_command, ["Title", "--replace", "New", "--yes", "--force"]
+        )
+
+        assert result.exit_code == 0
+        assert mock_edit.call_args.args[1].force is True
+
+    @patch("rekordbox_edit.cli.edit.print_track_info")
+    @patch("rekordbox_edit.cli.edit.confirm")
+    @patch("rekordbox_edit.cli.edit.edit")
+    @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
+    def test_default_flow_includes_gated_on_confirm(
+        self, mock_db_class, mock_edit, mock_confirm, _print
+    ):
+        mock_db_class.return_value = Mock(session=Mock())
+        mock_edit.return_value = _gated_response()
+        # Include the gated track, then apply.
+        mock_confirm.side_effect = [True, True]
+
+        result = CliRunner().invoke(
+            edit_command, ["FolderPath", "--replace", "/new/x.wav"]
+        )
+
+        assert result.exit_code == 0
+        # preview, forced re-preview, real run
+        assert mock_edit.call_count == 3
+        assert mock_edit.call_args_list[0].args[1].force is False
+        assert mock_edit.call_args_list[1].args[1].force is True
+        assert mock_edit.call_args_list[1].kwargs.get("dry_run") is True
+        assert mock_edit.call_args_list[2].args[1].force is True
+        assert mock_edit.call_args_list[2].kwargs.get("dry_run", False) is False
+
+    @patch("rekordbox_edit.cli.edit.print_track_info")
+    @patch("rekordbox_edit.cli.edit.confirm")
+    @patch("rekordbox_edit.cli.edit.edit")
+    @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
+    def test_default_flow_gated_declined_stays_unforced(
+        self, mock_db_class, mock_edit, mock_confirm, _print
+    ):
+        mock_db_class.return_value = Mock(session=Mock())
+        mock_edit.return_value = _gated_response()
+        # Leave the gated track skipped, then apply the rest.
+        mock_confirm.side_effect = [False, True]
+
+        result = CliRunner().invoke(
+            edit_command, ["FolderPath", "--replace", "/new/x.wav"]
+        )
+
+        assert result.exit_code == 0
+        assert mock_edit.call_count == 2  # preview + real run
+        assert mock_edit.call_args_list[1].args[1].force is False
+
+    @patch("rekordbox_edit.cli.edit.print_track_info")
+    @patch("rekordbox_edit.cli.edit.confirm")
+    @patch("rekordbox_edit.cli.edit.edit")
+    @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
+    def test_default_flow_no_gated_prompt_when_forced(
+        self, mock_db_class, mock_edit, mock_confirm, _print
+    ):
+        mock_db_class.return_value = Mock(session=Mock())
+        mock_edit.return_value = _gated_response()
+        mock_confirm.side_effect = [True]  # only the apply prompt
+
+        result = CliRunner().invoke(
+            edit_command, ["FolderPath", "--replace", "/new/x.wav", "--force"]
+        )
+
+        assert result.exit_code == 0
+        assert mock_edit.call_count == 2
+        assert mock_confirm.call_count == 1
+
+    @patch("rekordbox_edit.cli.edit.edit")
+    @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
+    def test_yes_mode_leaves_gated_skipped(self, mock_db_class, mock_edit):
+        mock_db_class.return_value = Mock(session=Mock())
+        mock_edit.return_value = _gated_response()
+
+        result = CliRunner().invoke(
+            edit_command, ["FolderPath", "--replace", "/new/x.wav", "--yes"]
+        )
+
+        assert result.exit_code == 0
+        mock_edit.assert_called_once()
+        assert mock_edit.call_args.args[1].force is False

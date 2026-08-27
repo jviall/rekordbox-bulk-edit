@@ -32,6 +32,9 @@ from rekordbox_edit.utils import UserQuit, confirm
 
 logger = logging.getLogger(__name__)
 
+# Skip reasons a user can override with --force; other reasons stay skipped.
+_GATED_SKIP_REASONS = frozenset({"file_not_found", "length_mismatch"})
+
 
 @click.command(
     epilog=f"Debug logs for each run can be found at:\n{get_debug_file_path().parent}"
@@ -86,6 +89,24 @@ def edit_command(db, **kwargs):
         preview = edit(db, args, dry_run=True)
     except ValueError as e:
         raise click.UsageError(str(e)) from e
+
+    gated = [s for s in preview.result.skipped if s.reason in _GATED_SKIP_REASONS]
+    if gated and not args.force:
+        logger.info(f"{len(gated)} track(s) were held back by safety checks:")
+        for s in gated:
+            logger.info(f"  {s.id}: {s.reason}")
+        try:
+            if confirm(
+                f"Include {len(gated)} held-back track(s) anyway (--force)?",
+                default=False,
+            ):
+                args = args.model_copy(update={"force": True})
+                try:
+                    preview = edit(db, args, dry_run=True)
+                except ValueError as e:
+                    raise click.UsageError(str(e)) from e
+        except UserQuit:
+            return
 
     if not preview.result.edits:
         logger.info("No changes to make.")

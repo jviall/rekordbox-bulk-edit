@@ -164,6 +164,11 @@ edit_click_options = [
         is_flag=True,
         help="Allow editing more than one track (required when filters match multiple tracks)",
     ),
+    click.option(
+        "--force",
+        is_flag=True,
+        help="Proceed past per-track safety gates that would otherwise skip a track (e.g. a FolderPath target that is missing or whose duration contradicts the track's stored length)",
+    ),
 ]
 
 convert_click_options = [
