@@ -5,6 +5,7 @@ from pyrekordbox import Rekordbox6Database
 from pyrekordbox.db6 import DjmdContent
 
 from rekordbox_edit.models import ConvertOp, EditOp, Track
+from rekordbox_edit.utils import AudioInfo, get_file_type_for_format
 
 logger = logging.getLogger(__name__)
 
@@ -33,6 +34,31 @@ def _order_tracks_by_op(
     return [
         _track_from_content(content_map[op.id]) for op in ops if op.id in content_map
     ]
+
+
+_MP3_FILE_TYPE = get_file_type_for_format("mp3")
+_FLAC_FILE_TYPE = get_file_type_for_format("flac")
+
+
+def _sync_audio_columns(
+    content: DjmdContent, audio_info: AudioInfo, file_type: int, file_size: int
+) -> None:
+    """Write the technical columns describing an audio file onto its content
+    row: FileType, SampleRate, BitDepth, BitRate, and FileSize. Follows
+    rekordbox's conventions: FLAC bitrate is stored as 0 (VBR) and MP3 bit
+    depth as 16 (probes report none for MP3)."""
+    content.FileType = file_type
+    if audio_info["sample_rate"]:
+        content.SampleRate = audio_info["sample_rate"]
+    if file_type == _MP3_FILE_TYPE:
+        content.BitDepth = 16
+    elif audio_info["bit_depth"]:
+        content.BitDepth = audio_info["bit_depth"]
+    if file_type == _FLAC_FILE_TYPE:
+        content.BitRate = 0
+    elif audio_info["bitrate"] is not None:
+        content.BitRate = audio_info["bitrate"]
+    content.FileSize = file_size
 
 
 def _update_anlz_paths(

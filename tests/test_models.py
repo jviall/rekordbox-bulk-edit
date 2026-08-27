@@ -96,6 +96,7 @@ class TestEditRequest:
         assert args.replace_value == "New"
         assert args.artist == ["X"]
         assert args.multi is False
+        assert args.force is False
 
 
 class TestConvertRequest:
@@ -118,6 +119,14 @@ class TestSkippedTrack:
         assert (
             SkippedTrack(id="1", reason="output_file_exists").reason
             == "output_file_exists"
+        )
+        assert SkippedTrack(id="1", reason="file_not_found").reason == "file_not_found"
+        assert (
+            SkippedTrack(id="1", reason="length_mismatch").reason == "length_mismatch"
+        )
+        assert (
+            SkippedTrack(id="1", reason="unknown_file_type").reason
+            == "unknown_file_type"
         )
 
     def test_unknown_reason_rejected(self):

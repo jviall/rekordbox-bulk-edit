@@ -79,6 +79,10 @@ class EditRequest(FilterArgs):
     replace_value: str
     match_pattern: str | None = None
     multi: bool = False
+    force: bool = False
+    """Proceed on per-track safety gates that would otherwise skip the track
+    (a FolderPath target that does not exist, or one whose duration contradicts
+    the track's stored length)."""
 
 
 DeleteOriginalsMode: TypeAlias = Literal["none", "lossless", "all"]
@@ -138,6 +142,9 @@ SkipReason: TypeAlias = Literal[
     "unsupported_source_format",
     "output_file_exists",
     "codec_mismatch",
+    "file_not_found",
+    "length_mismatch",
+    "unknown_file_type",
 ]
 
 
