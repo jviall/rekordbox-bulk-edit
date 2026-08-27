@@ -180,6 +180,7 @@ class AudioInfo(TypedDict):
     bitrate: int | None
     codec: str | None
     container: str | None
+    duration: float | None
 
 
 def get_audio_info(file_path) -> AudioInfo:
@@ -242,6 +243,15 @@ def get_audio_info(file_path) -> AudioInfo:
         if bitrate is None:
             logger.debug(f"Could not determine bitrate for {file_path}")
 
+        duration = None
+        raw_duration = probe.get("format", {}).get("duration") or audio_stream.get(
+            "duration"
+        )
+        if raw_duration is not None:
+            duration = float(raw_duration)
+        else:
+            logger.debug(f"Could not determine duration for {file_path}")
+
         return {
             "bit_depth": bit_depth,
             "sample_rate": int(audio_stream.get("sample_rate", 44100)),
@@ -249,6 +259,7 @@ def get_audio_info(file_path) -> AudioInfo:
             "bitrate": bitrate,
             "codec": audio_stream.get("codec_name"),
             "container": probe.get("format", {}).get("format_name"),
+            "duration": duration,
         }
     except Exception as e:
         logger.error(f"Failed to get audio info for {file_path}: {e}")
