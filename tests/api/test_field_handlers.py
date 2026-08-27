@@ -1,9 +1,10 @@
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 
 from rekordbox_edit.api.field_handlers import (
     FIELD_HANDLERS,
+    FolderPathField,
     RelationalField,
     StringField,
 )
@@ -280,3 +281,317 @@ class TestRelationalAlbum:
         _album_handler().apply(db, content, "New Name")
 
         db.delete.assert_not_called()
+
+
+def _folder_handler():
+    return FolderPathField()
+
+
+def _probe(**overrides):
+    info = {
+        "bit_depth": 16,
+        "sample_rate": 44100,
+        "channels": 2,
+        "bitrate": 1411,
+        "codec": "pcm_s16le",
+        "container": "wav",
+        "duration": 214.4,
+    }
+    info.update(overrides)
+    return info
+
+
+def _no_cues(db):
+    db.session.query.return_value.filter_by.return_value.first.return_value = None
+
+
+class TestFolderPathField:
+    def test_registered(self):
+        handler = FIELD_HANDLERS["FolderPath"]
+        assert isinstance(handler, FolderPathField)
+        assert handler.supports_match is True
+
+    def test_compute_normalizes_backslashes(self):
+        args = EditRequest(field="FolderPath", replace_value=r"C:\Music\song.wav")
+        assert (
+            _folder_handler().compute_new_value("/old/song.wav", args)
+            == "C:/Music/song.wav"
+        )
+
+    @patch("rekordbox_edit.api.field_handlers.os.path.exists", return_value=False)
+    def test_validate_missing_file_skips(self, _exists, make_djmd_content_item):
+        content = make_djmd_content_item(ID="1")
+        args = EditRequest(field="FolderPath", replace_value="/new/song.wav")
+
+        reason = _folder_handler().validate_track(
+            MagicMock(), content, "/new/song.wav", args
+        )
+
+        assert reason == "file_not_found"
+
+    @patch("rekordbox_edit.api.field_handlers.os.path.exists", return_value=False)
+    def test_validate_missing_file_forced_proceeds(
+        self, _exists, make_djmd_content_item
+    ):
+        content = make_djmd_content_item(ID="1")
+        args = EditRequest(
+            field="FolderPath", replace_value="/new/song.wav", force=True
+        )
+
+        reason = _folder_handler().validate_track(
+            MagicMock(), content, "/new/song.wav", args
+        )
+
+        assert reason is None
+
+    @patch("rekordbox_edit.api.field_handlers.get_audio_info")
+    @patch("rekordbox_edit.api.field_handlers.os.path.getsize", return_value=1000)
+    @patch("rekordbox_edit.api.field_handlers.os.path.exists", return_value=True)
+    def test_validate_same_size_skips_probe(
+        self, _exists, _getsize, mock_probe, make_djmd_content_item
+    ):
+        content = make_djmd_content_item(ID="1", FileSize=1000)
+        content.FileSize = 1000
+        args = EditRequest(field="FolderPath", replace_value="/new/song.wav")
+
+        reason = _folder_handler().validate_track(
+            MagicMock(), content, "/new/song.wav", args
+        )
+
+        assert reason is None
+        mock_probe.assert_not_called()
+
+    @patch(
+        "rekordbox_edit.api.field_handlers.get_audio_info",
+        return_value=_probe(codec="vorbis", container="ogg"),
+    )
+    @patch("rekordbox_edit.api.field_handlers.os.path.getsize", return_value=2000)
+    @patch("rekordbox_edit.api.field_handlers.os.path.exists", return_value=True)
+    def test_validate_unknown_codec_skips_even_forced(
+        self, _exists, _getsize, _probe_fn, make_djmd_content_item
+    ):
+        content = make_djmd_content_item(ID="1")
+        content.FileSize = 1000
+        args = EditRequest(
+            field="FolderPath", replace_value="/new/song.ogg", force=True
+        )
+
+        reason = _folder_handler().validate_track(
+            MagicMock(), content, "/new/song.ogg", args
+        )
+
+        assert reason == "unknown_file_type"
+
+    @patch(
+        "rekordbox_edit.api.field_handlers.get_audio_info",
+        return_value=_probe(duration=300.0),
+    )
+    @patch("rekordbox_edit.api.field_handlers.os.path.getsize", return_value=2000)
+    @patch("rekordbox_edit.api.field_handlers.os.path.exists", return_value=True)
+    def test_validate_length_mismatch_with_analysis_skips(
+        self, _exists, _getsize, _probe_fn, make_djmd_content_item
+    ):
+        content = make_djmd_content_item(ID="1")
+        content.FileSize = 1000
+        content.Length = 214
+        content.AnalysisDataPath = "/PIONEER/USBANLZ/x/ANLZ0000.DAT"
+        args = EditRequest(field="FolderPath", replace_value="/new/song.wav")
+
+        reason = _folder_handler().validate_track(
+            MagicMock(), content, "/new/song.wav", args
+        )
+
+        assert reason == "length_mismatch"
+
+    @patch(
+        "rekordbox_edit.api.field_handlers.get_audio_info",
+        return_value=_probe(duration=300.0),
+    )
+    @patch("rekordbox_edit.api.field_handlers.os.path.getsize", return_value=2000)
+    @patch("rekordbox_edit.api.field_handlers.os.path.exists", return_value=True)
+    def test_validate_length_mismatch_with_cues_skips(
+        self, _exists, _getsize, _probe_fn, make_djmd_content_item
+    ):
+        content = make_djmd_content_item(ID="1")
+        content.FileSize = 1000
+        content.Length = 214
+        content.AnalysisDataPath = None
+        db = MagicMock()
+        db.session.query.return_value.filter_by.return_value.first.return_value = (
+            MagicMock()  # a cue row exists
+        )
+        args = EditRequest(field="FolderPath", replace_value="/new/song.wav")
+
+        reason = _folder_handler().validate_track(db, content, "/new/song.wav", args)
+
+        assert reason == "length_mismatch"
+
+    @patch(
+        "rekordbox_edit.api.field_handlers.get_audio_info",
+        return_value=_probe(duration=300.0),
+    )
+    @patch("rekordbox_edit.api.field_handlers.os.path.getsize", return_value=2000)
+    @patch("rekordbox_edit.api.field_handlers.os.path.exists", return_value=True)
+    def test_validate_length_mismatch_without_analysis_warns_only(
+        self, _exists, _getsize, _probe_fn, make_djmd_content_item
+    ):
+        content = make_djmd_content_item(ID="1")
+        content.FileSize = 1000
+        content.Length = 214
+        content.AnalysisDataPath = None
+        db = MagicMock()
+        _no_cues(db)
+        args = EditRequest(field="FolderPath", replace_value="/new/song.wav")
+
+        reason = _folder_handler().validate_track(db, content, "/new/song.wav", args)
+
+        assert reason is None
+
+    @patch(
+        "rekordbox_edit.api.field_handlers.get_audio_info",
+        return_value=_probe(duration=300.0),
+    )
+    @patch("rekordbox_edit.api.field_handlers.os.path.getsize", return_value=2000)
+    @patch("rekordbox_edit.api.field_handlers.os.path.exists", return_value=True)
+    def test_validate_length_mismatch_forced_proceeds(
+        self, _exists, _getsize, _probe_fn, make_djmd_content_item
+    ):
+        content = make_djmd_content_item(ID="1")
+        content.FileSize = 1000
+        content.Length = 214
+        content.AnalysisDataPath = "/PIONEER/USBANLZ/x/ANLZ0000.DAT"
+        args = EditRequest(
+            field="FolderPath", replace_value="/new/song.wav", force=True
+        )
+
+        reason = _folder_handler().validate_track(
+            MagicMock(), content, "/new/song.wav", args
+        )
+
+        assert reason is None
+
+    @patch("rekordbox_edit.api.field_handlers.os.path.getsize", return_value=1000)
+    @patch("rekordbox_edit.api.field_handlers.os.path.exists", return_value=True)
+    def test_apply_relocation_updates_paths_only(
+        self, _exists, _getsize, make_djmd_content_item
+    ):
+        handler = _folder_handler()
+        content = make_djmd_content_item(
+            ID="1", FolderPath="/old/dir/song.wav", FileNameL="song.wav"
+        )
+        content.FileSize = 1000
+        content.OrgFolderPath = "/old/dir/song.wav"
+        content.SampleRate = 44100
+        content.BitDepth = 16
+        content.BitRate = 1411
+        content.FileType = 11
+        db = MagicMock()
+        args = EditRequest(field="FolderPath", replace_value="/new/dir/song.wav")
+        assert handler.validate_track(db, content, "/new/dir/song.wav", args) is None
+
+        handler.apply(db, content, "/new/dir/song.wav")
+
+        assert content.FolderPath == "/new/dir/song.wav"
+        assert content.FileNameL == "song.wav"
+        assert content.OrgFolderPath == "/new/dir/song.wav"
+        # Same bytes: technical columns stay as they were.
+        assert content.SampleRate == 44100
+        assert content.FileSize == 1000
+
+    @patch(
+        "rekordbox_edit.api.field_handlers.get_audio_info",
+        return_value=_probe(
+            codec="flac",
+            container="flac",
+            bit_depth=24,
+            sample_rate=48000,
+            bitrate=2304,
+            duration=214.9,
+        ),
+    )
+    @patch("rekordbox_edit.api.field_handlers.os.path.getsize", return_value=2000)
+    @patch("rekordbox_edit.api.field_handlers.os.path.exists", return_value=True)
+    def test_apply_replaced_file_syncs_metadata(
+        self, _exists, _getsize, _probe_fn, make_djmd_content_item
+    ):
+        handler = _folder_handler()
+        content = make_djmd_content_item(
+            ID="1", FolderPath="/old/dir/song.wav", FileNameL="song.wav", FileType=11
+        )
+        content.FileSize = 1000
+        content.Length = 214
+        content.OrgFolderPath = "/elsewhere/song.wav"
+        db = MagicMock()
+        _no_cues(db)
+        args = EditRequest(field="FolderPath", replace_value="/new/dir/song.flac")
+        assert handler.validate_track(db, content, "/new/dir/song.flac", args) is None
+
+        handler.apply(db, content, "/new/dir/song.flac")
+
+        assert content.FolderPath == "/new/dir/song.flac"
+        assert content.FileNameL == "song.flac"
+        # OrgFolderPath did not match the old path, so it stays put.
+        assert content.OrgFolderPath == "/elsewhere/song.wav"
+        assert content.FileType == 5
+        assert content.SampleRate == 48000
+        assert content.BitDepth == 24
+        assert content.BitRate == 0  # FLAC stores VBR as 0
+        assert content.FileSize == 2000
+        assert content.Length == 214
+
+    @patch("rekordbox_edit.api.field_handlers.os.path.exists", return_value=False)
+    def test_apply_forced_missing_file_writes_paths_only(
+        self, _exists, make_djmd_content_item
+    ):
+        handler = _folder_handler()
+        content = make_djmd_content_item(
+            ID="1", FolderPath="/old/dir/song.wav", FileNameL="song.wav", FileType=11
+        )
+        content.FileSize = 1000
+        db = MagicMock()
+        args = EditRequest(
+            field="FolderPath", replace_value="/gone/dir/song.wav", force=True
+        )
+        assert handler.validate_track(db, content, "/gone/dir/song.wav", args) is None
+
+        handler.apply(db, content, "/gone/dir/song.wav")
+
+        assert content.FolderPath == "/gone/dir/song.wav"
+        assert content.FileNameL == "song.wav"
+        assert content.FileSize == 1000
+        assert content.FileType == 11
+
+    @patch("rekordbox_edit.api.field_handlers._update_anlz_paths")
+    def test_post_commit_rewrites_ppth_on_rename(
+        self, mock_anlz, make_djmd_content_item
+    ):
+        content = make_djmd_content_item(
+            ID="1", FolderPath="/new/dir/song.flac", FileNameL="song.flac"
+        )
+        db = MagicMock()
+
+        _folder_handler().post_commit(db, content, "/old/dir/song.wav")
+
+        mock_anlz.assert_called_once_with(db, content, "song.flac")
+
+    @patch("rekordbox_edit.api.field_handlers._update_anlz_paths")
+    def test_post_commit_skips_when_basename_unchanged(
+        self, mock_anlz, make_djmd_content_item
+    ):
+        content = make_djmd_content_item(
+            ID="1", FolderPath="/new/dir/song.wav", FileNameL="song.wav"
+        )
+
+        _folder_handler().post_commit(MagicMock(), content, "/old/dir/song.wav")
+
+        mock_anlz.assert_not_called()
+
+    @patch("rekordbox_edit.api.field_handlers._update_anlz_paths")
+    def test_post_commit_swallows_anlz_errors(self, mock_anlz, make_djmd_content_item):
+        mock_anlz.side_effect = OSError("disk full")
+        content = make_djmd_content_item(
+            ID="1", FolderPath="/new/dir/song.flac", FileNameL="song.flac"
+        )
+
+        # Must not raise: the row commit already succeeded.
+        _folder_handler().post_commit(MagicMock(), content, "/old/dir/song.wav")

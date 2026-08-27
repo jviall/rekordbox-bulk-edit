@@ -18,7 +18,9 @@ from rekordbox_edit.query import get_filtered_content
 logger = logging.getLogger(__name__)
 
 
-def _classify_edit(content, args: EditRequest) -> EditOp | SkippedTrack:
+def _classify_edit(
+    db: Rekordbox6Database, content, args: EditRequest
+) -> EditOp | SkippedTrack:
     """Return EditOp if this track should be edited, or SkippedTrack with
     reason if not."""
     handler = FIELD_HANDLERS[args.field]
@@ -30,6 +32,12 @@ def _classify_edit(content, args: EditRequest) -> EditOp | SkippedTrack:
             f"field={args.field} current={current!r}"
         )
         return SkippedTrack(id=str(content.ID), reason="no_change")
+    skip_reason = handler.validate_track(db, content, str(new_value), args)
+    if skip_reason is not None:
+        logger.debug(
+            f"skip edit id={content.ID} reason={skip_reason} field={args.field}"
+        )
+        return SkippedTrack(id=str(content.ID), reason=skip_reason)
     return EditOp(id=str(content.ID), new_value=str(new_value))
 
 
@@ -56,7 +64,7 @@ def edit(
     ops: list[EditOp] = []
     skipped: list[SkippedTrack] = []
     for c in contents:
-        result = _classify_edit(c, args)
+        result = _classify_edit(db, c, args)
         if isinstance(result, EditOp):
             ops.append(result)
         else:
@@ -86,11 +94,17 @@ def edit(
     assert db.session is not None
 
     new_values = {op.id: op.new_value for op in ops}
+    old_values: dict[str, str | None] = {}
     for content in contents:
         if str(content.ID) in new_values:
+            old_values[str(content.ID)] = handler.current_value(content)
             handler.apply(db, content, new_values[str(content.ID)])
     db.session.commit()
     logger.debug(f"edit committed {len(ops)} change(s) on field={args.field}")
+
+    for content in contents:
+        if str(content.ID) in new_values:
+            handler.post_commit(db, content, old_values[str(content.ID)])
 
     return EditResponse(
         tracks=_order_tracks_by_op(contents, ops),
