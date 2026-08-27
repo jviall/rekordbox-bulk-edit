@@ -1,3 +1,78 @@
+## v0.9.0 (2026-08-27)
+
+
+- chore(deps): update dependency ty to v0.0.73 (#180)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+- chore(deps): update dependency commitizen to v4.17.1 (#178)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+- chore(deps): update dependency platformdirs to v4.11.3 (#179)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+- docs(filtering): document grouped default and --match-any
+- test(e2e): cover grouped default and --match-any against the fixture DB
+- Locks in the original bug report (--title + --format now intersect
+instead of union) plus the new --match-any flat-OR escape hatch.
+- feat(query): add --match-any flat-OR mode
+- Grouped mode is now the default (previous commit), so --match-all's
+old job — flattening everything into one OR-vs-AND switch — needs an
+explicit OR counterpart for anyone who still wants the old fully-broad
+search. match_all and match_any are mutually exclusive.
+- feat(query)!: group filter conditions by kind, OR within a kind and AND across kinds
+- CollectionQuery previously combined every condition in one flat list
+with a single OR/AND switch, so combining two different filters (e.g.
+--title and --format) matched their union instead of their
+intersection. Conditions now bucket by filter kind (title, artist,
+album, playlist, format, path, track_id); the default groups OR
+within a bucket and ANDs across buckets. match_all()/match_any() still
+flatten everything into one AND/OR, unchanged in meaning.
+- chore(deps): update pre-commit hook astral-sh/ruff-pre-commit to v0.16.4 (#184)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+- chore(deps): update pre-commit hook commitizen-tools/commitizen to v4.18.0 (#183)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+- chore(deps): update pre-commit hook commitizen-tools/commitizen to v4.17.1 (#181)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+- docs: add research directory with reverse-engineering findings
+- Promote the durable Rekordbox behavior research out of the ignored ai-docs
+tree into a committed, per-investigation research/ directory. Each folder is
+self-contained (summary write-ups, scripts, evidence, decisions), with shared
+tooling in research/shared/scripts. Repoint the decision-records convention
+and document the research write-up structure in AGENTS.md; exclude research/
+from the whitespace, end-of-file, and large-file pre-commit hooks.
+- feat(edit): support editing Rating
+- feat(edit): support editing Comment
+- feat(edit): support editing AlbumName
+- feat(edit): support editing ArtistName
+- refactor(edit): dispatch fields through a handler registry
+- chore: ignore .superpowers SDD scratch
+- chore(deps): update astral-sh/setup-uv action to v10
+- chore(deps): update dependency ruff to v0.16.3 (#174)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+- chore(deps): update pre-commit hook astral-sh/ruff-pre-commit to v0.16.3 (#175)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+- chore(deps): update dependency ty to v0.0.71 (#173)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+- chore(deps): update linters (#170)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+- chore(deps): update dependency platformdirs to v4.11.2 (#168)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+- chore(deps): update pre-commit hook astral-sh/ruff-pre-commit to v0.16.2 (#171)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+- chore(deps): update dependency pre-commit to v4.6.2 (#169)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+- chore(deps): update dependency ty to v0.0.69 (#167)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+- chore(deps): update dependency ty to v0.0.68 (#166)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+- chore(deps): update dependency ty to v0.0.67 (#165)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+- chore(deps): update dependency ty to v0.0.66 (#164)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+- chore(deps): update dependency ruff to v0.16.1 (#162)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+- chore(deps): update pre-commit hook astral-sh/ruff-pre-commit to v0.16.1 (#163)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+- chore(deps): update dependency ty to v0.0.65 (#161)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+
 ## v0.8.0 (2026-08-01)
 
 
