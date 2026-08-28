@@ -22,11 +22,17 @@ rbe edit --title "Teh" Title --match "Teh" --replace "The" --multi
 
 `FolderPath` repoints a track at an audio file on disk. Because the database row carries more than the path, the edit keeps the dependent columns consistent:
 
-- `FileNameL` always follows the new path's file name, and `OrgFolderPath` follows when it matched the old path.
-- When the new file's size differs from the recorded `FileSize`, the file is probed and the technical columns (`FileType`, `SampleRate`, `BitDepth`, `BitRate`, `FileSize`, `Length`) are rewritten to describe it. A byte-identical file, the usual case when relocating a library, needs no probe and no sync.
-- When the file name changes, the `PPTH` path tag inside the track's analysis (ANLZ) files is rewritten to match. Beat grids, cues, and waveforms are indexed by time and are never touched, and the `Analysed` flag is left alone so Rekordbox does not re-analyze.
+- `FileNameL` always matches the new path's file name, and `OrgFolderPath` is updated when it matched the old path.
+- When the new file's size differs from the recorded `FileSize`, the file is probed and all of `FileType`, `SampleRate`, `BitDepth`, `BitRate`, `FileSize`, and `Length` are rewritten to match it.
+- When the file name changes, the `PPTH` path tag inside the track's analysis (ANLZ) files is rewritten to match. All other analysis data is preserved.
 
-Two safety checks hold a track back, and both can be overridden. A path whose file does not exist is skipped; overriding writes only the path columns, with nothing to probe. A file whose duration contradicts the track's stored length by more than a second is skipped when the track has cues or an analysis, since those are time-indexed and would land misaligned. In the default flow `edit` lists held-back tracks and asks once whether to include them; in scripted runs (`--yes`) they stay skipped unless you pass `--force`. A file whose format Rekordbox cannot play is always skipped.
+By default edits will be skipped in the following cases:
+
+- The new path's file does not exist.
+- The new path points to a file whose duration doesn't match what's in rekordbox _and_ the track has cues or an analysis, since those are time-indexed and would land misaligned.
+- The file's format is one Rekordbox doesn't support--always skipped.
+
+`edit` lists the held-back tracks and asks once whether to include them. Providing the `--yes` flag will skip them without prompting whereas `--force` edit them anyway. Including a missing file writes only the path columns.
 
 ```bash
 # Relocate a library folder in bulk
@@ -60,7 +66,7 @@ See [Filtering](../filtering.md) for the full filter language.
 ## Reference
 
 ::: mkdocs-click
-    :module: rekordbox_edit.cli.edit
-    :command: edit_command
-    :prog_name: rbe edit
-    :depth: 1
+:module: rekordbox_edit.cli.edit
+:command: edit_command
+:prog_name: rbe edit
+:depth: 1

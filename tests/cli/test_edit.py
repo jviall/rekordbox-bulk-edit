@@ -23,10 +23,10 @@ def mock_rekordbox_not_running():
 
 
 def _response(tracks=None, edits=None, skipped=None):
-    tracks = tracks or [
-        Track(ID="1", Title="New", FileNameL="x.wav", FolderPath="/x.wav")
-    ]
-    edits = edits or [EditOp(id=t.ID, new_value="New") for t in tracks]
+    if tracks is None:
+        tracks = [Track(ID="1", Title="New", FileNameL="x.wav", FolderPath="/x.wav")]
+    if edits is None:
+        edits = [EditOp(id=t.ID, new_value="New") for t in tracks]
     return EditResponse(
         tracks=tracks,
         result=EditResult(field="Title", edits=edits, skipped=skipped or []),
@@ -84,6 +84,19 @@ class TestEditCommand:
         result = CliRunner().invoke(
             edit_command, ["Title", "--replace", "New", "--yes"]
         )
+
+        assert result.exit_code != 0
+        assert "Error" in result.output
+
+    @patch("rekordbox_edit.cli.edit.edit")
+    @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
+    def test_default_flow_value_error_becomes_usage_error(
+        self, mock_db_class, mock_edit
+    ):
+        mock_db_class.return_value = Mock(session=Mock())
+        mock_edit.side_effect = ValueError("Found 2 tracks that would be edited")
+
+        result = CliRunner().invoke(edit_command, ["Title", "--replace", "New"])
 
         assert result.exit_code != 0
         assert "Error" in result.output
@@ -337,6 +350,46 @@ class TestEditForceFlow:
         assert result.exit_code == 0
         assert mock_edit.call_count == 2
         assert mock_confirm.call_count == 1
+
+    @patch("rekordbox_edit.cli.edit.print_track_info")
+    @patch("rekordbox_edit.cli.edit.confirm", side_effect=UserQuit)
+    @patch("rekordbox_edit.cli.edit.edit")
+    @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
+    def test_gated_prompt_user_quit_skips_commit(
+        self, mock_db_class, mock_edit, _confirm, _print
+    ):
+        mock_db_class.return_value = Mock(session=Mock())
+        mock_edit.return_value = _gated_response()
+
+        result = CliRunner().invoke(
+            edit_command, ["FolderPath", "--replace", "/new/x.wav"]
+        )
+
+        assert result.exit_code == 0
+        mock_edit.assert_called_once()  # preview only
+
+    @patch("rekordbox_edit.cli.edit.print_track_info")
+    @patch("rekordbox_edit.cli.edit.confirm")
+    @patch("rekordbox_edit.cli.edit.edit")
+    @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
+    def test_including_gated_tracks_can_trip_multi_guard(
+        self, mock_db_class, mock_edit, mock_confirm, _print
+    ):
+        # Including the held-back track widens the edit past one track, which
+        # the single-track guard rejects on the re-preview.
+        mock_db_class.return_value = Mock(session=Mock())
+        mock_edit.side_effect = [
+            _gated_response(),
+            ValueError("Found 2 tracks that would be edited"),
+        ]
+        mock_confirm.side_effect = [True]
+
+        result = CliRunner().invoke(
+            edit_command, ["FolderPath", "--replace", "/new/x.wav"]
+        )
+
+        assert result.exit_code != 0
+        assert "Error" in result.output
 
     @patch("rekordbox_edit.cli.edit.edit")
     @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
