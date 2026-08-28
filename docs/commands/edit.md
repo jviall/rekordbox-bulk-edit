@@ -65,8 +65,9 @@ See [Filtering](../filtering.md) for the full filter language.
 
 ## Reference
 
+<!-- prettier-ignore -->
 ::: mkdocs-click
-:module: rekordbox_edit.cli.edit
-:command: edit_command
-:prog_name: rbe edit
-:depth: 1
+    :module: rekordbox_edit.cli.edit
+    :command: edit_command
+    :prog_name: rbe edit
+    :depth: 1
