@@ -54,6 +54,7 @@ rbe search --artist "Lauryn Hill" --print ids | rbe convert --yes
 
 ## Reference
 
+<!-- prettier-ignore -->
 ::: mkdocs-click
     :module: rekordbox_edit.cli.convert
     :command: convert_command

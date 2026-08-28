@@ -22,6 +22,7 @@ See [Filtering](../filtering.md) for the full filter language and piping recipes
 
 ## Reference
 
+<!-- prettier-ignore -->
 ::: mkdocs-click
     :module: rekordbox_edit.cli.search
     :command: search_command
