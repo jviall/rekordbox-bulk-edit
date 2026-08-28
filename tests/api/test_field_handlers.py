@@ -311,12 +311,23 @@ class TestFolderPathField:
         assert isinstance(handler, FolderPathField)
         assert handler.supports_match is True
 
+    def test_current_value_reads_folder_path(self, make_djmd_content_item):
+        content = make_djmd_content_item(ID="1", FolderPath="/old/song.wav")
+        assert _folder_handler().current_value(content) == "/old/song.wav"
+
     def test_compute_normalizes_backslashes(self):
         args = EditRequest(field="FolderPath", replace_value=r"C:\Music\song.wav")
         assert (
             _folder_handler().compute_new_value("/old/song.wav", args)
             == "C:/Music/song.wav"
         )
+
+    def test_compute_match_skips_none(self):
+        # --match has no text to search when the field is empty.
+        args = EditRequest(
+            field="FolderPath", replace_value="/new/song.wav", match_pattern="/old"
+        )
+        assert _folder_handler().compute_new_value(None, args) is None
 
     @patch("rekordbox_edit.api.field_handlers.os.path.exists", return_value=False)
     def test_validate_missing_file_skips(self, _exists, make_djmd_content_item):
@@ -360,6 +371,25 @@ class TestFolderPathField:
 
         assert reason is None
         mock_probe.assert_not_called()
+
+    @patch(
+        "rekordbox_edit.api.field_handlers.get_audio_info",
+        side_effect=OSError("ffprobe failed"),
+    )
+    @patch("rekordbox_edit.api.field_handlers.os.path.getsize", return_value=2000)
+    @patch("rekordbox_edit.api.field_handlers.os.path.exists", return_value=True)
+    def test_validate_probe_failure_skips(
+        self, _exists, _getsize, _probe_fn, make_djmd_content_item
+    ):
+        content = make_djmd_content_item(ID="1")
+        content.FileSize = 1000
+        args = EditRequest(field="FolderPath", replace_value="/new/song.wav")
+
+        reason = _folder_handler().validate_track(
+            MagicMock(), content, "/new/song.wav", args
+        )
+
+        assert reason == "unknown_file_type"
 
     @patch(
         "rekordbox_edit.api.field_handlers.get_audio_info",
@@ -538,6 +568,57 @@ class TestFolderPathField:
         assert content.BitRate == 0  # FLAC stores VBR as 0
         assert content.FileSize == 2000
         assert content.Length == 214
+
+    @patch(
+        "rekordbox_edit.api.field_handlers.get_audio_info",
+        return_value=_probe(
+            codec="mp3", container="mp3", bit_depth=None, bitrate=None, duration=None
+        ),
+    )
+    @patch("rekordbox_edit.api.field_handlers.os.path.getsize", return_value=2000)
+    @patch("rekordbox_edit.api.field_handlers.os.path.exists", return_value=True)
+    def test_apply_probes_on_cache_miss_and_keeps_unreported_columns(
+        self, _exists, _getsize, mock_probe, make_djmd_content_item
+    ):
+        # apply without a prior validate_track probes the file itself; columns
+        # the probe reports as None keep their stored values.
+        handler = _folder_handler()
+        content = make_djmd_content_item(
+            ID="1", FolderPath="/old/dir/song.wav", FileNameL="song.wav", FileType=11
+        )
+        content.FileSize = 1000
+        content.Length = 214
+        content.BitRate = 320
+
+        handler.apply(MagicMock(), content, "/new/dir/song.mp3")
+
+        mock_probe.assert_called_once_with("/new/dir/song.mp3")
+        assert content.FileType == 1
+        assert content.FileSize == 2000
+        assert content.BitDepth == 16  # rekordbox stores MP3 bit depth as 16
+        assert content.BitRate == 320
+        assert content.Length == 214
+
+    @patch(
+        "rekordbox_edit.api.field_handlers.get_audio_info",
+        return_value=_probe(codec="vorbis", container="ogg"),
+    )
+    @patch("rekordbox_edit.api.field_handlers.os.path.getsize", return_value=2000)
+    @patch("rekordbox_edit.api.field_handlers.os.path.exists", return_value=True)
+    def test_apply_unknown_file_type_leaves_audio_columns(
+        self, _exists, _getsize, _probe_fn, make_djmd_content_item
+    ):
+        handler = _folder_handler()
+        content = make_djmd_content_item(
+            ID="1", FolderPath="/old/dir/song.wav", FileNameL="song.wav", FileType=11
+        )
+        content.FileSize = 1000
+
+        handler.apply(MagicMock(), content, "/new/dir/song.ogg")
+
+        assert content.FolderPath == "/new/dir/song.ogg"
+        assert content.FileType == 11
+        assert content.FileSize == 1000
 
     @patch("rekordbox_edit.api.field_handlers.os.path.exists", return_value=False)
     def test_apply_forced_missing_file_writes_paths_only(
