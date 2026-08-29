@@ -1,6 +1,6 @@
 # API Reference
 
-Everything the CLI does is available from Python. The public surface is the three functions in `rekordbox_edit.api` and the Pydantic models in `rekordbox_edit.models` that describe their inputs and outputs.
+Everything the CLI does is available from Python. The public surface is the four functions in `rekordbox_edit.api` and the Pydantic models in `rekordbox_edit.models` that describe their inputs and outputs.
 
 ```python
 from pyrekordbox import Rekordbox6Database
@@ -24,6 +24,8 @@ Different filter kinds — `artist` and `format` above — AND together by defau
 ::: rekordbox_edit.api.edit
 
 ::: rekordbox_edit.api.convert
+
+::: rekordbox_edit.api.import_tracks
 
 ## Models
 
@@ -71,6 +73,20 @@ heading_level: 4
 options:
 heading_level: 4
 
+### Import
+
+::: rekordbox_edit.models.ImportRequest
+options:
+heading_level: 4
+
+::: rekordbox_edit.models.ImportResponse
+options:
+heading_level: 4
+
+::: rekordbox_edit.models.ImportResult
+options:
+heading_level: 4
+
 ### Miscellaneous
 
 ::: rekordbox_edit.models.Track
@@ -82,6 +98,10 @@ options:
 heading_level: 4
 
 ::: rekordbox_edit.models.ConvertOp
+options:
+heading_level: 4
+
+::: rekordbox_edit.models.ImportOp
 options:
 heading_level: 4
 
