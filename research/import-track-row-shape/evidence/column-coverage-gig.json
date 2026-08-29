@@ -1,0 +1,545 @@
+{
+  "db": "gig",
+  "sampled_rows": 906,
+  "columns": {
+    "ID": {
+      "kind": "identity",
+      "populated": 906,
+      "distinct": 906
+    },
+    "FolderPath": {
+      "kind": "identity",
+      "populated": 906,
+      "distinct": 906
+    },
+    "FileNameL": {
+      "kind": "identity",
+      "populated": 906,
+      "distinct": 905
+    },
+    "FileNameS": {
+      "kind": "empty_constant",
+      "populated": 0,
+      "distinct": 1,
+      "value": ""
+    },
+    "Title": {
+      "kind": "tag",
+      "populated": 906,
+      "distinct": 881
+    },
+    "ArtistID": {
+      "kind": "tag",
+      "populated": 906,
+      "distinct": 259
+    },
+    "AlbumID": {
+      "kind": "tag",
+      "populated": 906,
+      "distinct": 303
+    },
+    "GenreID": {
+      "kind": "tag",
+      "populated": 222,
+      "distinct": 27
+    },
+    "BPM": {
+      "kind": "analysis",
+      "populated": 0,
+      "distinct": 1,
+      "value": 0
+    },
+    "Length": {
+      "kind": "tag",
+      "populated": 906,
+      "distinct": 331
+    },
+    "TrackNo": {
+      "kind": "tag",
+      "populated": 905,
+      "distinct": 46
+    },
+    "BitRate": {
+      "kind": "empty_constant",
+      "populated": 0,
+      "distinct": 1,
+      "value": 0
+    },
+    "BitDepth": {
+      "kind": "analysis",
+      "populated": 0,
+      "distinct": 1,
+      "value": 0
+    },
+    "Commnt": {
+      "kind": "tag",
+      "populated": 92,
+      "distinct": 25
+    },
+    "FileType": {
+      "kind": "tag",
+      "populated": 906,
+      "distinct": 4
+    },
+    "Rating": {
+      "kind": "empty_constant",
+      "populated": 0,
+      "distinct": 1,
+      "value": 0
+    },
+    "ReleaseYear": {
+      "kind": "tag",
+      "populated": 905,
+      "distinct": 47
+    },
+    "RemixerID": {
+      "kind": "null_constant",
+      "populated": 0,
+      "distinct": 1,
+      "value": null
+    },
+    "LabelID": {
+      "kind": "tag",
+      "populated": 4,
+      "distinct": 5
+    },
+    "OrgArtistID": {
+      "kind": "null_constant",
+      "populated": 0,
+      "distinct": 1,
+      "value": null
+    },
+    "KeyID": {
+      "kind": "tag_then_analysis",
+      "populated": 861,
+      "distinct": 25
+    },
+    "StockDate": {
+      "kind": "identity",
+      "populated": 906,
+      "distinct": 1,
+      "value": "2026-08-21"
+    },
+    "ColorID": {
+      "kind": "empty_constant",
+      "populated": 0,
+      "distinct": 1,
+      "value": "0"
+    },
+    "DJPlayCount": {
+      "kind": "empty_constant",
+      "populated": 0,
+      "distinct": 1,
+      "value": 0
+    },
+    "ImagePath": {
+      "kind": "empty_constant",
+      "populated": 0,
+      "distinct": 1,
+      "value": ""
+    },
+    "MasterDBID": {
+      "kind": "identity",
+      "populated": 906,
+      "distinct": 1,
+      "value": "<redacted>"
+    },
+    "MasterSongID": {
+      "kind": "identity",
+      "populated": 906,
+      "distinct": 906
+    },
+    "AnalysisDataPath": {
+      "kind": "analysis",
+      "populated": 0,
+      "distinct": 1,
+      "value": ""
+    },
+    "SearchStr": {
+      "kind": "null_constant",
+      "populated": 0,
+      "distinct": 1,
+      "value": null
+    },
+    "FileSize": {
+      "kind": "identity",
+      "populated": 906,
+      "distinct": 901
+    },
+    "DiscNo": {
+      "kind": "tag",
+      "populated": 37,
+      "distinct": 3
+    },
+    "ComposerID": {
+      "kind": "tag",
+      "populated": 280,
+      "distinct": 215
+    },
+    "Subtitle": {
+      "kind": "empty_constant",
+      "populated": 0,
+      "distinct": 1,
+      "value": ""
+    },
+    "SampleRate": {
+      "kind": "analysis",
+      "populated": 0,
+      "distinct": 1,
+      "value": 0
+    },
+    "DisableQuantize": {
+      "kind": "null_constant",
+      "populated": 0,
+      "distinct": 1,
+      "value": null
+    },
+    "Analysed": {
+      "kind": "analysis",
+      "populated": 0,
+      "distinct": 1,
+      "value": 0
+    },
+    "ReleaseDate": {
+      "kind": "empty_constant",
+      "populated": 0,
+      "distinct": 1,
+      "value": ""
+    },
+    "DateCreated": {
+      "kind": "file_stat",
+      "populated": 906,
+      "distinct": 3
+    },
+    "ContentLink": {
+      "kind": "analysis",
+      "populated": 906,
+      "distinct": 1,
+      "value": 14
+    },
+    "Tag": {
+      "kind": "null_constant",
+      "populated": 0,
+      "distinct": 1,
+      "value": null
+    },
+    "ModifiedByRBM": {
+      "kind": "empty_constant",
+      "populated": 0,
+      "distinct": 1,
+      "value": ""
+    },
+    "HotCueAutoLoad": {
+      "kind": "empty_constant",
+      "populated": 906,
+      "distinct": 1,
+      "value": "on"
+    },
+    "DeliveryControl": {
+      "kind": "empty_constant",
+      "populated": 906,
+      "distinct": 1,
+      "value": "on"
+    },
+    "DeliveryComment": {
+      "kind": "empty_constant",
+      "populated": 0,
+      "distinct": 1,
+      "value": ""
+    },
+    "CueUpdated": {
+      "kind": "null_constant",
+      "populated": 0,
+      "distinct": 1,
+      "value": null
+    },
+    "AnalysisUpdated": {
+      "kind": "analysis",
+      "populated": 0,
+      "distinct": 1,
+      "value": null
+    },
+    "TrackInfoUpdated": {
+      "kind": "analysis",
+      "populated": 0,
+      "distinct": 1,
+      "value": null
+    },
+    "Lyricist": {
+      "kind": "empty_constant",
+      "populated": 0,
+      "distinct": 1,
+      "value": ""
+    },
+    "ISRC": {
+      "kind": "tag",
+      "populated": 623,
+      "distinct": 610
+    },
+    "SamplerTrackInfo": {
+      "kind": "empty_constant",
+      "populated": 0,
+      "distinct": 1,
+      "value": 0
+    },
+    "SamplerPlayOffset": {
+      "kind": "empty_constant",
+      "populated": 0,
+      "distinct": 1,
+      "value": 0
+    },
+    "SamplerGain": {
+      "kind": "empty_constant",
+      "populated": 0,
+      "distinct": 1,
+      "value": 0.0
+    },
+    "VideoAssociate": {
+      "kind": "empty_constant",
+      "populated": 0,
+      "distinct": 1,
+      "value": "0"
+    },
+    "LyricStatus": {
+      "kind": "empty_constant",
+      "populated": 0,
+      "distinct": 1,
+      "value": 0
+    },
+    "ServiceID": {
+      "kind": "empty_constant",
+      "populated": 0,
+      "distinct": 1,
+      "value": 0
+    },
+    "OrgFolderPath": {
+      "kind": "empty_constant",
+      "populated": 0,
+      "distinct": 1,
+      "value": ""
+    },
+    "Reserved1": {
+      "kind": "empty_constant",
+      "populated": 0,
+      "distinct": 1,
+      "value": ""
+    },
+    "Reserved2": {
+      "kind": "null_constant",
+      "populated": 0,
+      "distinct": 1,
+      "value": null
+    },
+    "Reserved3": {
+      "kind": "null_constant",
+      "populated": 0,
+      "distinct": 1,
+      "value": null
+    },
+    "Reserved4": {
+      "kind": "null_constant",
+      "populated": 0,
+      "distinct": 1,
+      "value": null
+    },
+    "ExtInfo": {
+      "kind": "empty_constant",
+      "populated": 906,
+      "distinct": 1,
+      "value": "null"
+    },
+    "rb_file_id": {
+      "kind": "identity",
+      "populated": 906,
+      "distinct": 906
+    },
+    "DeviceID": {
+      "kind": "identity",
+      "populated": 906,
+      "distinct": 1,
+      "value": "<redacted>"
+    },
+    "rb_LocalFolderPath": {
+      "kind": "null_constant",
+      "populated": 0,
+      "distinct": 1,
+      "value": null
+    },
+    "SrcID": {
+      "kind": "null_constant",
+      "populated": 0,
+      "distinct": 1,
+      "value": null
+    },
+    "SrcTitle": {
+      "kind": "null_constant",
+      "populated": 0,
+      "distinct": 1,
+      "value": null
+    },
+    "SrcArtistName": {
+      "kind": "null_constant",
+      "populated": 0,
+      "distinct": 1,
+      "value": null
+    },
+    "SrcAlbumName": {
+      "kind": "null_constant",
+      "populated": 0,
+      "distinct": 1,
+      "value": null
+    },
+    "SrcLength": {
+      "kind": "null_constant",
+      "populated": 0,
+      "distinct": 1,
+      "value": null
+    },
+    "UUID": {
+      "kind": "identity",
+      "populated": 906,
+      "distinct": 906
+    },
+    "rb_data_status": {
+      "kind": "empty_constant",
+      "populated": 0,
+      "distinct": 1,
+      "value": 0
+    },
+    "rb_local_data_status": {
+      "kind": "empty_constant",
+      "populated": 0,
+      "distinct": 1,
+      "value": 0
+    },
+    "rb_local_deleted": {
+      "kind": "empty_constant",
+      "populated": 0,
+      "distinct": 1,
+      "value": 0
+    },
+    "rb_local_synced": {
+      "kind": "empty_constant",
+      "populated": 0,
+      "distinct": 1,
+      "value": 0
+    },
+    "usn": {
+      "kind": "bookkeeping",
+      "populated": 0,
+      "distinct": 1,
+      "value": null
+    },
+    "rb_local_usn": {
+      "kind": "bookkeeping",
+      "populated": 906,
+      "distinct": 906
+    },
+    "created_at": {
+      "kind": "bookkeeping",
+      "populated": 906,
+      "distinct": 906
+    },
+    "updated_at": {
+      "kind": "bookkeeping",
+      "populated": 906,
+      "distinct": 906
+    }
+  },
+  "by_kind": {
+    "analysis": [
+      "Analysed",
+      "AnalysisDataPath",
+      "AnalysisUpdated",
+      "BPM",
+      "BitDepth",
+      "ContentLink",
+      "SampleRate",
+      "TrackInfoUpdated"
+    ],
+    "bookkeeping": [
+      "created_at",
+      "rb_local_usn",
+      "updated_at",
+      "usn"
+    ],
+    "empty_constant": [
+      "BitRate",
+      "ColorID",
+      "DJPlayCount",
+      "DeliveryComment",
+      "DeliveryControl",
+      "ExtInfo",
+      "FileNameS",
+      "HotCueAutoLoad",
+      "ImagePath",
+      "LyricStatus",
+      "Lyricist",
+      "ModifiedByRBM",
+      "OrgFolderPath",
+      "Rating",
+      "ReleaseDate",
+      "Reserved1",
+      "SamplerGain",
+      "SamplerPlayOffset",
+      "SamplerTrackInfo",
+      "ServiceID",
+      "Subtitle",
+      "VideoAssociate",
+      "rb_data_status",
+      "rb_local_data_status",
+      "rb_local_deleted",
+      "rb_local_synced"
+    ],
+    "file_stat": [
+      "DateCreated"
+    ],
+    "identity": [
+      "DeviceID",
+      "FileNameL",
+      "FileSize",
+      "FolderPath",
+      "ID",
+      "MasterDBID",
+      "MasterSongID",
+      "StockDate",
+      "UUID",
+      "rb_file_id"
+    ],
+    "null_constant": [
+      "CueUpdated",
+      "DisableQuantize",
+      "OrgArtistID",
+      "RemixerID",
+      "Reserved2",
+      "Reserved3",
+      "Reserved4",
+      "SearchStr",
+      "SrcAlbumName",
+      "SrcArtistName",
+      "SrcID",
+      "SrcLength",
+      "SrcTitle",
+      "Tag",
+      "rb_LocalFolderPath"
+    ],
+    "tag": [
+      "AlbumID",
+      "ArtistID",
+      "Commnt",
+      "ComposerID",
+      "DiscNo",
+      "FileType",
+      "GenreID",
+      "ISRC",
+      "LabelID",
+      "Length",
+      "ReleaseYear",
+      "Title",
+      "TrackNo"
+    ],
+    "tag_then_analysis": [
+      "KeyID"
+    ]
+  }
+}

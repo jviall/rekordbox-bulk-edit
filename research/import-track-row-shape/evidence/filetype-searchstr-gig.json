@@ -1,0 +1,51 @@
+{
+  "db": "gig",
+  "file_type_by_extension": {
+    ".m4a": {
+      "6": 4,
+      "4": 20
+    },
+    ".flac": {
+      "5": 797
+    },
+    ".mp3": {
+      "1": 93
+    },
+    ".aiff": {
+      "12": 1
+    },
+    ".wav": {
+      "11": 9
+    }
+  },
+  "ambiguous_extensions": {
+    ".m4a": {
+      "6": 4,
+      "4": 20
+    }
+  },
+  "searchstr": {
+    "DjmdContent": {
+      "rows": 924,
+      "searchstr_populated": 0
+    },
+    "DjmdArtist": {
+      "rows": 483,
+      "searchstr_populated": 0
+    },
+    "DjmdAlbum": {
+      "rows": 310,
+      "searchstr_populated": 0
+    }
+  },
+  "analysed_values": {
+    "105": 18,
+    "0": 906
+  },
+  "content_link_values": {
+    "787982": 10,
+    "2885134": 3,
+    "2950670": 5,
+    "14": 906
+  }
+}

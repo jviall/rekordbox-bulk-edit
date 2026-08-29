@@ -1,0 +1,426 @@
+{
+  "db": "gig",
+  "total": 924,
+  "unanalyzed": 906,
+  "analyzed": 18,
+  "constants": {
+    "FileNameS": "",
+    "BPM": 0,
+    "BitRate": 0,
+    "BitDepth": 0,
+    "Rating": 0,
+    "RemixerID": null,
+    "OrgArtistID": null,
+    "StockDate": "2026-08-21",
+    "ColorID": "0",
+    "DJPlayCount": 0,
+    "ImagePath": "",
+    "MasterDBID": "<redacted>",
+    "AnalysisDataPath": "",
+    "SearchStr": null,
+    "Subtitle": "",
+    "SampleRate": 0,
+    "DisableQuantize": null,
+    "Analysed": 0,
+    "ReleaseDate": "",
+    "ContentLink": 14,
+    "Tag": null,
+    "ModifiedByRBM": "",
+    "HotCueAutoLoad": "on",
+    "DeliveryControl": "on",
+    "DeliveryComment": "",
+    "CueUpdated": null,
+    "AnalysisUpdated": null,
+    "TrackInfoUpdated": null,
+    "Lyricist": "",
+    "SamplerTrackInfo": 0,
+    "SamplerPlayOffset": 0,
+    "SamplerGain": 0.0,
+    "VideoAssociate": "0",
+    "LyricStatus": 0,
+    "ServiceID": 0,
+    "OrgFolderPath": "",
+    "Reserved1": "",
+    "Reserved2": null,
+    "Reserved3": null,
+    "Reserved4": null,
+    "ExtInfo": "null",
+    "DeviceID": "<redacted>",
+    "rb_LocalFolderPath": null,
+    "SrcID": null,
+    "SrcTitle": null,
+    "SrcArtistName": null,
+    "SrcAlbumName": null,
+    "SrcLength": null,
+    "rb_data_status": 0,
+    "rb_local_data_status": 0,
+    "rb_local_deleted": 0,
+    "rb_local_synced": 0,
+    "usn": null
+  },
+  "varies": {
+    "ID": {
+      "distinct": 906
+    },
+    "FolderPath": {
+      "distinct": 906
+    },
+    "FileNameL": {
+      "distinct": 905
+    },
+    "Title": {
+      "distinct": 881
+    },
+    "ArtistID": {
+      "distinct": 259,
+      "top": [
+        [
+          "1946886096",
+          104
+        ],
+        [
+          "764121195",
+          65
+        ],
+        [
+          "3541564251",
+          53
+        ],
+        [
+          "4159850050",
+          47
+        ],
+        [
+          "2716933740",
+          40
+        ]
+      ]
+    },
+    "AlbumID": {
+      "distinct": 303,
+      "top": [
+        [
+          "1909833060",
+          35
+        ],
+        [
+          "2491398718",
+          25
+        ],
+        [
+          "2685590169",
+          22
+        ],
+        [
+          "366090493",
+          21
+        ],
+        [
+          "1067351370",
+          19
+        ]
+      ]
+    },
+    "GenreID": {
+      "distinct": 27,
+      "top": [
+        [
+          null,
+          684
+        ],
+        [
+          "2634056648",
+          65
+        ],
+        [
+          "200288844",
+          43
+        ],
+        [
+          "144671724",
+          26
+        ],
+        [
+          "3220295837",
+          17
+        ]
+      ]
+    },
+    "Length": {
+      "distinct": 331,
+      "top": [
+        [
+          208,
+          11
+        ],
+        [
+          237,
+          10
+        ],
+        [
+          219,
+          9
+        ],
+        [
+          218,
+          9
+        ],
+        [
+          287,
+          9
+        ]
+      ]
+    },
+    "TrackNo": {
+      "distinct": 46,
+      "top": [
+        [
+          1,
+          117
+        ],
+        [
+          2,
+          77
+        ],
+        [
+          5,
+          67
+        ],
+        [
+          6,
+          63
+        ],
+        [
+          3,
+          61
+        ]
+      ]
+    },
+    "Commnt": {
+      "distinct": 25,
+      "top": [
+        [
+          "",
+          814
+        ],
+        [
+          "Visit https://nyp-records.bandcamp.com",
+          14
+        ],
+        [
+          "Visit https://ctemf.bandcamp.com",
+          13
+        ],
+        [
+          "https://musicriders.blogspot.com/",
+          13
+        ],
+        [
+          "Freak37",
+          10
+        ]
+      ]
+    },
+    "FileType": {
+      "distinct": 4,
+      "top": [
+        [
+          5,
+          794
+        ],
+        [
+          1,
+          91
+        ],
+        [
+          4,
+          19
+        ],
+        [
+          6,
+          2
+        ]
+      ]
+    },
+    "ReleaseYear": {
+      "distinct": 47,
+      "top": [
+        [
+          2020,
+          96
+        ],
+        [
+          2019,
+          77
+        ],
+        [
+          2016,
+          74
+        ],
+        [
+          2018,
+          73
+        ],
+        [
+          2017,
+          69
+        ]
+      ]
+    },
+    "LabelID": {
+      "distinct": 5,
+      "top": [
+        [
+          null,
+          902
+        ],
+        [
+          "4065041439",
+          1
+        ],
+        [
+          "3981741874",
+          1
+        ],
+        [
+          "2816246086",
+          1
+        ],
+        [
+          "3488006034",
+          1
+        ]
+      ]
+    },
+    "KeyID": {
+      "distinct": 25,
+      "top": [
+        [
+          "605300810",
+          114
+        ],
+        [
+          "1835941375",
+          111
+        ],
+        [
+          "2692740986",
+          99
+        ],
+        [
+          "959218935",
+          82
+        ],
+        [
+          "586363896",
+          78
+        ]
+      ]
+    },
+    "MasterSongID": {
+      "distinct": 906
+    },
+    "FileSize": {
+      "distinct": 901
+    },
+    "DiscNo": {
+      "distinct": 3,
+      "top": [
+        [
+          0,
+          869
+        ],
+        [
+          1,
+          35
+        ],
+        [
+          2,
+          2
+        ]
+      ]
+    },
+    "ComposerID": {
+      "distinct": 215,
+      "top": [
+        [
+          null,
+          626
+        ],
+        [
+          "1259008133",
+          13
+        ],
+        [
+          "2891178457",
+          10
+        ],
+        [
+          "4035760248",
+          10
+        ],
+        [
+          "2237982666",
+          9
+        ]
+      ]
+    },
+    "DateCreated": {
+      "distinct": 3,
+      "top": [
+        [
+          "2022-10-18",
+          628
+        ],
+        [
+          "2022-10-16",
+          276
+        ],
+        [
+          "2022-10-19",
+          2
+        ]
+      ]
+    },
+    "ISRC": {
+      "distinct": 610,
+      "top": [
+        [
+          "",
+          283
+        ],
+        [
+          "GB8A91200030",
+          2
+        ],
+        [
+          "USRC12100543",
+          2
+        ],
+        [
+          "TRUM71900023",
+          2
+        ],
+        [
+          "QMPKX1783348",
+          2
+        ]
+      ]
+    },
+    "rb_file_id": {
+      "distinct": 906
+    },
+    "UUID": {
+      "distinct": 906
+    },
+    "rb_local_usn": {
+      "distinct": 906
+    },
+    "created_at": {
+      "distinct": 906
+    },
+    "updated_at": {
+      "distinct": 906
+    }
+  }
+}
