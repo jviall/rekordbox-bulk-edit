@@ -10,7 +10,13 @@ import pytest
 from sqlalchemy import ColumnElement
 
 from rekordbox_edit.models import FilterArgs
-from rekordbox_edit.query import CollectionQuery, get_filtered_content
+from rekordbox_edit.query import (
+    CollectionQuery,
+    find_content_by_key,
+    find_playlists_by_name,
+    get_filtered_content,
+    normalize_path,
+)
 
 
 def _compile(condition: ColumnElement[bool]) -> str:
@@ -833,3 +839,150 @@ class TestCollectionQueryExecution:
 
         with pytest.raises(RuntimeError, match="No Session"):
             CollectionQuery().execute(mock_db)
+
+
+class TestNormalizePath:
+    def test_converts_backslashes_to_forward_slashes(self, tmp_path):
+        assert "\\" not in normalize_path(str(tmp_path))
+
+    @pytest.mark.skipif(
+        platform.system() == "Windows",
+        reason="symlink creation requires SeCreateSymbolicLinkPrivilege on Windows",
+    )
+    def test_resolves_symlinks(self, tmp_path):
+        target = tmp_path / "real.flac"
+        target.write_bytes(b"")
+        link = tmp_path / "link.flac"
+        link.symlink_to(target)
+        assert normalize_path(str(link)).endswith("real.flac")
+
+    def test_makes_relative_paths_absolute(self):
+        assert os.path.isabs(normalize_path("song.flac"))
+
+
+class TestFindContentByKey:
+    @staticmethod
+    def _db(*folder_paths):
+        db = MagicMock()
+        db.session = MagicMock()
+        rows = [MagicMock(FolderPath=p) for p in folder_paths]
+        db.session.execute.return_value.scalars.return_value = rows
+        return db, rows
+
+    def test_matches_a_stored_row_by_key(self, tmp_path):
+        # A stored FolderPath is always absolute, so the fixture has to be too:
+        # a bare "/music/a.flac" gains a drive letter when the key side
+        # resolves it on Windows but not when the stored side is normalized.
+        track = str(tmp_path / "a.flac")
+        db, rows = self._db(track)
+
+        found = find_content_by_key(db, [normalize_path(track).casefold()])
+
+        assert found == {normalize_path(track).casefold(): rows[0]}
+
+    def test_matches_a_backslashed_stored_path(self, tmp_path):
+        # A row written by pyrekordbox directly holds Windows separators; it
+        # still has to match the forward-slashed key the caller supplies.
+        track = tmp_path / "a.flac"
+        db, rows = self._db(str(track).replace("/", "\\"))
+
+        found = find_content_by_key(db, [normalize_path(str(track)).casefold()])
+
+        assert list(found.values()) == [rows[0]]
+
+    def test_matches_case_insensitively(self, tmp_path):
+        # Rekordbox's stored case can differ from the live filesystem's.
+        track = tmp_path / "Track.flac"
+        db, rows = self._db(str(track).upper())
+
+        found = find_content_by_key(db, [normalize_path(str(track).lower()).casefold()])
+
+        assert list(found.values()) == [rows[0]]
+
+    def test_omits_rows_that_do_not_match(self, tmp_path):
+        db, _ = self._db(str(tmp_path / "other.flac"))
+
+        assert (
+            find_content_by_key(
+                db, [normalize_path(str(tmp_path / "a.flac")).casefold()]
+            )
+            == {}
+        )
+
+    def test_tolerates_a_null_folder_path(self, tmp_path):
+        # FolderPath is nullable; a row holding NULL must not raise.
+        db, _ = self._db(None)
+
+        assert (
+            find_content_by_key(
+                db, [normalize_path(str(tmp_path / "a.flac")).casefold()]
+            )
+            == {}
+        )
+
+    def test_returns_empty_without_querying_when_no_keys_are_given(self, tmp_path):
+        db, _ = self._db(str(tmp_path / "a.flac"))
+
+        assert find_content_by_key(db, []) == {}
+        db.session.execute.assert_not_called()
+
+    def test_raises_without_a_session(self, tmp_path):
+        db = MagicMock()
+        db.session = None
+
+        with pytest.raises(RuntimeError, match="No Session"):
+            find_content_by_key(
+                db, [normalize_path(str(tmp_path / "a.flac")).casefold()]
+            )
+
+
+class TestFindPlaylistsByName:
+    def test_returns_a_normal_playlist(self):
+        mock_db = MagicMock()
+        mock_db.session = MagicMock()
+        playlist = MagicMock(Name="Crate", Attribute=0)
+        mock_db.session.execute.return_value.scalars.return_value = [playlist]
+
+        assert find_playlists_by_name(mock_db, "Crate") == [playlist]
+
+    def test_excludes_a_folder_with_a_matching_name(self):
+        mock_db = MagicMock()
+        mock_db.session = MagicMock()
+        folder = MagicMock(Name="Crate", Attribute=1)
+        mock_db.session.execute.return_value.scalars.return_value = [folder]
+
+        assert find_playlists_by_name(mock_db, "Crate") == []
+
+    def test_a_folder_sharing_a_name_does_not_cause_ambiguity(self):
+        # A folder and a normal playlist can share a name; only the normal
+        # playlist should resolve, not both.
+        mock_db = MagicMock()
+        mock_db.session = MagicMock()
+        folder = MagicMock(Name="Crate", Attribute=1)
+        playlist = MagicMock(Name="Crate", Attribute=0)
+        mock_db.session.execute.return_value.scalars.return_value = [folder, playlist]
+
+        assert find_playlists_by_name(mock_db, "Crate") == [playlist]
+
+    def test_excludes_a_smart_playlist_with_a_matching_name(self):
+        mock_db = MagicMock()
+        mock_db.session = MagicMock()
+        smart = MagicMock(Name="Crate", Attribute=4)
+        mock_db.session.execute.return_value.scalars.return_value = [smart]
+
+        assert find_playlists_by_name(mock_db, "Crate") == []
+
+    def test_matches_case_insensitively(self):
+        mock_db = MagicMock()
+        mock_db.session = MagicMock()
+        playlist = MagicMock(Name="Late Night", Attribute=0)
+        mock_db.session.execute.return_value.scalars.return_value = [playlist]
+
+        assert find_playlists_by_name(mock_db, "late NIGHT") == [playlist]
+
+    def test_raises_without_a_session(self):
+        mock_db = MagicMock()
+        mock_db.session = None
+
+        with pytest.raises(RuntimeError, match="No Session"):
+            find_playlists_by_name(mock_db, "Crate")

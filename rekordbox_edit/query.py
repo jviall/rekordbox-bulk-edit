@@ -1,6 +1,7 @@
 import logging
 import os
 from pathlib import Path
+from collections.abc import Collection
 from typing import List, Literal, Tuple, Union
 
 from pyrekordbox import Rekordbox6Database
@@ -12,13 +13,20 @@ from pyrekordbox.db6.tables import (
     DjmdSongPlaylist,
 )
 from sqlalchemy import ColumnElement, Result, and_, func, or_, select
-from sqlalchemy.orm import aliased
+from sqlalchemy.orm import Session, aliased
 
 from rekordbox_edit.models import FilterArgs
 
 logger = logging.getLogger(__name__)
 
 MatchMode = Literal["grouped", "all", "any"]
+
+
+def require_session(db: Rekordbox6Database) -> Session:
+    """The database's open session, narrowed from `Session | None`."""
+    if not db.session:
+        raise RuntimeError("Failed to connect to Rekordbox Database: No Session.")
+    return db.session
 
 
 class CollectionQuery:
@@ -203,23 +211,20 @@ class CollectionQuery:
 
     def count(self, db: Rekordbox6Database) -> int:
         """Get a count of the query's results on the given database instance."""
-        if not db.session:
-            raise RuntimeError("Failed to connect to Rekordbox Database: No Session.")
+        session = require_session(db)
         stmt = self._get_full_statement()
         count_stmt = select(func.count()).select_from(stmt.subquery())
-        result = db.session.execute(count_stmt)
-        return result.scalar_one()
+        return session.execute(count_stmt).scalar_one()
 
     def execute(
         self,
         db: Rekordbox6Database,
     ) -> Result[Tuple[DjmdContent]]:
         """Execute the query on the given database instance and return results."""
-        if not db.session:
-            raise RuntimeError("Failed to connect to Rekordbox Database: No Session.")
+        session = require_session(db)
         stmt = self._get_full_statement()
         logger.debug(f"Executing Query:\n{str(stmt)}")
-        return db.session.execute(stmt)
+        return session.execute(stmt)
 
     def _get_full_statement(self):
         """Return the final statement with all expressions applied."""
@@ -273,8 +278,7 @@ def get_filtered_content(
 ) -> Result[Tuple[DjmdContent]]:
     """Query the Rekordbox database with the provided filters."""
     db = db if db is not None else Rekordbox6Database()
-    if not db.session:
-        raise RuntimeError("Failed to connect to Rekordbox Database: No Session.")
+    require_session(db)
 
     query = CollectionQuery()
 
@@ -330,3 +334,50 @@ def get_filtered_content(
         query = query.last(filters.last)
 
     return query.execute(db)
+
+
+def normalize_path(path: str) -> str:
+    """A path in the form Rekordbox stores: absolute, symlinks resolved,
+    forward-slashed. Rekordbox records the resolved form, so /tmp becomes
+    /private/tmp on macOS."""
+    return Path(path).resolve().as_posix()
+
+
+def find_content_by_key(
+    db: Rekordbox6Database, keys: Collection[str]
+) -> dict[str, DjmdContent]:
+    """Existing rows for any of `keys`, where a key is a case-folded
+    normalize_path() result.
+
+    Case folding is what lets a lookup match a row Rekordbox stored under a
+    different case than the live filesystem reports, since Path.resolve()
+    does not correct case on macOS. The comparison runs in Python rather than
+    SQL because SQLite's LOWER() is ASCII-only.
+    """
+    session = require_session(db)
+    if not keys:
+        return {}
+    wanted = set(keys)
+    found: dict[str, DjmdContent] = {}
+    for content in session.execute(select(DjmdContent)).scalars():
+        key = (content.FolderPath or "").replace("\\", "/").casefold()
+        if key in wanted:
+            found[key] = content
+    logger.debug(f"path lookup matched {len(found)} of {len(wanted)} candidate(s)")
+    return found
+
+
+def find_playlists_by_name(db: Rekordbox6Database, name: str) -> list[DjmdPlaylist]:
+    """Normal playlists whose name matches case-insensitively.
+
+    Excludes folders and smart playlists (Attribute != 0): they cannot take
+    add_to_playlist, and a folder sharing a name with a real playlist would
+    otherwise report a spurious ambiguity.
+    """
+    session = require_session(db)
+    target = name.casefold()
+    return [
+        p
+        for p in session.execute(select(DjmdPlaylist)).scalars()
+        if (p.Name or "").casefold() == target and p.Attribute == 0
+    ]
