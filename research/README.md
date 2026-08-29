@@ -38,3 +38,7 @@ formal and terse, and states findings as the evidence supports them.
   command deliberately diverges from that behavior.
 - **`file-types/`** — how `convert` and the display layer should treat Rekordbox
   `FileType` codes the tool does not map.
+- **`import-track-row-shape/`** — what a `DjmdContent` row holds immediately after
+  Rekordbox imports a track and before analysis runs, which columns come from
+  tags rather than the audio, and where `pyrekordbox.add_content` diverges from
+  what Rekordbox writes.

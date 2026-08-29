@@ -1,0 +1,225 @@
+{
+  "db": "gig",
+  "scanned_by_format": {
+    "FLAC": 794,
+    "MP3": 91,
+    "ALAC": 2,
+    "AAC": 19
+  },
+  "exact_match": {
+    "FLAC": {
+      "Title": {
+        "title": 794,
+        "album": 47
+      },
+      "ISRC": {
+        "isrc": 600,
+        "comment": 1
+      },
+      "ArtistID": {
+        "albumartist": 542,
+        "artist": 794,
+        "album": 13,
+        "album artist": 3,
+        "composer": 11
+      },
+      "AlbumID": {
+        "album": 794,
+        "title": 47,
+        "albumartist": 6,
+        "artist": 13,
+        "albumtitle": 1,
+        "copyright": 2
+      },
+      "KeyID": {
+        "initialkey": 770
+      },
+      "ComposerID": {
+        "composer": 259,
+        "albumartist": 3,
+        "artist": 4
+      },
+      "LabelID": {
+        "label": 2,
+        "organization": 1
+      },
+      "GenreID": {
+        "genre": 126
+      },
+      "Commnt": {
+        "comment": 47,
+        "description": 7,
+        "isrc": 1
+      }
+    },
+    "MP3": {
+      "Title": {
+        "TIT2": 91
+      },
+      "ArtistID": {
+        "TPE1": 91,
+        "TPE2": 17
+      },
+      "AlbumID": {
+        "TALB": 91
+      },
+      "GenreID": {
+        "TCON": 75
+      },
+      "KeyID": {
+        "TKEY": 91
+      },
+      "Commnt": {
+        "COMM::eng": 42,
+        "COMM:ID3v1 Comment:eng": 1,
+        "TPUB": 1
+      },
+      "ISRC": {
+        "TSRC": 4
+      },
+      "ComposerID": {
+        "TCOM": 2
+      },
+      "LabelID": {
+        "TPUB": 1,
+        "COMM::eng": 1
+      }
+    },
+    "ALAC": {
+      "Title": {
+        "\u00a9nam": 2
+      },
+      "ArtistID": {
+        "\u00a9ART": 2
+      },
+      "AlbumID": {
+        "\u00a9alb": 2
+      },
+      "GenreID": {
+        "\u00a9gen": 2
+      }
+    },
+    "AAC": {
+      "Title": {
+        "\u00a9nam": 19
+      },
+      "Commnt": {
+        "\u00a9cmt": 3
+      },
+      "ComposerID": {
+        "\u00a9wrt": 19
+      },
+      "ArtistID": {
+        "aART": 19,
+        "\u00a9ART": 19
+      },
+      "AlbumID": {
+        "\u00a9alb": 19
+      },
+      "GenreID": {
+        "\u00a9gen": 19
+      }
+    }
+  },
+  "substring_match": {
+    "FLAC": {
+      "ArtistID": {
+        "album": 13,
+        "composer": 6,
+        "title": 2,
+        "copyright": 17
+      },
+      "AlbumID": {
+        "title": 19,
+        "serato_overview": 1,
+        "serato_autogain": 1,
+        "serato_markers_v2": 1,
+        "serato_relvol": 1,
+        "serato_video_assoc": 1,
+        "serato_analysis": 1,
+        "serato_beatgrid": 1,
+        "albumartist": 13,
+        "artist": 14,
+        "lyrics": 1,
+        "copyright": 2
+      },
+      "KeyID": {
+        "serato_analysis": 27,
+        "serato_overview": 53,
+        "composer": 5,
+        "album": 6,
+        "serato_autogain": 40,
+        "serato_markers_v2": 30,
+        "serato_relvol": 28,
+        "serato_video_assoc": 28,
+        "serato_beatgrid": 32,
+        "albumartist": 5,
+        "title": 6,
+        "artist": 5,
+        "copyright": 8
+      },
+      "Title": {
+        "album": 5,
+        "isrc": 1,
+        "serato_overview": 1,
+        "serato_markers_v2": 1,
+        "serato_relvol": 1,
+        "copyright": 1,
+        "lyrics": 2
+      },
+      "ComposerID": {
+        "artist": 2,
+        "copyright": 3
+      },
+      "GenreID": {
+        "title": 2,
+        "album": 1
+      }
+    },
+    "MP3": {
+      "KeyID": {
+        "APIC:": 15,
+        "APIC:cover": 4,
+        "GEOB:Serato Overview": 1,
+        "GEOB:Serato Analysis": 1,
+        "GEOB:Serato Autotags": 1,
+        "GEOB:Serato Markers_": 1,
+        "GEOB:Serato Markers2": 1,
+        "GEOB:Serato BeatGrid": 1,
+        "GEOB:Serato Offsets_": 1
+      },
+      "GenreID": {
+        "TALB": 2
+      },
+      "Commnt": {
+        "APIC:": 1
+      },
+      "Title": {
+        "TALB": 3
+      },
+      "AlbumID": {
+        "TIT2": 1
+      }
+    },
+    "AAC": {
+      "ISRC": {
+        "xid ": 19
+      },
+      "Commnt": {
+        "\u00a9nam": 2
+      },
+      "Title": {
+        "\u00a9alb": 1
+      }
+    }
+  },
+  "column_populated_no_tag_matched": {},
+  "tag_present_column_empty": {
+    "ALAC": {
+      "KeyID <- ----:com.apple.iTunes:initialkey": 2
+    },
+    "AAC": {
+      "KeyID <- ----:com.apple.iTunes:initialkey": 19
+    }
+  }
+}
