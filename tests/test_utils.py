@@ -5,6 +5,7 @@ from unittest.mock import patch
 import pytest
 
 from rekordbox_edit.utils import (
+    FILE_TYPES,
     UserQuit,
     get_audio_info,
     get_extension_for_format,
@@ -17,6 +18,25 @@ from rekordbox_edit.utils import (
     star_rating_to_stored,
     stored_to_star_rating,
 )
+
+
+class TestFileTypeRegistry:
+    def test_resolves_a_code_name_or_token(self):
+        wav = FILE_TYPES[11]
+        assert FILE_TYPES.get("WAV") is wav
+        assert FILE_TYPES.get("wav") is wav
+
+    def test_resolves_an_alias(self):
+        # mutagen calls the class WAVE; the registry is what reconciles that
+        # with the "WAV" this project displays.
+        assert FILE_TYPES.get("WAVE") is FILE_TYPES[11]
+
+    def test_unknown_key_returns_none(self):
+        assert FILE_TYPES.get("OGG") is None
+
+    def test_subscript_raises_for_an_unknown_key(self):
+        with pytest.raises(KeyError, match="OGG"):
+            FILE_TYPES["OGG"]
 
 
 class TestGetFileTypeName:

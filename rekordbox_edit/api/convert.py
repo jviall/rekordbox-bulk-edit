@@ -41,7 +41,7 @@ TARGET_BIT_DEPTH = 16
 TARGET_SAMPLE_RATE = 44100
 
 # Rekordbox FileType codes RBE converts from: the lossless whitelist.
-_INPUT_FILE_TYPES = {code for code, info in FILE_TYPES.items() if info.convertable}
+_INPUT_FILE_TYPES = {info.code for info in FILE_TYPES.items() if info.convertable}
 
 _HI_RES_CODECS = {
     "aiff": "pcm_s16be",
