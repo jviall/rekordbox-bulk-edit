@@ -56,6 +56,13 @@ rbe convert --artist "Daft Punk" --dry-run
 rbe convert --format flac --format wav --format-out aiff --yes
 ```
 
+Import new tracks:
+
+```bash
+# Import a folder into the library and an existing playlist
+rbe import "/Users/me/Music/New Tracks" --to-playlist "Recently Added" --directory --yes
+```
+
 See the [documentation](https://rekordbox-edit.readthedocs.io/) for every command, the full filtering language, and scripting recipes.
 
 ## Safety and Best Practices
