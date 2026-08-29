@@ -13,6 +13,10 @@ from rekordbox_edit.models import (
     EditResponse,
     EditResult,
     FilterArgs,
+    ImportOp,
+    ImportRequest,
+    ImportResponse,
+    ImportResult,
     SearchRequest,
     SearchResponse,
     SkippedTrack,
@@ -215,3 +219,39 @@ class TestSearchResponse:
         track = Track(ID="1", FileNameL="x.wav", FolderPath="/x.wav")
         resp = SearchResponse(tracks=[track])
         assert resp.tracks[0].ID == "1"
+
+
+class TestImportRequest:
+    def test_defaults_to_empty(self):
+        args = ImportRequest()
+        assert args.paths == []
+        assert args.playlist is None
+        assert args.recurse is False
+
+    def test_rejects_unknown_fields(self):
+        with pytest.raises(ValidationError):
+            ImportRequest.model_validate({"nonsense": True})
+
+
+class TestImportResponse:
+    def test_rejects_misaligned_tracks_and_ops(self):
+        with pytest.raises(ValidationError):
+            ImportResponse(
+                tracks=[],
+                result=ImportResult(
+                    playlist=None,
+                    added=[ImportOp(id="1", path="/a.flac", action="create")],
+                    skipped=[],
+                ),
+            )
+
+    def test_accepts_aligned_tracks_and_ops(self):
+        response = ImportResponse(
+            tracks=[Track(ID="1", FileNameL="a.flac", FolderPath="/a.flac")],
+            result=ImportResult(
+                playlist=None,
+                added=[ImportOp(id="1", path="/a.flac", action="create")],
+                skipped=[],
+            ),
+        )
+        assert len(response.tracks) == 1

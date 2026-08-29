@@ -4,22 +4,25 @@ Three layers:
 
 - **Filter base** (`FilterArgs`) declares track-selection criteria shared by all
   commands.
-- **API/Command request models** (`SearchRequest`, `EditRequest`, `ConvertRequest`) extend `FilterArgs`
-  with command-specific fields.
-- **API/Command response models** (`SearchResponse`, `EditResponse`, `ConvertResponse`)
+- **API/Command request models** (`SearchRequest`, `EditRequest`, `ConvertRequest`, `ImportRequest`) extend `FilterArgs`
+  with command-specific fields, except `ImportRequest`, which selects paths on
+  disk rather than existing rows.
+- **API/Command response models** (`SearchResponse`, `EditResponse`, `ConvertResponse`, `ImportResponse`)
   describe what each command returns.
-- **Domain types** (`Track`, `EditOp`, `ConvertOp`, `SkippedTrack`)
+- **Domain types** (`Track`, `EditOp`, `ConvertOp`, `ImportOp`, `SkippedTrack`)
   which help describe the internals of requests/responses
 
 Response semantics:
 
 - `tracks` always reflects the **current DB state** at the moment the response
-  was built. Pre-execute for dry-runs, post-execute for write runs.
+  was built. Pre-execute for dry-runs, post-execute for write runs. `import` is the
+  one exception: a dry-run has no rows to describe, so it returns synthetic
+  `Track` models built from the planned values, with `ID` left empty.
 - `result` summarizes what happened (or would happen in a dry-run). Response
   models should self describe the operation that happened (e.g. the field name
   for edit, the target format for convert) so a response is fully self-describing.
-- `tracks` and `result.edits` / `result.converted` align 1:1 in their contents and
-  order by index;
+- `tracks` and `result.edits` / `result.converted` / `result.added` align 1:1 in
+  their contents and order by index;
 """
 
 from typing import Literal, TypeAlias
@@ -100,6 +103,22 @@ class ConvertRequest(FilterArgs):
     overwrite: bool = False
 
 
+class ImportRequest(BaseModel):
+    """Inputs for import_tracks(): files or directories, and where to put them.
+
+    Unlike the other commands, this does not extend FilterArgs: its input is
+    paths on disk whose rows do not exist yet.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    paths: list[str] = []
+    playlist: str | None = None
+    recurse: bool = False
+    """Authorize walking directory arguments recursively. The CLI sets this
+    from --yes, and from an answered walk prompt."""
+
+
 # ── Domain types ──────────────────────────────────────────────────────────
 
 
@@ -145,6 +164,9 @@ SkipReason: TypeAlias = Literal[
     "file_not_found",
     "length_mismatch",
     "unknown_file_type",
+    "already_exists",
+    "unsupported_file_type",
+    "unreadable_file",
 ]
 
 
@@ -180,6 +202,16 @@ class ConvertOp(BaseModel):
     output_file_type: str | None = None
     output_bit_depth: int | None = None
     output_sample_rate: int | None = None
+
+
+class ImportOp(BaseModel):
+    """A planned or performed import. `action` distinguishes a newly created row
+    from a track that already existed and was only added to a playlist. `id` is
+    empty for a planned create, which has no ID until the row is inserted."""
+
+    id: str
+    path: str
+    action: Literal["create", "playlist_add"]
 
 
 # ── Response envelopes ────────────────────────────────────────────────────
@@ -230,5 +262,27 @@ class ConvertResponse(BaseModel):
             raise ValueError(
                 f"tracks ({len(self.tracks)}) and result.converted "
                 f"({len(self.result.converted)}) must align 1:1"
+            )
+        return self
+
+
+class ImportResult(BaseModel):
+    """Result payload for import_tracks(). `added` aligns 1:1 with response.tracks."""
+
+    playlist: str | None
+    added: list[ImportOp]
+    skipped: list[SkippedTrack]
+
+
+class ImportResponse(BaseModel):
+    tracks: list[Track]
+    result: ImportResult
+
+    @model_validator(mode="after")
+    def _check_import_alignment(self) -> "ImportResponse":
+        if len(self.tracks) != len(self.result.added):
+            raise ValueError(
+                f"tracks ({len(self.tracks)}) and result.added "
+                f"({len(self.result.added)}) must align 1:1"
             )
         return self
