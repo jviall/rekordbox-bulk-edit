@@ -24,61 +24,123 @@ class FileTypeInfo:
     """One Rekordbox FileType code: how RBE names, filters, probes, and
     converts it. ``codecs`` are ffprobe codec_name prefixes and
     ``containers`` are format_name substrings; a probe must satisfy both
-    (WAV and AIFF share PCM codecs, so their containers disambiguate)."""
+    (WAV and AIFF share PCM codecs, so their containers disambiguate).
+    ``aliases`` are other names the format answers to, so a lookup keyed by
+    another library's vocabulary still resolves. ``extensions`` are the
+    suffixes RBE recognizes as this type, most canonical first; ``convertable``
+    marks a valid conversion source, and OutputFormats names the valid
+    targets."""
 
     code: int
     name: str
     token: str
-    extension: str | None = None
+    extensions: tuple[str, ...] = ()
     codecs: tuple[str, ...] = ()
     containers: tuple[str, ...] = ()
+    aliases: tuple[str, ...] = ()
     convertable: bool = False
 
 
-FILE_TYPES: dict[int, FileTypeInfo] = {
-    # Corrupt or empty content, independent of container.
-    0: FileTypeInfo(code=0, name="INVALID", token="invalid"),
-    1: FileTypeInfo(code=1, name="MP3", token="mp3", extension=".mp3", codecs=("mp3",)),
-    # 3 is the .mp4 container regardless of content: audio-only AAC/ALAC
-    # .mp4 files land here alongside video .mp4, so RBE never converts it.
-    3: FileTypeInfo(code=3, name="MP4", token="mp4"),
-    4: FileTypeInfo(code=4, name="AAC", token="aac", codecs=("aac",)),
-    5: FileTypeInfo(
-        code=5,
-        name="FLAC",
-        token="flac",
-        extension=".flac",
-        codecs=("flac",),
-        convertable=True,
-    ),
-    6: FileTypeInfo(
-        code=6,
-        name="ALAC",
-        token="alac",
-        codecs=("alac",),
-        convertable=True,
-    ),
-    11: FileTypeInfo(
-        code=11,
-        name="WAV",
-        token="wav",
-        extension=".wav",
-        codecs=("pcm_",),
-        containers=("wav",),
-        convertable=True,
-    ),
-    12: FileTypeInfo(
-        code=12,
-        name="AIFF",
-        token="aiff",
-        extension=".aiff",
-        codecs=("pcm_",),
-        containers=("aiff",),
-        convertable=True,
-    ),
-    # Catch-all for non-mp4 video containers (avi, m4v, mov, mpg).
-    16: FileTypeInfo(code=16, name="VIDEO", token="video"),
-}
+class FileTypeRegistry:
+    def __init__(self, items: list[FileTypeInfo]) -> None:
+        self._items: list[FileTypeInfo] = items
+        self._by_code: dict[int, FileTypeInfo] = {i.code: i for i in items}
+        self._by_name: dict[str, FileTypeInfo] = {i.name: i for i in items}
+        self._by_token: dict[str, FileTypeInfo] = {i.token: i for i in items}
+        self._by_alias: dict[str, FileTypeInfo] = {
+            alias: i for i in items for alias in i.aliases
+        }
+
+    def get(self, key: int | str) -> FileTypeInfo | None:
+        if isinstance(key, int):
+            return self._by_code.get(key)
+        return (
+            self._by_name.get(key) or self._by_token.get(key) or self._by_alias.get(key)
+        )
+
+    def __getitem__(self, key: int | str) -> FileTypeInfo:
+        result = self.get(key)
+        if result is None:
+            raise KeyError(f"FileTypeInfo not found for key: {key!r}")
+        return result
+
+    def items(self) -> list[FileTypeInfo]:
+        return self._items
+
+
+FILE_TYPES = FileTypeRegistry(
+    [
+        # Corrupt or empty content, independent of container.
+        FileTypeInfo(code=0, name="INVALID", token="invalid"),
+        FileTypeInfo(
+            code=1, name="MP3", token="mp3", extensions=(".mp3",), codecs=("mp3",)
+        ),
+        # 3 is the .mp4 container regardless of content: audio-only AAC/ALAC
+        # .mp4 files land here alongside video .mp4, so RBE never converts it.
+        FileTypeInfo(code=3, name="MP4", token="mp4", extensions=(".mp4",)),
+        FileTypeInfo(
+            code=4,
+            name="AAC",
+            token="aac",
+            extensions=(".aac", ".m4a"),
+            codecs=("aac",),
+        ),
+        FileTypeInfo(
+            code=5,
+            name="FLAC",
+            token="flac",
+            extensions=(".flac",),
+            codecs=("flac",),
+            convertable=True,
+        ),
+        FileTypeInfo(
+            code=6,
+            name="ALAC",
+            token="alac",
+            extensions=(".m4a",),
+            codecs=("alac",),
+            convertable=True,
+        ),
+        FileTypeInfo(
+            code=11,
+            name="WAV",
+            token="wav",
+            extensions=(".wav",),
+            codecs=("pcm_",),
+            containers=("wav",),
+            # The RIFF form type, and what mutagen calls the class.
+            aliases=("WAVE",),
+            convertable=True,
+        ),
+        FileTypeInfo(
+            code=12,
+            name="AIFF",
+            token="aiff",
+            extensions=(".aiff", ".aif"),
+            codecs=("pcm_",),
+            containers=("aiff",),
+            convertable=True,
+        ),
+        # Catch-all for non-mp4 video containers (avi, m4v, mov, mpg). Its
+        # extensions stay empty: the code is only ever read back from the
+        # database, never inferred from a file RBE is asked to handle.
+        FileTypeInfo(code=16, name="VIDEO", token="video"),
+    ]
+)
+
+
+class OutputFormats(Enum):
+    """The formats RBE can write. A FileTypeInfo carries extensions for every
+    type RBE recognizes, including ones it only ever reads, so membership here
+    is what gates an output format rather than the presence of an extension."""
+
+    MP3 = "mp3"
+    FLAC = "flac"
+    AIFF = "aiff"
+    WAV = "wav"
+
+
+_OUTPUT_TOKENS = frozenset(f.value for f in OutputFormats)
 
 
 def get_file_type_name(file_type_code: int | None) -> str | None:
@@ -97,7 +159,7 @@ def get_file_type_codes_for_format(format_name: str) -> set[int]:
     if not format_name:
         raise ValueError("Format name cannot be empty or None")
     token = format_name.lower()
-    codes = {code for code, info in FILE_TYPES.items() if token == info.token}
+    codes = {info.code for info in FILE_TYPES.items() if token == info.token}
     if not codes:
         raise ValueError(f"Unknown format: {format_name}")
     return codes
@@ -109,18 +171,15 @@ def get_file_type_for_format(format_name: str) -> int:
     if not format_name:
         raise ValueError("Format name cannot be empty or None")
     token = format_name.lower()
-    for code, info in FILE_TYPES.items():
-        if info.extension and token == info.token:
-            return code
-    raise ValueError(f"Unknown format: {format_name}")
+    if token not in _OUTPUT_TOKENS:
+        raise ValueError(f"Unknown format: {format_name}")
+    return FILE_TYPES[token].code
 
 
 def get_extension_for_format(format_name: str) -> str:
-    """Get file extension for an output format name (case-insensitive)."""
+    """The extension RBE gives files it writes in this output format."""
     code = get_file_type_for_format(format_name)
-    extension = FILE_TYPES[code].extension
-    assert extension is not None  # get_file_type_for_format only returns such codes
-    return extension
+    return FILE_TYPES[code].extensions[0]
 
 
 def probe_matches_file_type(
@@ -146,17 +205,10 @@ def get_file_type_for_probe(codec: str | None, container: str | None) -> int | N
     """The Rekordbox FileType code for a probed codec/container, or None when
     no code matches. Only codes with declared codecs are candidates, so the
     catch-all codes (INVALID, MP4, VIDEO) are never inferred from a probe."""
-    for code, info in FILE_TYPES.items():
-        if info.codecs and probe_matches_file_type(code, codec, container):
-            return code
+    for info in FILE_TYPES.items():
+        if info.codecs and probe_matches_file_type(info.code, codec, container):
+            return info.code
     return None
-
-
-class OutputFormats(Enum):
-    MP3 = "mp3"
-    FLAC = "flac"
-    AIFF = "aiff"
-    WAV = "wav"
 
 
 def ffmpeg_in_path():
