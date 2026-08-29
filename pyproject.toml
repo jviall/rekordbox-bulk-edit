@@ -18,6 +18,7 @@ dependencies = [
     "platformdirs>=4.3.8,<5.0.0",
     "rich>=15.0.0,<15.1.0",
     "pydantic>=2.0,<3",
+    "mutagen>=1.48.1",
 ]
 
 [dependency-groups]
