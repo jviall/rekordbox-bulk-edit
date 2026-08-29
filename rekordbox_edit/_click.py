@@ -125,25 +125,28 @@ global_click_filters = [
     ),
 ]
 
-global_click_confirmations = [
-    click.option(
-        "--dry-run",
-        is_flag=True,
-        help="Show what would change without writing to the database or filesystem",
-    ),
-    click.option(
-        "--yes",
-        "-y",
-        is_flag=True,
-        help="Skip confirmation prompt",
-    ),
-    click.option(
-        "--interactive",
-        "-i",
-        is_flag=True,
-        help="Confirm each item individually before applying changes",
-    ),
-]
+dry_run_option = click.option(
+    "--dry-run",
+    is_flag=True,
+    help="Show what would change without writing to the database or filesystem",
+)
+
+yes_option = click.option(
+    "--yes",
+    "-y",
+    is_flag=True,
+    help="Skip confirmation prompt",
+)
+
+interactive_option = click.option(
+    "--interactive",
+    "-i",
+    is_flag=True,
+    help="Confirm each item individually before applying changes",
+)
+
+# Individually named above so a command can take a subset by name.
+global_click_confirmations = [dry_run_option, yes_option, interactive_option]
 
 edit_click_options = [
     click.option(
@@ -188,6 +191,18 @@ convert_click_options = [
         type=click.Choice(["aiff", "flac", "wav", "mp3"], case_sensitive=False),
         default="aiff",
         help="Output format (default: aiff)",
+    ),
+]
+
+
+paths_argument = click.argument("paths", type=str, required=True, nargs=-1)
+
+import_command_options = [
+    click.option(
+        "--to-playlist",
+        "playlist",
+        default=None,
+        help="Add the tracks to this existing playlist (matched case-insensitively)",
     ),
 ]
 
