@@ -1,3 +1,62 @@
+## v0.10.0 (2026-08-30)
+
+
+- docs: document the import command
+- test(e2e): assert an imported row matches rekordbox's import shape
+- feat(cli): add the import command
+- - a directory argument prompts interactively and needs --directory otherwise
+- an ImportInputError becomes a usage error; a write failure stays a crash
+- feat(import): add the import_tracks() API
+- - creates DjmdContent rows matching rekordbox's own import shape
+- an existing track is only placed in the requested playlist
+- ImportInputError marks bad input, keeping write failures distinct
+- FolderPath is rewritten forward-slashed, which add_content backslashes on windows
+- test(query): cover CollectionQuery.execute
+- feat(query): add case-folded path lookup and playlist name search
+- feat(models): add the import request, op, and response models
+- - ImportRequest selects paths on disk, so it does not extend FilterArgs
+- ImportOp records whether a track was created or only placed in a playlist
+- feat(tags): read the tags rekordbox reads at import
+- - per-format raw key tables for vorbis, ID3, and MP4
+- mutagen replaces an ffprobe call at ~200x the speed
+- MP4 ISRC comes from the xid atom; initialkey is ignored, as rekordbox does
+- refactor(utils): resolve file types through a FileTypeRegistry
+- - lookups key on a code, name, token, or alias
+- WAV answers to WAVE, the name mutagen uses
+- every type carries its extensions; OutputFormats gates what RBE writes
+- docs: research the shape of a rekordbox import row
+- - census of 906 un-analyzed rows
+- import vs. analysis column boundary
+- per-format tag key mapping
+- chore(deps): update dependency ruff to v0.16.5 (#192)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+- chore(deps): update dependency ty to v0.0.75 (#190)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+- chore(deps): update dependency click to v8.5.0 (#189)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+- chore(deps): update dependency platformdirs to v4.11.4 (#187)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+- chore(deps): update re-actors/alls-green digest to b5b5b37 (#186)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+- docs: guard mkdocs-click blocks from prettier
+- Prettier strips the leading indentation from the option lines, which
+mkdocs-click requires (its parser matches ^\s+:key:), breaking the
+strict build.
+- test(edit): cover FolderPath probe fallbacks and gated-prompt exits
+- Fixes _response() treating an explicit empty edits list as a request for
+the default non-empty one, which left the empty-result path untested.
+- chore: bump ruff-pre-commit to v0.16.5
+- ci: validate the docs build
+- restores the mkdocs-click option indentation in search.md that broke it
+- test(e2e): cover FolderPath relocation, repoint, and missing-file skip
+- docs(edit): document the FolderPath field and --force
+- feat(cli): add --force and a held-back-track prompt to edit
+- refactor(convert): reuse shared audio-column sync
+- feat(edit): add FolderPath field with file-existence and length gates
+- refactor(api): share ANLZ path rewrite and add probe-to-FileType lookup
+- feat(utils): report duration in audio probe
+- chore: ignore worktrees folder
+
 ## v0.9.0 (2026-08-27)
 
 
