@@ -832,6 +832,31 @@ class TestCollectionQueryExecution:
         with pytest.raises(RuntimeError, match="No Session"):
             CollectionQuery().count(mock_db)
 
+    def test_execute_returns_the_sessions_result(self):
+        """execute() hands the built statement to the session and returns its
+        result unchanged, so callers see the rows the session produced."""
+        mock_db = MagicMock()
+        mock_db.session = MagicMock()
+        rows = MagicMock()
+        mock_db.session.execute.return_value = rows
+
+        result = CollectionQuery().execute(mock_db)
+
+        assert result is rows
+        mock_db.session.execute.assert_called_once()
+
+    def test_execute_runs_the_statement_the_query_built(self):
+        """The statement execute() runs carries the filters added to the query,
+        rather than the bare select() the query started from."""
+        mock_db = MagicMock()
+        mock_db.session = MagicMock()
+
+        CollectionQuery().by_title("One More Time").execute(mock_db)
+
+        stmt = str(mock_db.session.execute.call_args.args[0])
+        assert "WHERE" in stmt
+        assert "ORDER BY" in stmt
+
     def test_execute_no_session_raises(self):
         """execute() raises RuntimeError when db has no session."""
         mock_db = MagicMock()
