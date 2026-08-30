@@ -57,3 +57,25 @@ Ultimately, if you're planning on doing an in-place conversion of tracks in your
 - **Sync back cues, grids, and info from your USBs** Converting a track that has been exported will orphan the exported version and any un-synced metadata from your library.
 - **Keep your originals until you are satisfied.** The default `--delete-originals lossless` only deletes a source when no audio information was lost. Be deliberate before choosing `all`.
 - **Lock hand-tuned beat grids if you plan to re-analyze.** Conversion won't mess with your grids, but a later bulk re-analysis replaces grids on unlocked tracks. Analysis Lock exists for exactly this.
+
+## Can I run two rekordbox-edit commands at once?
+
+No. Commands that write to the database take a single-writer lock for the
+whole run, so a second `edit`, `convert`, or `import` against the same library
+refuses to start and names the process already holding it:
+
+```
+Another rekordbox-edit process is writing to this library (PID 41207, "convert", started 14:02:31). Wait for it to finish, then try again.
+```
+
+Two commands writing at the same time can interleave: one decides what it is
+going to change, the other changes those same tracks underneath it, and the
+first proceeds on a stale plan.
+
+Reads are unaffected. `search` never takes the lock, and neither does any
+write command run with `--dry-run`, so you can plan one operation while
+another is still running.
+
+A run started with `--yes` waits up to five seconds for the lock before
+giving up, which lets back-to-back scripted runs sort themselves out.
+Interactive runs fail immediately rather than leaving you at a hung prompt.

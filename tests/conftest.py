@@ -4,7 +4,15 @@ from unittest.mock import MagicMock
 import pytest
 from pyrekordbox.db6 import DjmdContent
 
+from rekordbox_edit import locking
+
 from rekordbox_edit.models import Track
+
+
+@pytest.fixture(autouse=True)
+def isolated_lock_dir(tmp_path, monkeypatch):
+    """Keep write-lock files out of the real user data directory during tests."""
+    monkeypatch.setattr(locking, "_LOCK_DIR", tmp_path / "locks")
 
 
 @pytest.fixture
