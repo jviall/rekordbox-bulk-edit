@@ -106,10 +106,7 @@ class ConvertRequest(FilterArgs):
     conversion target counts as lossy, as does MP3 output."""
     overwrite: bool = False
     threads: int = Field(default_factory=lambda: DEFAULT_THREADS, ge=1)
-    """How many files to encode concurrently. Deliberately conservative by
-    default: MP3 and FLAC output scale well across files, while WAV and AIFF
-    output is close to pure I/O and can get slower under concurrency on the
-    external drives DJs tend to keep libraries on."""
+    """How many files to encode concurrently."""
 
 
 class ImportRequest(BaseModel):
