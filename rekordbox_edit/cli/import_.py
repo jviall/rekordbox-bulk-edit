@@ -53,9 +53,7 @@ def import_command(db, **kwargs):
     set_level(print_opt)
 
     _validate_scripting_preconditions(
-        print_opt,
-        type("_S", (), {"dry_run": dry_run, "yes": yes})(),
-        False,
+        print_opt, piped_stdin=False, dry_run=dry_run, yes=yes
     )
 
     interactive_ok = print_opt not in SCRIPTING_MODES and not yes
