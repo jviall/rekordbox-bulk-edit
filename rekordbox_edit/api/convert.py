@@ -3,8 +3,9 @@
 import logging
 import os
 from collections.abc import Iterable
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Literal, NamedTuple, Tuple
+from typing import Literal, NamedTuple, Tuple, cast
 
 import ffmpeg
 from ffmpeg import Error as FfmpegError
@@ -191,6 +192,114 @@ def _apply_converted_record(
         content.OrgFolderPath = converted_db_path
 
     _sync_audio_columns(content, probe.audio_info, file_type, probe.file_size)
+
+
+@dataclass(frozen=True)
+class _EncodeJob:
+    """One conversion's inputs, as plain values.
+
+    Everything the encode needs is copied off the content row here, on the main
+    thread. Nothing in this class may be a `DjmdContent` or hold a reference to
+    one: reading an ORM attribute off the main thread would pull on a session
+    that is not thread-safe.
+    """
+
+    op_id: str
+    source_path: str
+    file_name: str | None
+    file_type: int | None
+    output_path: str
+    temp_path: str
+    output_format: str
+
+
+@dataclass
+class _EncodeResult:
+    """What an encode produced, or why it declined to run.
+
+    `skipped` set means the file was passed over and nothing was written.
+    Otherwise `probe` describes the finished temp file awaiting its move
+    into place.
+    """
+
+    job: _EncodeJob
+    skipped: SkippedTrack | None = None
+    probe: ConvertedFileProbe | None = None
+    is_lossless: bool = False
+    output_sample_rate: int = TARGET_SAMPLE_RATE
+
+
+def _job_for(content: DjmdContent, op: ConvertOp, output_format: str) -> _EncodeJob:
+    """Copy what the encode needs off a content row, on the main thread."""
+    return _EncodeJob(
+        op_id=op.id,
+        source_path=content.FolderPath or "",
+        file_name=content.FileNameL,
+        file_type=content.FileType,
+        output_path=op.output_path,
+        temp_path=_temp_output_path(op.output_path),
+        output_format=output_format,
+    )
+
+
+def _encode_one(job: _EncodeJob) -> _EncodeResult:
+    """Probe, encode, and probe again, touching no database state.
+
+    Runs on a worker thread once encoding is parallel, so it reports a skip
+    rather than mutating shared state, and cleans up its own temp file if the
+    encode fails partway.
+    """
+    if not os.path.exists(job.source_path):
+        # Classification and the encode are separated by a confirmation prompt,
+        # so a source going missing is an expected outcome of that window
+        # rather than a systemic failure worth abandoning the batch.
+        logger.warning(f"Skipping {job.file_name}: {job.source_path} is gone")
+        return _EncodeResult(
+            job, skipped=SkippedTrack(id=job.op_id, reason="file_not_found")
+        )
+
+    audio_info = get_audio_info(job.source_path)
+    if not probe_matches_file_type(
+        job.file_type, audio_info["codec"], audio_info["container"]
+    ):
+        logger.warning(
+            f"Skipping {job.file_name}: probed codec "
+            f"{audio_info['codec']!r} does not match its Rekordbox "
+            f"file type {get_file_type_name(job.file_type)!r}"
+        )
+        return _EncodeResult(
+            job, skipped=SkippedTrack(id=job.op_id, reason="codec_mismatch")
+        )
+
+    if job.output_format == "MP3":
+        # MP3 output always loses information, so it is never lossless.
+        is_lossless = False
+        output_sample_rate = TARGET_SAMPLE_RATE
+        output_kwargs = _mp3_output_kwargs(output_sample_rate)
+        label = "mp3"
+    else:
+        fidelity, output_sample_rate = _classify_fidelity(audio_info)
+        is_lossless = fidelity == "lossless"
+        output_format = OutputFormats(job.output_format.lower())
+        output_kwargs = _hi_res_output_kwargs(output_format, output_sample_rate)
+        label = output_format.value
+
+    try:
+        if not _run_ffmpeg(job.source_path, job.temp_path, output_kwargs, label):
+            raise RuntimeError(f"Conversion failed for {job.source_path}")
+        if not os.path.exists(job.temp_path):
+            raise RuntimeError(f"Output file not created: {job.output_path}")
+        probe = _probe_converted_file(job.temp_path, job.output_format)
+    except BaseException:
+        _remove_temp_file(job.temp_path)
+        raise
+
+    return _EncodeResult(
+        job,
+        probe=probe,
+        is_lossless=is_lossless,
+        output_sample_rate=output_sample_rate,
+    )
 
 
 def _temp_output_path(output_path: str) -> str:
@@ -406,104 +515,77 @@ def convert(
     deletable = 0
     deleted = 0
 
-    for i, op in enumerate(ops, 1):
-        content = content_map[op.id]
-        src = content.FolderPath or ""
-        logger.info(f"[{i}/{len(ops)}] {content.FileNameL}")
+    jobs = [_job_for(content_map[op.id], op, output_format_name) for op in ops]
 
-        if not os.path.exists(src):
-            # Classification and this loop are separated by a confirmation
-            # prompt, so a source going missing is an expected outcome of that
-            # window rather than a systemic failure worth abandoning the batch.
-            logger.warning(f"Skipping {content.FileNameL}: {src} is gone")
-            skipped.append(SkippedTrack(id=op.id, reason="file_not_found"))
+    for i, (op, job) in enumerate(zip(ops, jobs), 1):
+        content = content_map[op.id]
+        logger.info(f"[{i}/{len(ops)}] {job.file_name}")
+
+        try:
+            result = _encode_one(job)
+        except BaseException as e:
+            _rollback_session(db)
+            logger.debug(
+                f"convert aborted at {job.source_path} after "
+                f"{len(converted_ops)} committed conversion(s)"
+            )
+            raise ConvertAborted(
+                str(e),
+                failed_path=job.source_path,
+                converted=len(converted_ops),
+                not_attempted=len(ops) - i,
+            ) from e
+
+        if result.skipped:
+            skipped.append(result.skipped)
             continue
 
-        pending_temp: str | None = None
         try:
-            audio_info = get_audio_info(src)
-            if not probe_matches_file_type(
-                content.FileType, audio_info["codec"], audio_info["container"]
-            ):
-                logger.warning(
-                    f"Skipping {content.FileNameL}: probed codec "
-                    f"{audio_info['codec']!r} does not match its Rekordbox "
-                    f"file type {get_file_type_name(content.FileType)!r}"
-                )
-                skipped.append(SkippedTrack(id=op.id, reason="codec_mismatch"))
-                continue
-
-            pending_temp = _temp_output_path(op.output_path)
-            if output_format_name == "MP3":
-                # MP3 output always loses information, so it is never lossless.
-                is_lossless = False
-                output_sample_rate = TARGET_SAMPLE_RATE
-                success = _run_ffmpeg(
-                    src, pending_temp, _mp3_output_kwargs(output_sample_rate), "mp3"
-                )
-            else:
-                fidelity, output_sample_rate = _classify_fidelity(audio_info)
-                is_lossless = fidelity == "lossless"
-                output_format = OutputFormats(args.format_out.lower())
-                success = _run_ffmpeg(
-                    src,
-                    pending_temp,
-                    _hi_res_output_kwargs(output_format, output_sample_rate),
-                    output_format.value,
-                )
-
-            if not success:
-                raise RuntimeError(f"Conversion failed for {src}")
-            if not os.path.exists(pending_temp):
-                raise RuntimeError(f"Output file not created: {op.output_path}")
-
-            os.replace(pending_temp, op.output_path)
-            pending_temp = None
-
+            os.replace(job.temp_path, job.output_path)
             _apply_converted_record(
                 content,
-                _probe_converted_file(op.output_path, output_format_name),
-                os.path.basename(op.output_path),
-                os.path.dirname(op.output_path),
+                cast(ConvertedFileProbe, result.probe),
+                os.path.basename(job.output_path),
+                os.path.dirname(job.output_path),
                 output_format_name,
             )
             db.session.commit()
         except BaseException as e:
-            if pending_temp:
-                _remove_temp_file(pending_temp)
+            _remove_temp_file(job.temp_path)
             _rollback_session(db)
             logger.debug(
-                f"convert aborted at {src} after {len(converted_ops)} "
-                "committed conversion(s)"
+                f"convert aborted at {job.source_path} after "
+                f"{len(converted_ops)} committed conversion(s)"
             )
             raise ConvertAborted(
                 str(e),
-                failed_path=src,
+                failed_path=job.source_path,
                 converted=len(converted_ops),
                 not_attempted=len(ops) - i,
             ) from e
 
         converted_ops.append(
             op.model_copy(
-                update={"source_path": src, "output_sample_rate": output_sample_rate}
+                update={
+                    "source_path": job.source_path,
+                    "output_sample_rate": result.output_sample_rate,
+                }
             )
         )
 
         # Past this point the row is committed, so every failure only warns.
         try:
-            _update_anlz_paths(db, content, os.path.basename(op.output_path))
+            _update_anlz_paths(db, content, os.path.basename(job.output_path))
         except Exception as e:
-            logger.warning(
-                f"Failed to update ANLZ path tags for {content.FileNameL}: {e}"
-            )
+            logger.warning(f"Failed to update ANLZ path tags for {job.file_name}: {e}")
 
-        if _deletes_original(args.delete_originals, is_lossless):
+        if _deletes_original(args.delete_originals, result.is_lossless):
             deletable += 1
             try:
-                os.remove(src)
+                os.remove(job.source_path)
                 deleted += 1
             except Exception as e:
-                logger.warning(f"Failed to delete {src}: {e}")
+                logger.warning(f"Failed to delete {job.source_path}: {e}")
 
     logger.info(f"\nConverted {len(converted_ops)} files to {output_format_name}")
     logger.debug(f"convert committed {len(converted_ops)} conversion(s)")

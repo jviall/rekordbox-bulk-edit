@@ -1,4 +1,5 @@
 import os
+from dataclasses import replace
 from unittest.mock import Mock, patch
 
 import ffmpeg
@@ -8,7 +9,10 @@ from rekordbox_edit.api.convert import (
     TEMP_PREFIX,
     ConvertAborted,
     ConvertedFileProbe,
+    _EncodeJob,
     _apply_converted_record,
+    _encode_one,
+    _job_for,
     _classify_convert,
     _classify_fidelity,
     _get_output_path,
@@ -1224,6 +1228,99 @@ class TestConvertRealRun:
 
 
 # ── Helper-function tests (preserved from existing file) ──────────────────
+
+
+class TestEncodeJob:
+    def test_carries_plain_values_off_the_row(self, make_djmd_content_item):
+        # Workers run off the main thread, so the job may hold no ORM object.
+        content = make_djmd_content_item(
+            ID="7", FileType=11, FolderPath="/in.wav", FileNameL="in.wav"
+        )
+        op = ConvertOp(id="7", source_path="/in.wav", output_path="/out.aif")
+
+        job = _job_for(content, op, "AIFF")
+
+        assert (job.op_id, job.source_path, job.file_type) == ("7", "/in.wav", 11)
+        assert job.temp_path == _temp_output_path("/out.aif")
+        assert not any(isinstance(v, type(content)) for v in job.__dict__.values())
+
+
+class TestEncodeOne:
+    """The worker half. Every case here must reach its answer without a session."""
+
+    _BASE = _EncodeJob(
+        op_id="1",
+        source_path="/in.wav",
+        file_name="in.wav",
+        file_type=11,
+        output_path="/out.aif",
+        temp_path="/.rbe-convert-1-out.aif",
+        output_format="AIFF",
+    )
+
+    def _job(self, **overrides) -> _EncodeJob:
+        return replace(self._BASE, **overrides)
+
+    @patch("rekordbox_edit.api.convert.os.path.exists", return_value=False)
+    def test_a_missing_source_is_reported_as_a_skip(self, _exists):
+        result = _encode_one(self._job())
+
+        assert result.skipped is not None
+        assert result.skipped.reason == "file_not_found"
+        assert result.probe is None
+
+    @patch("rekordbox_edit.api.convert.get_audio_info", return_value=_PROBE_AAC_M4A)
+    @patch("rekordbox_edit.api.convert.os.path.exists", return_value=True)
+    def test_a_codec_mismatch_is_reported_as_a_skip(self, _exists, _probe):
+        result = _encode_one(self._job(file_type=11))  # 11 is WAV, probe says aac
+
+        assert result.skipped is not None
+        assert result.skipped.reason == "codec_mismatch"
+
+    @patch("rekordbox_edit.api.convert._remove_temp_file")
+    @patch("rekordbox_edit.api.convert._run_ffmpeg", return_value=False)
+    @patch("rekordbox_edit.api.convert.get_audio_info", return_value=_PROBE_WAV_16_44)
+    @patch("rekordbox_edit.api.convert.os.path.exists", return_value=True)
+    def test_a_failed_encode_cleans_up_its_own_temp(
+        self, _exists, _probe, _run, mock_remove
+    ):
+        with pytest.raises(RuntimeError, match="Conversion failed"):
+            _encode_one(self._job())
+
+        mock_remove.assert_called_once_with("/.rbe-convert-1-out.aif")
+
+    @patch("rekordbox_edit.api.convert._probe_converted_file")
+    @patch("rekordbox_edit.api.convert._run_ffmpeg", return_value=True)
+    @patch("rekordbox_edit.api.convert.get_audio_info", return_value=_PROBE_WAV_24_96)
+    @patch("rekordbox_edit.api.convert.os.path.exists", return_value=True)
+    def test_a_hi_res_source_reports_a_lossy_conversion(
+        self, _exists, _probe, mock_run, mock_converted
+    ):
+        result = _encode_one(self._job())
+
+        assert result.skipped is None
+        assert result.is_lossless is False
+        assert result.output_sample_rate == 44100
+        # The encode targets the temp path, never the final one.
+        assert mock_run.call_args.args[1] == "/.rbe-convert-1-out.aif"
+
+    @patch("rekordbox_edit.api.convert._probe_converted_file")
+    @patch("rekordbox_edit.api.convert._run_ffmpeg", return_value=True)
+    @patch("rekordbox_edit.api.convert.get_audio_info", return_value=_PROBE_WAV_16_44)
+    @patch("rekordbox_edit.api.convert.os.path.exists", return_value=True)
+    def test_an_at_target_source_reports_a_lossless_conversion(
+        self, _exists, _probe, _run, _converted
+    ):
+        assert _encode_one(self._job()).is_lossless is True
+
+    @patch("rekordbox_edit.api.convert._probe_converted_file")
+    @patch("rekordbox_edit.api.convert._run_ffmpeg", return_value=True)
+    @patch("rekordbox_edit.api.convert.get_audio_info", return_value=_PROBE_WAV_16_44)
+    @patch("rekordbox_edit.api.convert.os.path.exists", return_value=True)
+    def test_mp3_output_is_never_lossless(self, _exists, _probe, _run, _converted):
+        result = _encode_one(self._job(output_format="MP3", output_path="/out.mp3"))
+
+        assert result.is_lossless is False
 
 
 class TestConvertPerFileCommits:
