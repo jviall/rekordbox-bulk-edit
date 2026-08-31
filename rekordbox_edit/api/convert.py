@@ -230,7 +230,9 @@ class _EncodeResult:
     output_sample_rate: int = TARGET_SAMPLE_RATE
 
 
-def _job_for(content: DjmdContent, op: ConvertOp, output_format: str) -> _EncodeJob:
+def _encode_job_for(
+    content: DjmdContent, op: ConvertOp, output_format: str
+) -> _EncodeJob:
     """Copy what the encode needs off a content row, on the main thread."""
     return _EncodeJob(
         op_id=op.id,
@@ -516,9 +518,11 @@ def convert(
     deletable = 0
     deleted = 0
 
-    jobs = [_job_for(content_map[op.id], op, output_format_name) for op in ops]
+    jobs = [_encode_job_for(content_map[op.id], op, output_format_name) for op in ops]
 
-    def _abort(exc: BaseException, job: _EncodeJob, attempted: int) -> ConvertAborted:
+    def _abort_batch(
+        exc: BaseException, job: _EncodeJob, attempted: int
+    ) -> ConvertAborted:
         """Give up on the batch, keeping every conversion already committed."""
         _rollback_session(db)
         logger.debug(
@@ -532,54 +536,76 @@ def convert(
             not_attempted=len(ops) - attempted,
         )
 
-    workers = args.threads
-    futures: dict[int, Future[_EncodeResult]] = {}
+    # Encoding runs on worker threads; every database touch stays here on the
+    # main thread. `encoding` maps a job's position in `jobs` to the worker
+    # currently handling it.
+    thread_count = args.threads
+    encoding: dict[int, Future[_EncodeResult]] = {}
 
-    with ThreadPoolExecutor(max_workers=workers) as pool:
+    with ThreadPoolExecutor(max_workers=thread_count) as pool:
 
-        def _submit(index: int) -> None:
+        def _start_encode(index: int) -> None:
+            """Hand job `index` to a worker, if the batch runs that far."""
             if index < len(jobs):
-                futures[index] = pool.submit(_encode_one, jobs[index])
+                encoding[index] = pool.submit(_encode_one, jobs[index])
 
-        def _discard_outstanding() -> None:
-            """Drop queued work and clean up temps from encodes already done.
+        def _stop_pending_encodes() -> None:
+            """Give up on everything still in flight, leaving no stray files.
 
-            Encoding is the expensive half, so nothing beyond the pool's width
-            is ever queued, and an abort wastes at most that many files.
+            Cancelling only stops work no worker has picked up yet, so an
+            encode that already finished holds a temp file nobody will move
+            into place. Those are deleted here rather than left for the next
+            run's sweep.
             """
-            for future in futures.values():
+            for future in encoding.values():
                 future.cancel()
-            for index, future in futures.items():
+            for index, future in encoding.items():
                 if future.cancelled() or future.exception() is not None:
                     continue
                 if future.result().skipped is None:
                     _remove_temp_file(jobs[index].temp_path)
-            futures.clear()
+            encoding.clear()
 
-        # Only `workers` jobs run ahead of the drain point, topped up as each
-        # result lands, so a failure cannot burn the whole batch's CPU first.
-        for index in range(min(workers, len(jobs))):
-            _submit(index)
+        # Prime the pool with one file per worker. Nothing more starts until a
+        # result is collected below, so at most `thread_count` files are ever
+        # in flight, and an abort has wasted at most that many encodes.
+        for index in range(min(thread_count, len(jobs))):
+            _start_encode(index)
 
-        # Drained in submission order, not completion order, so converted_ops,
-        # the progress lines, and --print ids stay deterministic.
-        for i, (op, job) in enumerate(zip(ops, jobs), 1):
+        # Collect results in the order the files were listed rather than the
+        # order they happen to finish: waiting on `encoding[index]` blocks
+        # until that particular file is done, so one that finished early simply
+        # waits its turn. `index` walks `jobs`; `position` is the same count
+        # from one, for the progress line. Predictable order matters because
+        # `rbe convert --print ids` feeds other commands.
+        for index, (op, job) in enumerate(zip(ops, jobs)):
+            position = index + 1
             content = content_map[op.id]
-            logger.info(f"[{i}/{len(ops)}] {job.file_name}")
 
             try:
-                result = futures.pop(i - 1).result()
+                result = encoding.pop(index).result()
+            except KeyboardInterrupt as e:
+                _stop_pending_encodes()
+                logger.warning("Interrupted; keeping the files already converted.")
+                raise _abort_batch(e, job, position) from e
             except BaseException as e:
-                _discard_outstanding()
-                raise _abort(e, job, i) from e
+                _stop_pending_encodes()
+                raise _abort_batch(e, job, position) from e
 
-            # Topped up only once this file cleared, so an abort never leaves
-            # work queued that nobody will drain.
-            _submit(i - 1 + workers)
+            # A worker just came free, so give it the next file nobody has
+            # started. Starting one only after a successful collection is what
+            # keeps the in-flight count capped and leaves no queued work behind
+            # on an abort.
+            _start_encode(index + thread_count)
 
             if result.skipped:
                 skipped.append(result.skipped)
                 continue
+
+            # Printed on completion rather than at dispatch: with several
+            # encodes in flight, a line printed at dispatch would name a file
+            # that is not the one being worked on next.
+            logger.info(f"[{position}/{len(ops)}] converted {job.file_name}")
 
             try:
                 os.replace(job.temp_path, job.output_path)
@@ -593,8 +619,8 @@ def convert(
                 db.session.commit()
             except BaseException as e:
                 _remove_temp_file(job.temp_path)
-                _discard_outstanding()
-                raise _abort(e, job, i) from e
+                _stop_pending_encodes()
+                raise _abort_batch(e, job, position) from e
 
             converted_ops.append(
                 op.model_copy(
