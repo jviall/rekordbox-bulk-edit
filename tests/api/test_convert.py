@@ -14,7 +14,7 @@ from rekordbox_edit.api.convert import (
     _EncodeJob,
     _apply_converted_record,
     _encode_one,
-    _job_for,
+    _encode_job_for,
     _classify_convert,
     _classify_fidelity,
     _get_output_path,
@@ -1240,7 +1240,7 @@ class TestEncodeJob:
         )
         op = ConvertOp(id="7", source_path="/in.wav", output_path="/out.aif")
 
-        job = _job_for(content, op, "AIFF")
+        job = _encode_job_for(content, op, "AIFF")
 
         assert (job.op_id, job.source_path, job.file_type) == ("7", "/in.wav", 11)
         assert job.temp_path == _temp_output_path("/out.aif")
@@ -1640,6 +1640,70 @@ class TestConvertParallelEncoding:
         assert mock_run.call_count <= 3
         # Whatever ran ahead and succeeded had its temp file cleaned up.
         assert mock_remove.called
+
+
+class TestConvertInterrupt:
+    @pytest.fixture(autouse=True)
+    def _stub_temp_file_moves(self):
+        with (
+            patch("rekordbox_edit.api.convert.os.replace"),
+            patch("rekordbox_edit.api.convert.os.listdir", return_value=[]),
+            patch("rekordbox_edit.api.convert._probe_converted_file"),
+        ):
+            yield
+
+    @patch("rekordbox_edit.api.convert.get_audio_info", return_value=_PROBE_WAV_16_44)
+    @patch("rekordbox_edit.api.convert._apply_converted_record")
+    @patch("rekordbox_edit.api.convert._run_ffmpeg")
+    @patch("rekordbox_edit.api.convert.os.path.exists", return_value=True)
+    @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=True)
+    @patch("rekordbox_edit.api.convert._get_output_path")
+    @patch("rekordbox_edit.api.convert.get_file_type_for_format")
+    @patch("rekordbox_edit.api.convert.get_filtered_content")
+    def test_ctrl_c_keeps_the_files_already_converted(
+        self,
+        mock_gfc,
+        mock_get_type,
+        mock_get_output,
+        _ffmpeg,
+        _exists,
+        mock_run,
+        _apply,
+        _probe,
+        mock_db,
+        make_djmd_content_item,
+    ):
+        # Per-file commits make an interrupt cheap: what finished is committed.
+        mock_get_type.side_effect = lambda fmt: {"AIFF": 1, "MP3": 5, "M4A": 6}.get(
+            fmt.upper(), 99
+        )
+        mock_get_output.side_effect = lambda content, fmt: (
+            f"/{content.ID}.aif",
+            f"{content.ID}.aif",
+            "/",
+        )
+
+        def _interrupt_on_second(src, *_a, **_k):
+            if src == "/in2.wav":
+                raise KeyboardInterrupt
+            return True
+
+        mock_run.side_effect = _interrupt_on_second
+        contents = [
+            make_djmd_content_item(ID=str(i), FileType=11, FolderPath=f"/in{i}.wav")
+            for i in (1, 2, 3)
+        ]
+        _seed_filter(mock_gfc, *contents)
+        _seed_db(mock_db, *contents)
+
+        with pytest.raises(ConvertAborted) as raised:
+            convert(
+                mock_db, ConvertRequest(format_out="aiff", overwrite=True, threads=1)
+            )
+
+        assert raised.value.converted == 1
+        assert raised.value.not_attempted == 1
+        assert mock_db.session.commit.call_count == 1
 
 
 class TestClassifyFidelity:
