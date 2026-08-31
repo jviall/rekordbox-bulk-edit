@@ -11,6 +11,7 @@ from rekordbox_edit.api.convert import (
     _get_output_path,
     _hi_res_output_kwargs,
     _mp3_output_kwargs,
+    _probe_converted_file,
     _rollback_and_cleanup,
     _run_ffmpeg,
     _update_anlz_paths,
@@ -1312,6 +1313,33 @@ class TestMp3OutputKwargs:
         assert _mp3_output_kwargs(22050)["ar"] == 22050
 
 
+class TestProbeConvertedFile:
+    """The probe half runs off the main thread once encoding is parallel, so it
+    must reach its answer from the filesystem alone."""
+
+    @patch("rekordbox_edit.api.convert.os.path.getsize", return_value=987654)
+    @patch("rekordbox_edit.api.convert.get_audio_info")
+    def test_reads_size_and_audio_without_a_session(
+        self, mock_get_audio_info, _mock_getsize
+    ):
+        mock_get_audio_info.return_value = {"bitrate": 1411, "bit_depth": 16}
+
+        probe = _probe_converted_file("/path/to/output.aiff", "AIFF")
+
+        assert probe.file_size == 987654
+        assert probe.bitrate == 1411
+        assert probe.audio_info["bit_depth"] == 16
+
+    @patch("rekordbox_edit.api.convert.os.path.getsize", return_value=1)
+    @patch("rekordbox_edit.api.convert.get_audio_info")
+    def test_mp3_without_a_probed_bitrate_assumes_320(
+        self, mock_get_audio_info, _mock_getsize
+    ):
+        mock_get_audio_info.return_value = {"bitrate": None}
+
+        assert _probe_converted_file("/path/to/output.mp3", "MP3").bitrate == 320
+
+
 class TestUpdateDatabaseRecord:
     @pytest.fixture(autouse=True)
     def _mock_getsize(self):
@@ -1324,16 +1352,14 @@ class TestUpdateDatabaseRecord:
     def test_sets_file_size_from_converted_file(
         self, mock_get_audio_info, make_djmd_content_item
     ):
-        mock_db = Mock()
         mock_content = make_djmd_content_item(ID=123, BitDepth=24)
-        mock_db.get_content().filter_by(ID=123).first.return_value = mock_content
         mock_get_audio_info.return_value = {
             "bitrate": 1000,
             "bit_depth": 16,
             "sample_rate": 44100,
         }
 
-        _update_database_record(mock_db, "123", "output.aiff", "/path/to", "AIFF")
+        _update_database_record(mock_content, "output.aiff", "/path/to", "AIFF")
 
         assert mock_content.FileSize == 987654
 
@@ -1341,9 +1367,7 @@ class TestUpdateDatabaseRecord:
     def test_normalizes_folder_path_separators(
         self, mock_get_audio_info, make_djmd_content_item
     ):
-        mock_db = Mock()
         mock_content = make_djmd_content_item(ID=123, BitDepth=24)
-        mock_db.get_content().filter_by(ID=123).first.return_value = mock_content
         mock_get_audio_info.return_value = {
             "bitrate": 1000,
             "bit_depth": 16,
@@ -1351,7 +1375,7 @@ class TestUpdateDatabaseRecord:
         }
 
         # new_folder arrives with Windows separators, as os.path.dirname yields.
-        _update_database_record(mock_db, "123", "song.aiff", r"A:\Music\dir", "AIFF")
+        _update_database_record(mock_content, "song.aiff", r"A:\Music\dir", "AIFF")
 
         assert mock_content.FolderPath == "A:/Music/dir/song.aiff"
 
@@ -1359,19 +1383,17 @@ class TestUpdateDatabaseRecord:
     def test_org_folder_path_follows_when_it_matched_old_path(
         self, mock_get_audio_info, make_djmd_content_item
     ):
-        mock_db = Mock()
         mock_content = make_djmd_content_item(
             ID=123, BitDepth=24, FolderPath="A:/Music/song.wav"
         )
         mock_content.OrgFolderPath = "A:/Music/song.wav"  # matches the old path
-        mock_db.get_content().filter_by(ID=123).first.return_value = mock_content
         mock_get_audio_info.return_value = {
             "bitrate": 1000,
             "bit_depth": 16,
             "sample_rate": 44100,
         }
 
-        _update_database_record(mock_db, "123", "song.aiff", "A:/Music", "AIFF")
+        _update_database_record(mock_content, "song.aiff", "A:/Music", "AIFF")
 
         assert mock_content.OrgFolderPath == "A:/Music/song.aiff"
 
@@ -1379,34 +1401,30 @@ class TestUpdateDatabaseRecord:
     def test_org_folder_path_left_alone_when_it_differed(
         self, mock_get_audio_info, make_djmd_content_item
     ):
-        mock_db = Mock()
         mock_content = make_djmd_content_item(
             ID=123, BitDepth=24, FolderPath="A:/Music/song.wav"
         )
         mock_content.OrgFolderPath = "A:/OriginalImport/song.wav"  # a real original
-        mock_db.get_content().filter_by(ID=123).first.return_value = mock_content
         mock_get_audio_info.return_value = {
             "bitrate": 1000,
             "bit_depth": 16,
             "sample_rate": 44100,
         }
 
-        _update_database_record(mock_db, "123", "song.aiff", "A:/Music", "AIFF")
+        _update_database_record(mock_content, "song.aiff", "A:/Music", "AIFF")
 
         assert mock_content.OrgFolderPath == "A:/OriginalImport/song.wav"
 
     @patch("rekordbox_edit.api.convert.get_audio_info")
     def test_flac_sets_bitrate_zero(self, mock_get_audio_info, make_djmd_content_item):
-        mock_db = Mock()
         mock_content = make_djmd_content_item(ID=123, BitDepth=24)
-        mock_db.get_content().filter_by(ID=123).first.return_value = mock_content
         mock_get_audio_info.return_value = {
             "bitrate": 1000,
             "bit_depth": 24,
             "sample_rate": 44100,
         }
 
-        _update_database_record(mock_db, "123", "output.flac", "/path/to", "FLAC")
+        _update_database_record(mock_content, "output.flac", "/path/to", "FLAC")
 
         assert mock_content.FileNameL == "output.flac"
         assert mock_content.FolderPath == "/path/to/output.flac"
@@ -1416,16 +1434,14 @@ class TestUpdateDatabaseRecord:
     def test_hi_res_output_updates_bit_depth_and_sample_rate(
         self, mock_get_audio_info, make_djmd_content_item
     ):
-        mock_db = Mock()
         mock_content = make_djmd_content_item(ID=123, BitDepth=24, SampleRate=96000)
-        mock_db.get_content().filter_by(ID=123).first.return_value = mock_content
         mock_get_audio_info.return_value = {
             "bitrate": 1411,
             "bit_depth": 16,
             "sample_rate": 44100,
         }
 
-        _update_database_record(mock_db, "123", "output.aiff", "/path/to", "AIFF")
+        _update_database_record(mock_content, "output.aiff", "/path/to", "AIFF")
 
         assert mock_content.BitDepth == 16
         assert mock_content.SampleRate == 44100
@@ -1434,16 +1450,14 @@ class TestUpdateDatabaseRecord:
     def test_unknown_probe_values_leave_db_fields_unchanged(
         self, mock_get_audio_info, make_djmd_content_item
     ):
-        mock_db = Mock()
         mock_content = make_djmd_content_item(ID=123, BitDepth=24, SampleRate=96000)
-        mock_db.get_content().filter_by(ID=123).first.return_value = mock_content
         mock_get_audio_info.return_value = {
             "bitrate": 1411,
             "bit_depth": None,
             "sample_rate": None,
         }
 
-        _update_database_record(mock_db, "123", "output.aiff", "/path/to", "AIFF")
+        _update_database_record(mock_content, "output.aiff", "/path/to", "AIFF")
 
         assert mock_content.BitDepth == 24
         assert mock_content.SampleRate == 96000
@@ -1452,16 +1466,14 @@ class TestUpdateDatabaseRecord:
     def test_mp3_sets_bitrate_from_probe(
         self, mock_get_audio_info, make_djmd_content_item
     ):
-        mock_db = Mock()
         mock_content = make_djmd_content_item(ID=123)
-        mock_db.get_content().filter_by(ID=123).first.return_value = mock_content
         mock_get_audio_info.return_value = {
             "bitrate": 320,
             "bit_depth": None,
             "sample_rate": 44100,
         }
 
-        _update_database_record(mock_db, "123", "output.mp3", "/path/to", "MP3")
+        _update_database_record(mock_content, "output.mp3", "/path/to", "MP3")
 
         assert mock_content.BitRate == 320
 
@@ -1469,16 +1481,14 @@ class TestUpdateDatabaseRecord:
     def test_mp3_none_bitrate_defaults_to_320(
         self, mock_get_audio_info, make_djmd_content_item
     ):
-        mock_db = Mock()
         mock_content = make_djmd_content_item(ID=123)
-        mock_db.get_content().filter_by(ID=123).first.return_value = mock_content
         mock_get_audio_info.return_value = {
             "bitrate": None,
             "bit_depth": None,
             "sample_rate": 44100,
         }
 
-        _update_database_record(mock_db, "123", "output.mp3", "/path/to", "MP3")
+        _update_database_record(mock_content, "output.mp3", "/path/to", "MP3")
 
         assert mock_content.BitRate == 320
 
@@ -1486,26 +1496,17 @@ class TestUpdateDatabaseRecord:
     def test_mp3_output_updates_bit_depth_and_sample_rate(
         self, mock_get_audio_info, make_djmd_content_item
     ):
-        mock_db = Mock()
         mock_content = make_djmd_content_item(ID=123, BitDepth=24, SampleRate=96000)
-        mock_db.get_content().filter_by(ID=123).first.return_value = mock_content
         mock_get_audio_info.return_value = {
             "bitrate": 320,
             "bit_depth": None,
             "sample_rate": 48000,
         }
 
-        _update_database_record(mock_db, "123", "output.mp3", "/path/to", "MP3")
+        _update_database_record(mock_content, "output.mp3", "/path/to", "MP3")
 
         assert mock_content.BitDepth == 16
         assert mock_content.SampleRate == 48000
-
-    def test_content_not_found_raises(self):
-        mock_db = Mock()
-        mock_db.get_content().filter_by(ID=123).first.return_value = None
-
-        with pytest.raises(Exception, match="Content record with ID 123 not found"):
-            _update_database_record(mock_db, "123", "output.flac", "/path/to", "FLAC")
 
 
 class TestUpdateAnlzPaths:
