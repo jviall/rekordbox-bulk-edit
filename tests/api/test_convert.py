@@ -1,4 +1,6 @@
 import os
+import threading
+import time
 from dataclasses import replace
 from unittest.mock import Mock, patch
 
@@ -1373,12 +1375,16 @@ class TestConvertPerFileCommits:
         _seed_filter(mock_gfc, *contents)
 
         with pytest.raises(ConvertAborted) as raised:
-            convert(mock_db, ConvertRequest(format_out="aiff", overwrite=True))
+            convert(
+                mock_db, ConvertRequest(format_out="aiff", overwrite=True, threads=1)
+            )
 
         assert raised.value.converted == 1
         assert raised.value.not_attempted == 1
         assert raised.value.failed_path == "/in2.wav"
         assert mock_db.session.commit.call_count == 1
+        # Nothing beyond the failure was encoded: at one worker the pool never
+        # runs ahead of the drain point.
         assert mock_run.call_count == 2
 
     @patch("rekordbox_edit.api.convert.get_audio_info", return_value=_PROBE_WAV_16_44)
@@ -1474,6 +1480,166 @@ class TestConvertPerFileCommits:
         assert mock_db.session.commit.call_count == 2
         assert response.result.deleted == 1
         mock_remove.assert_called_once_with("/in1.wav")
+
+
+class TestConvertParallelEncoding:
+    """Properties that only appear once more than one encode is in flight."""
+
+    @pytest.fixture(autouse=True)
+    def _stub_temp_file_moves(self):
+        with (
+            patch("rekordbox_edit.api.convert.os.replace"),
+            patch("rekordbox_edit.api.convert.os.listdir", return_value=[]),
+            patch("rekordbox_edit.api.convert._probe_converted_file"),
+        ):
+            yield
+
+    @staticmethod
+    def _contents(make_djmd_content_item, count):
+        return [
+            make_djmd_content_item(ID=str(i), FileType=11, FolderPath=f"/in{i}.wav")
+            for i in range(1, count + 1)
+        ]
+
+    @patch("rekordbox_edit.api.convert.get_audio_info", return_value=_PROBE_WAV_16_44)
+    @patch("rekordbox_edit.api.convert._apply_converted_record")
+    @patch("rekordbox_edit.api.convert._run_ffmpeg")
+    @patch("rekordbox_edit.api.convert.os.path.exists", return_value=True)
+    @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=True)
+    @patch("rekordbox_edit.api.convert._get_output_path")
+    @patch("rekordbox_edit.api.convert.get_file_type_for_format")
+    @patch("rekordbox_edit.api.convert.get_filtered_content")
+    def test_results_follow_submission_order_not_completion_order(
+        self,
+        mock_gfc,
+        mock_get_type,
+        mock_get_output,
+        _ffmpeg,
+        _exists,
+        mock_run,
+        _apply,
+        _probe,
+        mock_db,
+        make_djmd_content_item,
+    ):
+        # rbe convert --print ids feeds pipelines, so the order of the ids it
+        # emits is part of the contract. Finish the encodes backwards.
+        mock_get_type.side_effect = lambda fmt: {"AIFF": 1, "MP3": 5, "M4A": 6}.get(
+            fmt.upper(), 99
+        )
+        mock_get_output.side_effect = lambda content, fmt: (
+            f"/{content.ID}.aif",
+            f"{content.ID}.aif",
+            "/",
+        )
+        delays = {"/in1.wav": 0.06, "/in2.wav": 0.03, "/in3.wav": 0.0}
+
+        def _slow(src, *_args, **_kwargs):
+            time.sleep(delays[src])
+            return True
+
+        mock_run.side_effect = _slow
+        contents = self._contents(make_djmd_content_item, 3)
+        _seed_filter(mock_gfc, *contents)
+        _seed_db(mock_db, *contents)
+
+        response = convert(
+            mock_db, ConvertRequest(format_out="aiff", overwrite=True, threads=3)
+        )
+
+        assert [op.id for op in response.result.converted] == ["1", "2", "3"]
+
+    @patch("rekordbox_edit.api.convert.get_audio_info", return_value=_PROBE_WAV_16_44)
+    @patch("rekordbox_edit.api.convert._apply_converted_record")
+    @patch("rekordbox_edit.api.convert._run_ffmpeg", return_value=True)
+    @patch("rekordbox_edit.api.convert.os.path.exists", return_value=True)
+    @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=True)
+    @patch("rekordbox_edit.api.convert._get_output_path")
+    @patch("rekordbox_edit.api.convert.get_file_type_for_format")
+    @patch("rekordbox_edit.api.convert.get_filtered_content")
+    def test_no_worker_touches_the_session(
+        self,
+        mock_gfc,
+        mock_get_type,
+        mock_get_output,
+        _ffmpeg,
+        _exists,
+        _run,
+        _apply,
+        _probe,
+        mock_db,
+        make_djmd_content_item,
+    ):
+        # The session is not thread-safe, and USN maintenance will depend on
+        # every database touch staying on the main thread. Record who calls.
+        mock_get_type.side_effect = lambda fmt: {"AIFF": 1, "MP3": 5, "M4A": 6}.get(
+            fmt.upper(), 99
+        )
+        mock_get_output.side_effect = lambda content, fmt: (
+            f"/{content.ID}.aif",
+            f"{content.ID}.aif",
+            "/",
+        )
+        main_thread = threading.current_thread().ident
+        callers = []
+        mock_db.session.commit.side_effect = lambda: callers.append(
+            threading.current_thread().ident
+        )
+        contents = self._contents(make_djmd_content_item, 4)
+        _seed_filter(mock_gfc, *contents)
+        _seed_db(mock_db, *contents)
+
+        convert(mock_db, ConvertRequest(format_out="aiff", overwrite=True, threads=4))
+
+        assert callers == [main_thread] * 4
+
+    @patch("rekordbox_edit.api.convert._remove_temp_file")
+    @patch("rekordbox_edit.api.convert.get_audio_info", return_value=_PROBE_WAV_16_44)
+    @patch("rekordbox_edit.api.convert._apply_converted_record")
+    @patch("rekordbox_edit.api.convert._run_ffmpeg")
+    @patch("rekordbox_edit.api.convert.os.path.exists", return_value=True)
+    @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=True)
+    @patch("rekordbox_edit.api.convert._get_output_path")
+    @patch("rekordbox_edit.api.convert.get_file_type_for_format")
+    @patch("rekordbox_edit.api.convert.get_filtered_content")
+    def test_an_abort_wastes_at_most_the_pool_width(
+        self,
+        mock_gfc,
+        mock_get_type,
+        mock_get_output,
+        _ffmpeg,
+        _exists,
+        mock_run,
+        _apply,
+        _probe,
+        mock_remove,
+        mock_db,
+        make_djmd_content_item,
+    ):
+        # Ten files, two workers, the second fails: at most two encodes run
+        # ahead of the drain, so the remaining eight are never started.
+        mock_get_type.side_effect = lambda fmt: {"AIFF": 1, "MP3": 5, "M4A": 6}.get(
+            fmt.upper(), 99
+        )
+        mock_get_output.side_effect = lambda content, fmt: (
+            f"/{content.ID}.aif",
+            f"{content.ID}.aif",
+            "/",
+        )
+        mock_run.side_effect = lambda src, *a, **k: src != "/in2.wav"
+        contents = self._contents(make_djmd_content_item, 10)
+        _seed_filter(mock_gfc, *contents)
+        _seed_db(mock_db, *contents)
+
+        with pytest.raises(ConvertAborted) as raised:
+            convert(
+                mock_db, ConvertRequest(format_out="aiff", overwrite=True, threads=2)
+            )
+
+        assert raised.value.converted == 1
+        assert mock_run.call_count <= 3
+        # Whatever ran ahead and succeeded had its temp file cleaned up.
+        assert mock_remove.called
 
 
 class TestClassifyFidelity:
