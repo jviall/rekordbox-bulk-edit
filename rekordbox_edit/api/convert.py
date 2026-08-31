@@ -3,7 +3,7 @@
 import logging
 import os
 from pathlib import Path
-from typing import Literal, Tuple
+from typing import Literal, NamedTuple, Tuple
 
 import ffmpeg
 from ffmpeg import Error as FfmpegError
@@ -140,31 +140,46 @@ def _run_ffmpeg(input_path, output_path, output_kwargs: dict, label: str) -> boo
         raise e
 
 
-def _update_database_record(
-    db: Rekordbox6Database,
-    content_id: str,
+class ConvertedFileProbe(NamedTuple):
+    """What a finished conversion looks like on disk.
+
+    Gathered without touching the session so the work can move off the main
+    thread, where an ORM attribute read would not be safe.
+    """
+
+    audio_info: AudioInfo
+    bitrate: int | None
+    file_size: int
+
+
+def _probe_converted_file(
+    converted_file_path: Path | str, output_format: str
+) -> ConvertedFileProbe:
+    """Probe a converted file for the values its content row needs."""
+    audio_info = get_audio_info(converted_file_path)
+    bitrate = audio_info["bitrate"]
+    if output_format.upper() == "MP3" and bitrate is None:
+        logger.debug("MP3 bitrate not found in probe, assuming 320kbps")
+        bitrate = 320
+    return ConvertedFileProbe(
+        audio_info=audio_info,
+        bitrate=bitrate,
+        file_size=os.path.getsize(converted_file_path),
+    )
+
+
+def _apply_converted_record(
+    content: DjmdContent,
+    probe: ConvertedFileProbe,
     new_filename: str,
     new_folder: str,
     output_format: str,
 ) -> None:
-    """Update database record with new file information."""
-    content = db.get_content().filter_by(ID=content_id).first()
-    if not content:
-        raise Exception(f"Content record with ID {content_id} not found")
-
-    old_path = content.FolderPath
-    converted_file_path = Path(new_folder, new_filename)
-    converted_db_path = str(converted_file_path).replace("\\", "/")
-    converted_audio_info = get_audio_info(converted_file_path)
-    converted_bitrate = converted_audio_info["bitrate"]
-
-    if output_format.upper() == "MP3" and converted_bitrate is None:
-        logger.debug("MP3 bitrate not found in probe, assuming 320kbps")
-        converted_bitrate = 320
-
+    """Write a finished conversion's file location and audio columns onto its
+    content row. Performs no filesystem work."""
     file_type = get_file_type_for_format(output_format)
-    if not file_type:
-        raise Exception(f"Unsupported output format: {output_format}")
+    old_path = content.FolderPath
+    converted_db_path = str(Path(new_folder, new_filename)).replace("\\", "/")
 
     content.FileNameL = new_filename
     content.FolderPath = converted_db_path
@@ -175,10 +190,21 @@ def _update_database_record(
 
     _sync_audio_columns(
         content,
-        {**converted_audio_info, "bitrate": converted_bitrate},
+        {**probe.audio_info, "bitrate": probe.bitrate},
         file_type,
-        os.path.getsize(converted_file_path),
+        probe.file_size,
     )
+
+
+def _update_database_record(
+    content: DjmdContent,
+    new_filename: str,
+    new_folder: str,
+    output_format: str,
+) -> None:
+    """Probe a converted file and write its values onto the content row."""
+    probe = _probe_converted_file(Path(new_folder, new_filename), output_format)
+    _apply_converted_record(content, probe, new_filename, new_folder, output_format)
 
 
 def _cleanup_converted_files(converted_ops: list[ConvertOp]) -> None:
@@ -381,8 +407,7 @@ def convert(
                 raise RuntimeError(f"Output file not created: {op.output_path}")
 
             _update_database_record(
-                db,
-                op.id,
+                content,
                 os.path.basename(op.output_path),
                 os.path.dirname(op.output_path),
                 args.format_out.upper(),
