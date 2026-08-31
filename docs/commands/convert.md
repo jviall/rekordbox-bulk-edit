@@ -25,6 +25,12 @@ All conversions target **16-bit / 44.1 kHz**, with a few nuances:
 - `all` — always delete the original
 - `none` — never delete the original
 
+## Interrupted Runs
+
+If a run stops partway, whether from a conversion failure, a full disk, or a Ctrl-C, everything it finished is kept and nothing is left half-converted. `convert` tells you which file it stopped on, how many converted, and how many it never got to. Rerun the same command to pick up where it left off.
+
+A track whose file has moved or been deleted since the preview is skipped, and the rest of the batch continues.
+
 ## Examples
 
 ```bash
