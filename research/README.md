@@ -26,6 +26,11 @@ formal and terse, and states findings as the evidence supports them.
 
 ## Investigations
 
+- **`database-concurrency/`** — how `master.db` behaves when more than one thing
+  writes to it: WAL mode, why a read opens no transaction, how SQLAlchemy's
+  identity map hides fresh data, and what that means for the plan-apply window
+  and for maintaining Rekordbox's USN counter. Includes a glossary of the
+  database terms the other findings use.
 - **`convert-reanalysis-impact/`** — what a `convert` run does to a track's
   analysis (the `DjmdContent` row, `DjmdCue` rows, and on-disk ANLZ files), why
   re-analysis rather than conversion is what moves a beat grid, and how far the

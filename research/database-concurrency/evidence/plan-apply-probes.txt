@@ -1,0 +1,16 @@
+=== snapshot_probe.py ===
+preview pass reads: 'before'
+outside writer committed
+apply pass reads:   'after'
+in_transaction between passes: True
+
+=== identity_probe.py ===
+preview pass: 'before'
+apply pass:   'before'
+same object as preview: True
+after expire_all: 'after'
+
+=== membership_probe.py ===
+preview matched: [(1, 'Burial - Archangel')]
+apply matched:   [(1, 'Burial - Archangel'), (2, 'Burial - Shell of Light')]
+
