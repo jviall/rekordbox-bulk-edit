@@ -153,7 +153,6 @@ class ConvertedFileProbe(NamedTuple):
     """
 
     audio_info: AudioInfo
-    bitrate: int | None
     file_size: int
 
 
@@ -162,13 +161,11 @@ def _probe_converted_file(
 ) -> ConvertedFileProbe:
     """Probe a converted file for the values its content row needs."""
     audio_info = get_audio_info(converted_file_path)
-    bitrate = audio_info["bitrate"]
-    if output_format.upper() == "MP3" and bitrate is None:
+    if output_format.upper() == "MP3" and audio_info["bitrate"] is None:
         logger.debug("MP3 bitrate not found in probe, assuming 320kbps")
-        bitrate = 320
+        audio_info["bitrate"] = 320
     return ConvertedFileProbe(
         audio_info=audio_info,
-        bitrate=bitrate,
         file_size=os.path.getsize(converted_file_path),
     )
 
@@ -193,23 +190,7 @@ def _apply_converted_record(
     if content.OrgFolderPath == old_path:
         content.OrgFolderPath = converted_db_path
 
-    _sync_audio_columns(
-        content,
-        {**probe.audio_info, "bitrate": probe.bitrate},
-        file_type,
-        probe.file_size,
-    )
-
-
-def _update_database_record(
-    content: DjmdContent,
-    new_filename: str,
-    new_folder: str,
-    output_format: str,
-) -> None:
-    """Probe a converted file and write its values onto the content row."""
-    probe = _probe_converted_file(Path(new_folder, new_filename), output_format)
-    _apply_converted_record(content, probe, new_filename, new_folder, output_format)
+    _sync_audio_columns(content, probe.audio_info, file_type, probe.file_size)
 
 
 def _temp_output_path(output_path: str) -> str:
@@ -479,8 +460,9 @@ def convert(
             os.replace(pending_temp, op.output_path)
             pending_temp = None
 
-            _update_database_record(
+            _apply_converted_record(
                 content,
+                _probe_converted_file(op.output_path, output_format_name),
                 os.path.basename(op.output_path),
                 os.path.dirname(op.output_path),
                 output_format_name,
