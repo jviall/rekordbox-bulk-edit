@@ -3,6 +3,7 @@
 import logging
 import os
 from collections.abc import Iterable
+from concurrent.futures import Future, ThreadPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal, NamedTuple, Tuple, cast
@@ -517,75 +518,108 @@ def convert(
 
     jobs = [_job_for(content_map[op.id], op, output_format_name) for op in ops]
 
-    for i, (op, job) in enumerate(zip(ops, jobs), 1):
-        content = content_map[op.id]
-        logger.info(f"[{i}/{len(ops)}] {job.file_name}")
-
-        try:
-            result = _encode_one(job)
-        except BaseException as e:
-            _rollback_session(db)
-            logger.debug(
-                f"convert aborted at {job.source_path} after "
-                f"{len(converted_ops)} committed conversion(s)"
-            )
-            raise ConvertAborted(
-                str(e),
-                failed_path=job.source_path,
-                converted=len(converted_ops),
-                not_attempted=len(ops) - i,
-            ) from e
-
-        if result.skipped:
-            skipped.append(result.skipped)
-            continue
-
-        try:
-            os.replace(job.temp_path, job.output_path)
-            _apply_converted_record(
-                content,
-                cast(ConvertedFileProbe, result.probe),
-                os.path.basename(job.output_path),
-                os.path.dirname(job.output_path),
-                output_format_name,
-            )
-            db.session.commit()
-        except BaseException as e:
-            _remove_temp_file(job.temp_path)
-            _rollback_session(db)
-            logger.debug(
-                f"convert aborted at {job.source_path} after "
-                f"{len(converted_ops)} committed conversion(s)"
-            )
-            raise ConvertAborted(
-                str(e),
-                failed_path=job.source_path,
-                converted=len(converted_ops),
-                not_attempted=len(ops) - i,
-            ) from e
-
-        converted_ops.append(
-            op.model_copy(
-                update={
-                    "source_path": job.source_path,
-                    "output_sample_rate": result.output_sample_rate,
-                }
-            )
+    def _abort(exc: BaseException, job: _EncodeJob, attempted: int) -> ConvertAborted:
+        """Give up on the batch, keeping every conversion already committed."""
+        _rollback_session(db)
+        logger.debug(
+            f"convert aborted at {job.source_path} after "
+            f"{len(converted_ops)} committed conversion(s)"
+        )
+        return ConvertAborted(
+            str(exc),
+            failed_path=job.source_path,
+            converted=len(converted_ops),
+            not_attempted=len(ops) - attempted,
         )
 
-        # Past this point the row is committed, so every failure only warns.
-        try:
-            _update_anlz_paths(db, content, os.path.basename(job.output_path))
-        except Exception as e:
-            logger.warning(f"Failed to update ANLZ path tags for {job.file_name}: {e}")
+    workers = 1
+    futures: dict[int, Future[_EncodeResult]] = {}
 
-        if _deletes_original(args.delete_originals, result.is_lossless):
-            deletable += 1
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+
+        def _submit(index: int) -> None:
+            if index < len(jobs):
+                futures[index] = pool.submit(_encode_one, jobs[index])
+
+        def _discard_outstanding() -> None:
+            """Drop queued work and clean up temps from encodes already done.
+
+            Encoding is the expensive half, so nothing beyond the pool's width
+            is ever queued, and an abort wastes at most that many files.
+            """
+            for future in futures.values():
+                future.cancel()
+            for index, future in futures.items():
+                if future.cancelled() or future.exception() is not None:
+                    continue
+                if future.result().skipped is None:
+                    _remove_temp_file(jobs[index].temp_path)
+            futures.clear()
+
+        # Only `workers` jobs run ahead of the drain point, topped up as each
+        # result lands, so a failure cannot burn the whole batch's CPU first.
+        for index in range(min(workers, len(jobs))):
+            _submit(index)
+
+        # Drained in submission order, not completion order, so converted_ops,
+        # the progress lines, and --print ids stay deterministic.
+        for i, (op, job) in enumerate(zip(ops, jobs), 1):
+            content = content_map[op.id]
+            logger.info(f"[{i}/{len(ops)}] {job.file_name}")
+
             try:
-                os.remove(job.source_path)
-                deleted += 1
+                result = futures.pop(i - 1).result()
+            except BaseException as e:
+                _discard_outstanding()
+                raise _abort(e, job, i) from e
+
+            # Topped up only once this file cleared, so an abort never leaves
+            # work queued that nobody will drain.
+            _submit(i - 1 + workers)
+
+            if result.skipped:
+                skipped.append(result.skipped)
+                continue
+
+            try:
+                os.replace(job.temp_path, job.output_path)
+                _apply_converted_record(
+                    content,
+                    cast(ConvertedFileProbe, result.probe),
+                    os.path.basename(job.output_path),
+                    os.path.dirname(job.output_path),
+                    output_format_name,
+                )
+                db.session.commit()
+            except BaseException as e:
+                _remove_temp_file(job.temp_path)
+                _discard_outstanding()
+                raise _abort(e, job, i) from e
+
+            converted_ops.append(
+                op.model_copy(
+                    update={
+                        "source_path": job.source_path,
+                        "output_sample_rate": result.output_sample_rate,
+                    }
+                )
+            )
+
+            # Past this point the row is committed, so every failure only warns.
+            try:
+                _update_anlz_paths(db, content, os.path.basename(job.output_path))
             except Exception as e:
-                logger.warning(f"Failed to delete {job.source_path}: {e}")
+                logger.warning(
+                    f"Failed to update ANLZ path tags for {job.file_name}: {e}"
+                )
+
+            if _deletes_original(args.delete_originals, result.is_lossless):
+                deletable += 1
+                try:
+                    os.remove(job.source_path)
+                    deleted += 1
+                except Exception as e:
+                    logger.warning(f"Failed to delete {job.source_path}: {e}")
 
     logger.info(f"\nConverted {len(converted_ops)} files to {output_format_name}")
     logger.debug(f"convert committed {len(converted_ops)} conversion(s)")
