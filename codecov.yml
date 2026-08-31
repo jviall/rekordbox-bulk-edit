@@ -6,5 +6,11 @@ coverage:
         target: auto #default
         threshold: 1%
         base: auto
+    patch:
+      default:
+        # basic
+        target: auto
+        threshold: 1%
+        base: auto
 comment:
   require_changes: true
