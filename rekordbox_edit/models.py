@@ -25,6 +25,7 @@ Response semantics:
   their contents and order by index;
 """
 
+import os
 from typing import Literal, TypeAlias
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -90,6 +91,9 @@ class EditRequest(FilterArgs):
 
 DeleteOriginalsMode: TypeAlias = Literal["none", "lossless", "all"]
 
+#: Concurrent encodes when the caller does not choose. See ConvertRequest.threads.
+DEFAULT_THREADS = min(4, os.cpu_count() or 1)
+
 
 class ConvertRequest(FilterArgs):
     """Inputs for convert(): the shared track filters plus output format and original-file handling."""
@@ -101,6 +105,11 @@ class ConvertRequest(FilterArgs):
     only when the conversion loses no audio information. Down-sampling to the
     conversion target counts as lossy, as does MP3 output."""
     overwrite: bool = False
+    threads: int = Field(default_factory=lambda: DEFAULT_THREADS, ge=1)
+    """How many files to encode concurrently. Deliberately conservative by
+    default: MP3 and FLAC output scale well across files, while WAV and AIFF
+    output is close to pure I/O and can get slower under concurrency on the
+    external drives DJs tend to keep libraries on."""
 
 
 class ImportRequest(BaseModel):

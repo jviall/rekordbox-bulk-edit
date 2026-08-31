@@ -8,6 +8,7 @@ from click.testing import CliRunner
 from rekordbox_edit.api.convert import ConvertAborted
 from rekordbox_edit.cli.convert import convert_command
 from rekordbox_edit.models import (
+    DEFAULT_THREADS,
     ConvertOp,
     ConvertResponse,
     ConvertResult,
@@ -354,3 +355,39 @@ class TestMissingSourceReporting:
         assert result.exit_code == 0
         warnings = " ".join(str(c) for c in mock_logger.warning.call_args_list)
         assert "source file is gone" in warnings
+
+
+class TestThreadsFlag:
+    @patch("rekordbox_edit.cli.convert.convert")
+    @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
+    @patch("rekordbox_edit.cli._utils.get_rekordbox_pid", return_value=None)
+    def test_threads_reaches_the_request(self, _pid, mock_db_class, mock_convert):
+        mock_db_class.return_value = Mock(session=Mock())
+        mock_convert.return_value = _response()
+
+        result = CliRunner().invoke(
+            convert_command, ["--format-out", "aiff", "--threads", "3", "--yes"]
+        )
+
+        assert result.exit_code == 0
+        assert mock_convert.call_args.args[1].threads == 3
+
+    @patch("rekordbox_edit.cli.convert.convert")
+    @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
+    @patch("rekordbox_edit.cli._utils.get_rekordbox_pid", return_value=None)
+    def test_omitting_threads_uses_the_conservative_default(
+        self, _pid, mock_db_class, mock_convert
+    ):
+        mock_db_class.return_value = Mock(session=Mock())
+        mock_convert.return_value = _response()
+
+        CliRunner().invoke(convert_command, ["--format-out", "aiff", "--yes"])
+
+        assert mock_convert.call_args.args[1].threads == DEFAULT_THREADS
+
+    def test_zero_threads_is_a_usage_error(self):
+        result = CliRunner().invoke(
+            convert_command, ["--format-out", "aiff", "--threads", "0", "--yes"]
+        )
+
+        assert result.exit_code != 0

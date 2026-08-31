@@ -3,6 +3,8 @@ from pathlib import Path
 
 import click
 
+from rekordbox_edit.models import DEFAULT_THREADS
+
 
 class PrintChoice(Enum):
     SILENT = 0
@@ -185,6 +187,13 @@ convert_click_options = [
         "--overwrite",
         is_flag=True,
         help="Overwrite existing output files instead of skipping them",
+    ),
+    click.option(
+        "--threads",
+        "-t",
+        type=click.IntRange(min=1),
+        default=DEFAULT_THREADS,
+        help=f"How many files to encode at once (default: {DEFAULT_THREADS}).",
     ),
     click.option(
         "--format-out",

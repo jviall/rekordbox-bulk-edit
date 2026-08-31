@@ -532,7 +532,7 @@ def convert(
             not_attempted=len(ops) - attempted,
         )
 
-    workers = 1
+    workers = args.threads
     futures: dict[int, Future[_EncodeResult]] = {}
 
     with ThreadPoolExecutor(max_workers=workers) as pool:
