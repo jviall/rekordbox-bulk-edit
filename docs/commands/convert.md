@@ -25,6 +25,14 @@ All conversions target **16-bit / 44.1 kHz**, with a few nuances:
 - `all` — always delete the original
 - `none` — never delete the original
 
+## Converting Several Files at Once
+
+`convert` operates on four files at a time by default so long as your CPU has the cores to do so. You can customize this by passing `--threads N` (or `-t N`), with your CPU's number of cores as an upper limit.
+
+Depending on your environment and target format, your mileage with more or less threads will vary. MP3 output speeds up close to linearly with more threads due to `libmp3lame` being a single-threaded process, whereas FLAC gains about a 50% with. WAV and AIFF outputs only see minor benefits, as `ffmpeg` already multithreads their decoding, and they don't require any encoding step. As such, you'll likely be limited by I/O speed rather than CPU when converting to WAV/AIFF.
+
+If you're converting across a network (like a mapped drive), more threads will likely only slow you down as each thread competes for network capacity, but if you're converting on a local drive it is likely to improve performance at least somewhat.
+
 ## Interrupted Runs
 
 If a run stops partway, whether from a conversion failure, a full disk, or a Ctrl-C, everything it finished is kept and nothing is left half-converted. `convert` tells you which file it stopped on, how many converted, and how many it never got to. Rerun the same command to pick up where it left off.
@@ -51,9 +59,13 @@ rbe convert --format-out aiff --format flac --print ids --dry-run
 
 # Convert everything a search finds
 rbe search --artist "Lauryn Hill" --print ids | rbe convert --yes
+
+# Push harder on an MP3 batch sitting on internal storage
+rbe convert --format-out mp3 --playlist "Export" --threads 8 --yes
 ```
 
 ### Guardrails
+
 - Without flags, `convert` shows every planned change and asks once before applying. `--interactive` confirms each track individually; `--dry-run` previews without writing; `--yes` confirms the default choice for all prompts without asking.
 - Editing while Rekordbox is open risks corrupting your database. By default `convert` warns and asks for confirmation (defaulting to no, so a `--yes` would exit); in a non-interactive mode (e.g. `--print ids`) it throws an error.
 - Before a large run, walk through the checklist in [What Should I Do Before Converting?](../faqs.md#what-should-i-do-before-converting)
