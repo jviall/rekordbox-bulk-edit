@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 #: How long a non-interactive command waits for the lock. Interactive
 #: commands pass 0 so a user at a terminal fails fast instead of hanging.
-SCRIPTED_TIMEOUT = 5.0
+SCRIPTED_TIMEOUT = 30.0
 
 _LOCK_DIR = (
     Path(PlatformDirs(appname="rekordbox-edit", ensure_exists=True).user_data_dir)

@@ -128,7 +128,7 @@ class TestWaitBudget:
 
         CliRunner().invoke(edit_command, ["Title", "--replace", "New", "--yes"])
 
-        assert mock_lock.call_args.kwargs["timeout"] == 5.0
+        assert mock_lock.call_args.kwargs["timeout"] == 30.0
 
     @patch("rekordbox_edit.cli._utils.database_lock")
     @patch("rekordbox_edit.cli.edit.edit")
