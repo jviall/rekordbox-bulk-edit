@@ -248,34 +248,42 @@ def _sweep_orphan_temp_files(output_paths: Iterable[str]) -> None:
         logger.debug(f"convert swept {removed} orphaned temp file(s)")
 
 
-def _cleanup_converted_files(converted_ops: list[ConvertOp]) -> None:
-    """Clean up converted output files on error or rollback."""
-    logger.debug("Cleaning up converted files due to aborted conversion.")
-    for op in converted_ops:
-        try:
-            os.remove(op.output_path)
-            logger.debug(f"Cleaned up {op.output_path}")
-        except Exception:
-            pass
+class ConvertAborted(RuntimeError):
+    """A conversion failed partway through a batch.
+
+    Files converted before the failure are already committed, so the counts
+    travel with the error rather than being recovered from the response the
+    caller never receives.
+    """
+
+    def __init__(
+        self,
+        reason: str,
+        *,
+        failed_path: str,
+        converted: int,
+        not_attempted: int,
+    ):
+        self.failed_path = failed_path
+        self.converted = converted
+        self.not_attempted = not_attempted
+        super().__init__(reason)
 
 
-def _rollback_and_cleanup(db, converted_ops: list[ConvertOp]) -> None:
-    """Roll back the database session and clean up any converted files."""
+def _rollback_session(db) -> None:
+    """Roll back whatever the failing file left uncommitted. Earlier files
+    committed in their own transactions and are unaffected."""
     logger.debug("Attempting DB session rollback.")
-    rollback_error = None
-    if db and db.session:
-        try:
-            db.session.rollback()
-        except Exception as e:
-            logger.critical(f"Encountered error during session rollback: {e}")
-            logger.critical(
-                "Check the state of your rekordbox library and consider reverting to a backup database if something's not right"
-            )
-            rollback_error = e
-    if converted_ops:
-        _cleanup_converted_files(converted_ops)
-    if rollback_error:
-        raise rollback_error
+    if not (db and db.session):
+        return
+    try:
+        db.session.rollback()
+    except Exception as e:
+        logger.critical(f"Encountered error during session rollback: {e}")
+        logger.critical(
+            "Check the state of your rekordbox library and consider reverting to a backup database if something's not right"
+        )
+        raise
 
 
 def _get_output_path(content, output_format) -> Tuple[str, str, str]:
@@ -334,6 +342,13 @@ def _classify_convert(content, args: ConvertRequest) -> ConvertOp | SkippedTrack
     )
 
 
+def _deletes_original(mode: str, is_lossless: bool) -> bool:
+    """Whether this conversion's original should be deleted under `mode`."""
+    if mode == "all":
+        return True
+    return mode == "lossless" and is_lossless
+
+
 # ── Public API ────────────────────────────────────────────────────────────
 
 
@@ -348,9 +363,10 @@ def convert(
     With `dry_run=True`, returns the planned conversions without any ffmpeg or
     DB writes. With `dry_run=False` (default), commits the changes.
 
-    The rollback block protects only pre-commit work; once a database commit lands,
-    the transaction is honoured even if the delete-originals loop or response
-    re-query later fails.
+    Each file commits in its own transaction, so a failure raises
+    ConvertAborted with the files already converted left committed. Only the
+    failing file rolls back, and its post-commit work (the ANLZ path update and
+    the original deletion) only warns.
     """
     from rekordbox_edit.utils import ffmpeg_in_path, get_ffmpeg_directions
 
@@ -403,19 +419,27 @@ def convert(
     # content_map enables per-op live FolderPath / FileNameL reads in the loop.
     content_map = {str(c.ID): c for c in contents}
     converted_ops: list[ConvertOp] = []
-    lossless_op_ids: set[str] = set()
     _sweep_orphan_temp_files(op.output_path for op in ops)
 
-    pending_temp: str | None = None
-    try:
-        for i, op in enumerate(ops, 1):
-            content = content_map[op.id]
-            src = content.FolderPath or ""
-            logger.info(f"[{i}/{len(ops)}] {content.FileNameL}")
+    output_format_name = args.format_out.upper()
+    deletable = 0
+    deleted = 0
 
-            if not os.path.exists(src):
-                raise RuntimeError(f"Source not found: {src}")
+    for i, op in enumerate(ops, 1):
+        content = content_map[op.id]
+        src = content.FolderPath or ""
+        logger.info(f"[{i}/{len(ops)}] {content.FileNameL}")
 
+        if not os.path.exists(src):
+            # Classification and this loop are separated by a confirmation
+            # prompt, so a source going missing is an expected outcome of that
+            # window rather than a systemic failure worth abandoning the batch.
+            logger.warning(f"Skipping {content.FileNameL}: {src} is gone")
+            skipped.append(SkippedTrack(id=op.id, reason="file_not_found"))
+            continue
+
+        pending_temp: str | None = None
+        try:
             audio_info = get_audio_info(src)
             if not probe_matches_file_type(
                 content.FileType, audio_info["codec"], audio_info["container"]
@@ -429,15 +453,16 @@ def convert(
                 continue
 
             pending_temp = _temp_output_path(op.output_path)
-            if args.format_out.upper() == "MP3":
+            if output_format_name == "MP3":
+                # MP3 output always loses information, so it is never lossless.
+                is_lossless = False
                 output_sample_rate = TARGET_SAMPLE_RATE
                 success = _run_ffmpeg(
                     src, pending_temp, _mp3_output_kwargs(output_sample_rate), "mp3"
                 )
             else:
                 fidelity, output_sample_rate = _classify_fidelity(audio_info)
-                if fidelity == "lossless":
-                    lossless_op_ids.add(op.id)
+                is_lossless = fidelity == "lossless"
                 output_format = OutputFormats(args.format_out.lower())
                 success = _run_ffmpeg(
                     src,
@@ -458,33 +483,31 @@ def convert(
                 content,
                 os.path.basename(op.output_path),
                 os.path.dirname(op.output_path),
-                args.format_out.upper(),
+                output_format_name,
             )
-            converted_ops.append(
-                op.model_copy(
-                    update={
-                        "source_path": src,
-                        "output_sample_rate": output_sample_rate,
-                    }
-                )
+            db.session.commit()
+        except BaseException as e:
+            if pending_temp:
+                _remove_temp_file(pending_temp)
+            _rollback_session(db)
+            logger.debug(
+                f"convert aborted at {src} after {len(converted_ops)} "
+                "committed conversion(s)"
             )
+            raise ConvertAborted(
+                str(e),
+                failed_path=src,
+                converted=len(converted_ops),
+                not_attempted=len(ops) - i,
+            ) from e
 
-        db.session.commit()
-        logger.info(
-            f"\nConverted {len(converted_ops)} files to {args.format_out.upper()}"
+        converted_ops.append(
+            op.model_copy(
+                update={"source_path": src, "output_sample_rate": output_sample_rate}
+            )
         )
-        logger.debug(f"convert committed {len(converted_ops)} conversion(s)")
-    except BaseException:
-        logger.debug(
-            f"convert rolling back after {len(converted_ops)} partial conversion(s)"
-        )
-        if pending_temp:
-            _remove_temp_file(pending_temp)
-        _rollback_and_cleanup(db, converted_ops)
-        raise
 
-    for op in converted_ops:
-        content = content_map[op.id]
+        # Past this point the row is committed, so every failure only warns.
         try:
             _update_anlz_paths(db, content, os.path.basename(op.output_path))
         except Exception as e:
@@ -492,31 +515,19 @@ def convert(
                 f"Failed to update ANLZ path tags for {content.FileNameL}: {e}"
             )
 
-    if args.delete_originals == "all":
-        deletable_ops = converted_ops
-    elif args.delete_originals == "lossless":
-        deletable_ops = [op for op in converted_ops if op.id in lossless_op_ids]
-    else:
-        deletable_ops = []
-    logger.debug(
-        f"convert delete_originals={args.delete_originals}: deleting "
-        f"{len(deletable_ops)}/{len(converted_ops)} source file(s)"
-    )
+        if _deletes_original(args.delete_originals, is_lossless):
+            deletable += 1
+            try:
+                os.remove(src)
+                deleted += 1
+            except Exception as e:
+                logger.warning(f"Failed to delete {src}: {e}")
 
-    deleted = 0
-    for op in deletable_ops:
-        try:
-            os.remove(op.source_path)
-            deleted += 1
-        except Exception as e:
-            logger.warning(f"Failed to delete {op.source_path}: {e}")
+    logger.info(f"\nConverted {len(converted_ops)} files to {output_format_name}")
+    logger.debug(f"convert committed {len(converted_ops)} conversion(s)")
 
-    kept = len(converted_ops) - len(deletable_ops)
-    if (
-        args.delete_originals == "lossless"
-        and kept
-        and args.format_out.upper() != "MP3"
-    ):
+    kept = len(converted_ops) - deletable
+    if args.delete_originals == "lossless" and kept and output_format_name != "MP3":
         logger.info(f"Kept {kept} original file(s) whose conversion was lossy")
 
     converted_ids = [op.id for op in converted_ops]
