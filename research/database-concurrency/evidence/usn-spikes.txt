@@ -1,0 +1,27 @@
+=== concurrent_increment.py ===
+2 writers x 25 increments, real SQLCipher engine:
+  read-then-write  694 -> 719 (expected 744)
+    25 increment(s) LOST, errors: none
+  atomic-update    694 -> 744 (expected 744)
+    OK, errors: none, duplicate stamps handed out: 0
+
+=== block_reservation.py ===
+1. Reserving a block of N in one statement
+   start 694, reserved 7, high 701
+   stamps for this commit: [695, 696, 697, 698, 699, 700, 701]
+   contiguous and ending at the counter: True
+
+2. Outside writer commits after our transaction opened with a read
+   our read at transaction open: 694
+   outside writer committed, counter now 697
+   our bump succeeded, high 699
+   computed from the fresh value, not our stale read: True
+   final counter 699, expected 699 -> OK
+
+=== wal_snapshot.py ===
+ours: read 5 rows, counter 694, in_transaction=True
+theirs: committed, counter now 697
+ours: still in_transaction=True
+ours: bump SUCCEEDED, high 699 (fresh value + 2 = 699)
+final counter 699, expected 699
+
