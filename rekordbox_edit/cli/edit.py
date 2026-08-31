@@ -64,11 +64,8 @@ def edit_command(db, **kwargs):
     set_level(print_opt)
     piped_stdin = _handle_stdin(args)
 
-    # Sentinel object mirrors the old ConfirmationArgs shape for the validator.
     _validate_scripting_preconditions(
-        print_opt,
-        type("_S", (), {"dry_run": dry_run, "yes": yes})(),
-        piped_stdin,
+        print_opt, piped_stdin=piped_stdin, dry_run=dry_run, yes=yes
     )
 
     if yes or dry_run:

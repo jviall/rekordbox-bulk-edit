@@ -12,12 +12,12 @@ from rekordbox_edit.cli._utils import (
     _validate_scripting_preconditions,
 )
 from rekordbox_edit.models import (
-    ConvertRequest,
     ConvertOp,
+    ConvertRequest,
     ConvertResponse,
     ConvertResult,
-    EditRequest,
     EditOp,
+    EditRequest,
     EditResponse,
     EditResult,
     SearchRequest,
@@ -72,18 +72,31 @@ class TestHandleStdin:
 
 class TestValidateScriptingPreconditions:
     def test_scripting_mode_without_confirmation_raises(self):
-        args = Mock(dry_run=False, yes=False)
         with pytest.raises(click.UsageError):
-            _validate_scripting_preconditions(PrintChoice.IDS, args, piped_stdin=False)
+            _validate_scripting_preconditions(
+                PrintChoice.IDS, piped_stdin=False, dry_run=False, yes=False
+            )
 
     def test_scripting_mode_with_yes_ok(self):
-        args = Mock(dry_run=False, yes=True)
-        _validate_scripting_preconditions(PrintChoice.IDS, args, piped_stdin=False)
+        _validate_scripting_preconditions(
+            PrintChoice.IDS, piped_stdin=False, dry_run=False, yes=True
+        )
+
+    def test_scripting_mode_with_dry_run_ok(self):
+        _validate_scripting_preconditions(
+            PrintChoice.IDS, piped_stdin=False, dry_run=True, yes=False
+        )
 
     def test_piped_stdin_without_confirmation_raises(self):
-        args = Mock(dry_run=False, yes=False)
         with pytest.raises(click.UsageError, match="Piping"):
-            _validate_scripting_preconditions(None, args, piped_stdin=True)
+            _validate_scripting_preconditions(
+                None, piped_stdin=True, dry_run=False, yes=False
+            )
+
+    def test_piped_stdin_with_confirmation_ok(self):
+        _validate_scripting_preconditions(
+            None, piped_stdin=True, dry_run=False, yes=True
+        )
 
 
 class TestNarrowToTrackIds:

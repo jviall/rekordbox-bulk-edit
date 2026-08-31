@@ -51,13 +51,16 @@ def _handle_stdin(args) -> bool:
     return True
 
 
-def _validate_scripting_preconditions(print_opt, args, piped_stdin: bool) -> None:
+def _validate_scripting_preconditions(
+    print_opt, *, piped_stdin: bool, dry_run: bool, yes: bool
+) -> None:
     """Raise UsageError for invalid scripting-mode combinations."""
-    if print_opt in SCRIPTING_MODES and not (args.dry_run or args.yes):
+    confirmed = dry_run or yes
+    if print_opt in SCRIPTING_MODES and not confirmed:
         raise click.UsageError(
             "--print=ids, --print=silent, or --print=json requires --dry-run or --yes to skip confirmation"
         )
-    if piped_stdin and not (args.dry_run or args.yes):
+    if piped_stdin and not confirmed:
         raise click.UsageError("Piping track IDs requires --dry-run or --yes")
 
 
