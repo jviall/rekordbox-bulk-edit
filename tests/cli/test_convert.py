@@ -5,6 +5,7 @@ from unittest.mock import Mock, patch
 import pytest
 from click.testing import CliRunner
 
+from rekordbox_edit.api.convert import ConvertAborted
 from rekordbox_edit.cli.convert import convert_command
 from rekordbox_edit.models import (
     ConvertOp,
@@ -306,3 +307,50 @@ class TestConvertCommand:
 
         assert result.exit_code == 0
         mock_db_class.assert_called_once()
+
+
+class TestPartialBatchReporting:
+    @patch("rekordbox_edit.cli.convert.convert")
+    @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
+    @patch("rekordbox_edit.cli._utils.get_rekordbox_pid", return_value=None)
+    def test_a_stopped_batch_reports_what_survived(
+        self, _pid, mock_db_class, mock_convert, mock_logger
+    ):
+        mock_db_class.return_value = Mock(session=Mock())
+        mock_convert.side_effect = ConvertAborted(
+            "Conversion failed for /in7.wav",
+            failed_path="/in7.wav",
+            converted=6,
+            not_attempted=3,
+        )
+
+        result = CliRunner().invoke(convert_command, ["--format-out", "aiff", "--yes"])
+
+        assert result.exit_code == 1
+        messages = " ".join(str(c) for c in mock_logger.error.call_args_list)
+        assert "/in7.wav" in messages
+        assert "6 file(s) converted and kept" in messages
+        assert "3 not attempted" in messages
+
+
+class TestMissingSourceReporting:
+    @patch("rekordbox_edit.cli.convert.convert")
+    @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
+    @patch("rekordbox_edit.cli._utils.get_rekordbox_pid", return_value=None)
+    def test_a_vanished_source_is_reported_from_the_live_pass(
+        self, _pid, mock_db_class, mock_convert, mock_logger
+    ):
+        # A dry run cannot predict this one, so it has to survive the live-run
+        # filter that drops skips the preview already reported.
+        mock_db_class.return_value = Mock(session=Mock())
+        mock_convert.side_effect = [
+            _response(),
+            _response(skipped=[SkippedTrack(id="9", reason="file_not_found")]),
+        ]
+
+        with patch("rekordbox_edit.cli.convert.confirm", return_value=True):
+            result = CliRunner().invoke(convert_command, ["--format-out", "aiff"])
+
+        assert result.exit_code == 0
+        warnings = " ".join(str(c) for c in mock_logger.warning.call_args_list)
+        assert "source file is gone" in warnings
