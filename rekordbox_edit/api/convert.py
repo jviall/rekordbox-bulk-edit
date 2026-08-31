@@ -2,6 +2,7 @@
 
 import logging
 import os
+from collections.abc import Iterable
 from pathlib import Path
 from typing import Literal, NamedTuple, Tuple
 
@@ -42,6 +43,10 @@ TARGET_SAMPLE_RATE = 44100
 
 # Rekordbox FileType codes RBE converts from: the lossless whitelist.
 _INPUT_FILE_TYPES = {info.code for info in FILE_TYPES.items() if info.convertable}
+
+# Encoding writes here first, so a hard kill leaves a recognizable orphan
+# rather than a truncated file at the name the database will point at.
+TEMP_PREFIX = ".rbe-convert-"
 
 _HI_RES_CODECS = {
     "aiff": "pcm_s16be",
@@ -207,6 +212,42 @@ def _update_database_record(
     _apply_converted_record(content, probe, new_filename, new_folder, output_format)
 
 
+def _temp_output_path(output_path: str) -> str:
+    """A sibling of `output_path` to encode into. Keeping it in the destination
+    directory means the move into place never crosses a filesystem, so it stays
+    atomic. The extension is preserved because ffmpeg reads the output format
+    from it."""
+    directory, filename = os.path.split(output_path)
+    return os.path.join(directory, f"{TEMP_PREFIX}{os.getpid()}-{filename}")
+
+
+def _remove_temp_file(temp_path: str) -> None:
+    try:
+        os.remove(temp_path)
+        logger.debug(f"Removed temp output {temp_path}")
+    except OSError as e:
+        logger.debug(f"Could not remove temp output {temp_path}: {e}")
+
+
+def _sweep_orphan_temp_files(output_paths: Iterable[str]) -> None:
+    """Remove temp files a killed run left behind, in the directories this run
+    is about to write to. Only those directories are read, so the sweep never
+    walks the library."""
+    removed = 0
+    for directory in {os.path.dirname(path) for path in output_paths}:
+        try:
+            names = os.listdir(directory)
+        except OSError as e:
+            logger.debug(f"Could not sweep {directory}: {e}")
+            continue
+        for name in names:
+            if name.startswith(TEMP_PREFIX):
+                _remove_temp_file(os.path.join(directory, name))
+                removed += 1
+    if removed:
+        logger.debug(f"convert swept {removed} orphaned temp file(s)")
+
+
 def _cleanup_converted_files(converted_ops: list[ConvertOp]) -> None:
     """Clean up converted output files on error or rollback."""
     logger.debug("Cleaning up converted files due to aborted conversion.")
@@ -363,6 +404,9 @@ def convert(
     content_map = {str(c.ID): c for c in contents}
     converted_ops: list[ConvertOp] = []
     lossless_op_ids: set[str] = set()
+    _sweep_orphan_temp_files(op.output_path for op in ops)
+
+    pending_temp: str | None = None
     try:
         for i, op in enumerate(ops, 1):
             content = content_map[op.id]
@@ -384,10 +428,11 @@ def convert(
                 skipped.append(SkippedTrack(id=op.id, reason="codec_mismatch"))
                 continue
 
+            pending_temp = _temp_output_path(op.output_path)
             if args.format_out.upper() == "MP3":
                 output_sample_rate = TARGET_SAMPLE_RATE
                 success = _run_ffmpeg(
-                    src, op.output_path, _mp3_output_kwargs(output_sample_rate), "mp3"
+                    src, pending_temp, _mp3_output_kwargs(output_sample_rate), "mp3"
                 )
             else:
                 fidelity, output_sample_rate = _classify_fidelity(audio_info)
@@ -396,15 +441,18 @@ def convert(
                 output_format = OutputFormats(args.format_out.lower())
                 success = _run_ffmpeg(
                     src,
-                    op.output_path,
+                    pending_temp,
                     _hi_res_output_kwargs(output_format, output_sample_rate),
                     output_format.value,
                 )
 
             if not success:
                 raise RuntimeError(f"Conversion failed for {src}")
-            if not os.path.exists(op.output_path):
+            if not os.path.exists(pending_temp):
                 raise RuntimeError(f"Output file not created: {op.output_path}")
+
+            os.replace(pending_temp, op.output_path)
+            pending_temp = None
 
             _update_database_record(
                 content,
@@ -430,6 +478,8 @@ def convert(
         logger.debug(
             f"convert rolling back after {len(converted_ops)} partial conversion(s)"
         )
+        if pending_temp:
+            _remove_temp_file(pending_temp)
         _rollback_and_cleanup(db, converted_ops)
         raise
 
