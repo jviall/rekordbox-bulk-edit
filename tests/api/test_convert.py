@@ -5,6 +5,7 @@ import ffmpeg
 import pytest
 
 from rekordbox_edit.api.convert import (
+    TEMP_PREFIX,
     _classify_convert,
     _classify_fidelity,
     _cleanup_converted_files,
@@ -14,6 +15,8 @@ from rekordbox_edit.api.convert import (
     _probe_converted_file,
     _rollback_and_cleanup,
     _run_ffmpeg,
+    _sweep_orphan_temp_files,
+    _temp_output_path,
     _update_anlz_paths,
     _update_database_record,
     convert,
@@ -348,7 +351,42 @@ class TestConvertDryRun:
         assert response.result.skipped[0].reason == "already_target_format"
 
 
+class TestTempOutputPath:
+    def test_keeps_the_extension_so_ffmpeg_still_infers_the_format(self):
+        temp = _temp_output_path("/music/song.aiff")
+
+        assert temp.endswith(".aiff")
+        assert os.path.dirname(temp) == "/music"
+        assert os.path.basename(temp).startswith(TEMP_PREFIX)
+
+
+class TestSweepOrphanTempFiles:
+    def test_removes_orphans_and_leaves_everything_else(self, tmp_path):
+        orphan = tmp_path / f"{TEMP_PREFIX}999-song.aiff"
+        orphan.write_text("half an encode")
+        bystander = tmp_path / "song.wav"
+        bystander.write_text("a real track")
+
+        _sweep_orphan_temp_files([str(tmp_path / "song.aiff")])
+
+        assert not orphan.exists()
+        assert bystander.exists()
+
+    def test_an_unreadable_directory_does_not_raise(self, tmp_path):
+        _sweep_orphan_temp_files([str(tmp_path / "absent" / "song.aiff")])
+
+
 class TestConvertRealRun:
+    @pytest.fixture(autouse=True)
+    def _stub_temp_file_moves(self):
+        # These tests mock ffmpeg away, so no temp file ever exists to move
+        # into place or to sweep. TestConvertTempFiles covers the real thing.
+        with (
+            patch("rekordbox_edit.api.convert.os.replace"),
+            patch("rekordbox_edit.api.convert.os.listdir", return_value=[]),
+        ):
+            yield
+
     @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=False)
     def test_no_ffmpeg_raises_immediately(self, _, mock_db):
         with pytest.raises(RuntimeError, match="FFmpeg"):
@@ -486,7 +524,7 @@ class TestConvertRealRun:
 
         mock_run.assert_called_once_with(
             "/in.wav",
-            "/out.aif",
+            _temp_output_path("/out.aif"),
             _hi_res_output_kwargs(OutputFormats.AIFF, 44100),
             "aiff",
         )
@@ -701,7 +739,7 @@ class TestConvertRealRun:
 
         mock_run.assert_called_once_with(
             "/in.wav",
-            "/out.aif",
+            _temp_output_path("/out.aif"),
             _hi_res_output_kwargs(OutputFormats.AIFF, 22050),
             "aiff",
         )
@@ -1047,7 +1085,7 @@ class TestConvertRealRun:
         convert(mock_db, ConvertRequest(format_out="mp3", overwrite=True))
 
         mock_run.assert_called_once_with(
-            "/in.wav", "/out.mp3", _mp3_output_kwargs(44100), "mp3"
+            "/in.wav", _temp_output_path("/out.mp3"), _mp3_output_kwargs(44100), "mp3"
         )
 
     @patch("rekordbox_edit.api.convert.get_audio_info", return_value=_PROBE_WAV_16_44)
