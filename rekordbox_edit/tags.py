@@ -12,11 +12,13 @@ from typing import TypedDict
 import mutagen
 
 from rekordbox_edit.utils import FILE_TYPES
+from rekordbox_edit.errors import RekordboxEditError
+
 
 logger = logging.getLogger(__name__)
 
 
-class UnreadableFile(Exception):
+class UnreadableFile(RekordboxEditError):
     """Raised when a path is not audio mutagen can parse."""
 
 

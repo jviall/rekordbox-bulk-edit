@@ -22,13 +22,14 @@ from rekordbox_edit.cli._utils import (
     _handle_stdin,
     _print_response_ids,
     _print_response_json,
+    UserQuit,
     _validate_scripting_preconditions,
+    confirm,
     with_database,
 )
 from rekordbox_edit.display import PrintableField, print_track_info
 from rekordbox_edit.logger import get_debug_file_path, set_level
 from rekordbox_edit.models import ConvertRequest
-from rekordbox_edit.utils import UserQuit, confirm
 
 logger = logging.getLogger(__name__)
 

@@ -6,6 +6,7 @@ from pyrekordbox import Rekordbox6Database
 
 from rekordbox_edit.api._utils import _order_tracks_by_op, stamp_usns
 from rekordbox_edit.api.field_handlers import FIELD_HANDLERS
+from rekordbox_edit.errors import InputError
 from rekordbox_edit.models import (
     EditRequest,
     EditOp,
@@ -77,7 +78,7 @@ def edit(
     logger.debug(f"edit start field={args.field} dry_run={dry_run}")
     handler = FIELD_HANDLERS.get(args.field)
     if handler is None:
-        raise ValueError(f"Unknown field: {args.field!r}")
+        raise InputError(f"Unknown field: {args.field!r}")
     handler.validate_request(args)
 
     planned: list[EditOp] = []
@@ -96,7 +97,7 @@ def edit(
 
         if len(planned) > 1 and not args.multi:
             logger.debug(f"edit aborted on multi guard with {len(planned)} ops")
-            raise ValueError(
+            raise InputError(
                 f"Found {len(planned)} tracks that would be edited. "
                 "Refine your filters, use dry_run to inspect, or pass multi=True to edit all."
             )

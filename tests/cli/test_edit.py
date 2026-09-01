@@ -7,7 +7,8 @@ from click.testing import CliRunner
 
 from rekordbox_edit.cli.edit import edit_command
 from rekordbox_edit.models import EditOp, EditResponse, EditResult, SkippedTrack, Track
-from rekordbox_edit.utils import UserQuit
+from rekordbox_edit.cli._utils import UserQuit
+from rekordbox_edit.errors import InputError
 
 
 @pytest.fixture(autouse=True)
@@ -79,7 +80,7 @@ class TestEditCommand:
     @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
     def test_value_error_becomes_usage_error(self, mock_db_class, mock_edit):
         mock_db_class.return_value = Mock(session=Mock())
-        mock_edit.side_effect = ValueError("Found 2 tracks that would be edited")
+        mock_edit.side_effect = InputError("Found 2 tracks that would be edited")
 
         result = CliRunner().invoke(
             edit_command, ["Title", "--replace", "New", "--yes"]
@@ -94,7 +95,7 @@ class TestEditCommand:
         self, mock_db_class, mock_edit
     ):
         mock_db_class.return_value = Mock(session=Mock())
-        mock_edit.side_effect = ValueError("Found 2 tracks that would be edited")
+        mock_edit.side_effect = InputError("Found 2 tracks that would be edited")
 
         result = CliRunner().invoke(edit_command, ["Title", "--replace", "New"])
 
@@ -105,14 +106,14 @@ class TestEditCommand:
     @patch("rekordbox_edit.cli.edit.confirm", return_value=True)
     @patch("rekordbox_edit.cli.edit.edit")
     @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
-    def test_apply_pass_value_error_becomes_usage_error(
+    def test_apply_pass_input_error_becomes_usage_error(
         self, mock_db_class, mock_edit, _confirm, _print
     ):
         # The preview passes the --multi guard and the apply pass does not.
         mock_db_class.return_value = Mock(session=Mock())
         mock_edit.side_effect = [
             _response(),
-            ValueError("Found 2 tracks that would be edited"),
+            InputError("Found 2 tracks that would be edited"),
         ]
 
         result = CliRunner().invoke(edit_command, ["Title", "--replace", "New"])
@@ -130,7 +131,7 @@ class TestEditCommand:
         mock_db_class.return_value = Mock(session=Mock())
         mock_edit.side_effect = [
             _response(),
-            ValueError("Found 2 tracks that would be edited"),
+            InputError("Found 2 tracks that would be edited"),
         ]
 
         result = CliRunner().invoke(
@@ -419,7 +420,7 @@ class TestEditForceFlow:
         mock_db_class.return_value = Mock(session=Mock())
         mock_edit.side_effect = [
             _gated_response(),
-            ValueError("Found 2 tracks that would be edited"),
+            InputError("Found 2 tracks that would be edited"),
         ]
         mock_confirm.side_effect = [True]
 

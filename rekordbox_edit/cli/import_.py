@@ -15,7 +15,6 @@ from rekordbox_edit._click import (
 )
 from rekordbox_edit.api.import_ import (
     DirectoryConfirmationRequired,
-    ImportInputError,
     import_tracks,
 )
 from rekordbox_edit.cli._utils import (
@@ -23,13 +22,14 @@ from rekordbox_edit.cli._utils import (
     _build_args,
     _print_response_ids,
     _print_response_json,
+    UserQuit,
     _validate_scripting_preconditions,
+    confirm,
     with_database,
 )
 from rekordbox_edit.display import print_track_info
 from rekordbox_edit.logger import get_debug_file_path, set_level
 from rekordbox_edit.models import ImportOp, ImportRequest
-from rekordbox_edit.utils import UserQuit, confirm
 
 logger = logging.getLogger(__name__)
 
@@ -58,19 +58,6 @@ def import_command(db, **kwargs):
 
     interactive_ok = print_opt not in SCRIPTING_MODES and not yes
 
-    def _attempt_import(request, **call_kwargs):
-        """One import_tracks() call, with bad input reported as a usage error.
-
-        The directory gate passes through: it is the one input error the
-        caller answers with a prompt rather than an exit.
-        """
-        try:
-            return import_tracks(db, request, **call_kwargs)
-        except DirectoryConfirmationRequired:
-            raise
-        except ImportInputError as e:
-            raise click.UsageError(str(e)) from e
-
     def _import_confirming_walk(request, **call_kwargs):
         """Import, turning the directory gate into a prompt when interactive.
 
@@ -78,7 +65,7 @@ def import_command(db, **kwargs):
         declined or quit the prompt.
         """
         try:
-            return _attempt_import(request, **call_kwargs), request
+            return import_tracks(db, request, **call_kwargs), request
         except DirectoryConfirmationRequired as e:
             if not interactive_ok:
                 raise click.UsageError(f"{e} Pass --yes to confirm.") from e
@@ -94,7 +81,7 @@ def import_command(db, **kwargs):
         # Answered yes: one retry, which cannot reach the gate again. It can
         # still fail on the playlist name, which the gate preempted before.
         request = request.model_copy(update={"recurse": True})
-        return _attempt_import(request, **call_kwargs), request
+        return import_tracks(db, request, **call_kwargs), request
 
     if yes or dry_run:
         response, _ = _import_confirming_walk(args, dry_run=dry_run)
@@ -134,7 +121,7 @@ def import_command(db, **kwargs):
     # Passing the previewed ops means no second directory walk, so a file
     # created during the prompt cannot be imported unseen, and the directory
     # gate cannot fire again.
-    response = _attempt_import(confirmed_args, ops=preview.result.added)
+    response = import_tracks(db, confirmed_args, ops=preview.result.added)
     _print_import_result(response, print_opt, dry_run=False)
 
 

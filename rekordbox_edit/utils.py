@@ -7,16 +7,11 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import TypedDict
 
-import click
 import ffmpeg
 
+from rekordbox_edit.errors import InputError
+
 logger = logging.getLogger(__name__)
-
-
-class UserQuit(Exception):
-    """Exception raised when user chooses to quit"""
-
-    pass
 
 
 @dataclass(frozen=True)
@@ -157,11 +152,11 @@ def get_file_type_codes_for_format(format_name: str) -> set[int]:
     Tokens mirror FileType values one to one.
     """
     if not format_name:
-        raise ValueError("Format name cannot be empty or None")
+        raise InputError("Format name cannot be empty or None")
     token = format_name.lower()
     codes = {info.code for info in FILE_TYPES.items() if token == info.token}
     if not codes:
-        raise ValueError(f"Unknown format: {format_name}")
+        raise InputError(f"Unknown format: {format_name}")
     return codes
 
 
@@ -169,10 +164,10 @@ def get_file_type_for_format(format_name: str) -> int:
     """The FileType code Rekordbox records for files RBE writes in this
     output format (case-insensitive). Raises for non-output formats."""
     if not format_name:
-        raise ValueError("Format name cannot be empty or None")
+        raise InputError("Format name cannot be empty or None")
     token = format_name.lower()
     if token not in _OUTPUT_TOKENS:
-        raise ValueError(f"Unknown format: {format_name}")
+        raise InputError(f"Unknown format: {format_name}")
     return FILE_TYPES[token].code
 
 
@@ -334,15 +329,15 @@ _RATING_STEP = 51  # Rekordbox stores N stars as N * 51.
 
 
 def parse_star_rating(value: "str | int") -> int:
-    """Parse a 0-5 star rating. Raise ValueError if not an integer in range."""
+    """Parse a 0-5 star rating. Raise InputError if not an integer in range."""
     try:
         stars = int(value)
     except (TypeError, ValueError):
-        raise ValueError(
+        raise InputError(
             f"Rating must be an integer 0-{_RATING_STARS_MAX}, got {value!r}"
         )
     if not 0 <= stars <= _RATING_STARS_MAX:
-        raise ValueError(
+        raise InputError(
             f"Rating must be between 0 and {_RATING_STARS_MAX}, got {stars}"
         )
     return stars
@@ -356,55 +351,3 @@ def star_rating_to_stored(stars: int) -> int:
 def stored_to_star_rating(stored: int) -> int:
     """Convert a stored rating back to a 0-5 star count."""
     return round(stored / _RATING_STEP)
-
-
-def confirm(
-    prompt: str,
-    default: bool = False,
-    binary: bool = False,
-    abort: bool = False,
-):
-    """Prompts the user to prompt [y]es/[n]o/[q]uit
-
-    Args:
-        prompt: The question to ask the user
-        default: Default response (True for y, False for n)
-        binary: If True, prompt a simple y/n
-        abort: If True, prompt a simple y/n where 'n' raises a UserQuit Exception
-    """
-    from enum import Enum
-
-    class ConfirmChoice(Enum):
-        YES = "y"
-        NO = "n"
-        QUIT = "q"
-
-    if abort or binary:
-        choices = [ConfirmChoice.YES.value, ConfirmChoice.NO.value]
-        default_choice = ConfirmChoice.YES.value if default else ConfirmChoice.NO.value
-    else:
-        choices = [
-            ConfirmChoice.YES.value,
-            ConfirmChoice.NO.value,
-            ConfirmChoice.QUIT.value,
-        ]
-        default_choice = ConfirmChoice.YES.value if default else ConfirmChoice.NO.value
-
-    response: str = click.prompt(
-        prompt,
-        type=click.Choice(choices, case_sensitive=False),
-        default=default_choice,
-    )
-
-    if response.lower() == ConfirmChoice.YES.value:
-        logger.debug(f"User confirmed: {prompt}")
-        return True
-    elif response.lower() == ConfirmChoice.NO.value:
-        logger.debug(f"User declined: {prompt}")
-        if abort:
-            raise UserQuit("User declined to continue")
-        else:
-            return False
-    elif response.lower()[0] == ConfirmChoice.QUIT.value:
-        logger.debug("User quit.")
-        raise UserQuit("User quit")

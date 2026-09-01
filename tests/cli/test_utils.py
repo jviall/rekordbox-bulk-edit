@@ -3,12 +3,23 @@ from unittest.mock import Mock, patch
 import click
 import pytest
 
+from click.testing import CliRunner
+
 from rekordbox_edit._click import PrintChoice
+from rekordbox_edit.cli.edit import edit_command
+from rekordbox_edit.errors import (
+    DatabaseBusyError,
+    DependencyMissingError,
+    InputError,
+    RekordboxRunningError,
+)
 from rekordbox_edit.cli._utils import (
+    UserQuit,
     _handle_stdin,
     _print_response_ids,
     _print_response_json,
     _validate_scripting_preconditions,
+    confirm,
 )
 from rekordbox_edit.models import (
     ConvertOp,
@@ -139,3 +150,131 @@ class TestPrintResponseJson:
 
         payload = json.loads(capsys.readouterr().out)
         assert payload["result"]["format_out"] == "aiff"
+
+
+class TestConfirm:
+    """Test confirm function."""
+
+    @pytest.fixture
+    def mock_dependencies(self, mocker):
+        """Mock all dependencies for confirm function."""
+        mock_click_prompt = mocker.patch("rekordbox_edit.cli._utils.click.prompt")
+        mock_logger = mocker.patch("rekordbox_edit.cli._utils.logger")
+        return {
+            "click_prompt": mock_click_prompt,
+            "logger": mock_logger,
+        }
+
+    def test_confirm_yes(self, mock_dependencies):
+        """Test confirm returns True when user enters 'y'."""
+        mock_dependencies["click_prompt"].return_value = "y"
+
+        result = confirm("Continue?", default=False, abort=False)
+
+        assert result is True
+        mock_dependencies["click_prompt"].assert_called_once()
+
+    def test_confirm_no(self, mock_dependencies):
+        """Test confirm returns False when user enters 'n' with abort=False."""
+        mock_dependencies["click_prompt"].return_value = "n"
+
+        result = confirm("Continue?", default=True, abort=False)
+
+        assert result is False
+        mock_dependencies["click_prompt"].assert_called_once()
+
+    def test_confirm_quit(self, mock_dependencies):
+        """Test confirm raises UserQuit when user enters 'q' with abort=False."""
+        mock_dependencies["click_prompt"].return_value = "q"
+
+        with pytest.raises(UserQuit, match="User quit"):
+            confirm("Continue?", default=True, abort=False)
+
+    def test_confirm_no_abort_true(self, mock_dependencies):
+        """Test confirm raises UserQuit when user enters 'n' with abort=True."""
+        mock_dependencies["click_prompt"].return_value = "n"
+
+        with pytest.raises(UserQuit, match="User declined"):
+            confirm("Continue?", default=True, abort=True)
+
+        mock_dependencies["click_prompt"].assert_called_once()
+
+    def test_confirm_no_binary_true(self, mock_dependencies):
+        """Test confirm raises UserQuit when user enters 'n' with abort=True."""
+        mock_dependencies["click_prompt"].return_value = "n"
+
+        confirm("Continue?", default=True, binary=True)
+
+        mock_dependencies["click_prompt"].assert_called_once()
+
+    def test_confirm_case_insensitive_yes(self, mock_dependencies):
+        """Test confirm handles case-insensitive 'YES' input."""
+        mock_dependencies["click_prompt"].return_value = "Y"
+
+        result = confirm("Continue?", default=False, abort=False)
+
+        assert result is True
+
+    def test_confirm_case_insensitive_no(self, mock_dependencies):
+        """Test confirm handles case-insensitive 'NO' input."""
+        mock_dependencies["click_prompt"].return_value = "N"
+
+        result = confirm("Continue?", default=True, abort=False)
+
+        assert result is False
+
+    def test_confirm_case_insensitive_quit(self, mock_dependencies):
+        """Test confirm handles case-insensitive 'QUIT' input."""
+        mock_dependencies["click_prompt"].return_value = "Q"
+
+        with pytest.raises(UserQuit, match="User quit"):
+            confirm("Continue?", default=True, abort=False)
+
+
+class TestWithDatabaseErrorTranslation:
+    """with_database is the single place API errors become CLI ones."""
+
+    @pytest.fixture(autouse=True)
+    def _rekordbox_not_running(self):
+        with patch("rekordbox_edit.cli._utils.get_rekordbox_pid", return_value=None):
+            yield
+
+    def _invoke(self, mock_db_class, mock_edit, error):
+        mock_db_class.return_value = Mock(session=Mock())
+        mock_edit.side_effect = error
+        return CliRunner().invoke(edit_command, ["Title", "--replace", "New", "--yes"])
+
+    @patch("rekordbox_edit.cli.edit.edit")
+    @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
+    def test_input_error_becomes_a_usage_error(self, mock_db_class, mock_edit):
+        result = self._invoke(mock_db_class, mock_edit, InputError("bad filter"))
+
+        assert result.exit_code == 2
+        assert "bad filter" in result.output
+
+    @pytest.mark.parametrize(
+        "error",
+        [
+            DependencyMissingError("FFmpeg is required"),
+            RekordboxRunningError("Rekordbox is running"),
+            DatabaseBusyError("another process holds the lock"),
+        ],
+    )
+    @patch("rekordbox_edit.cli.edit.edit")
+    @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
+    def test_environment_errors_log_and_exit_one(
+        self, mock_db_class, mock_edit, error, caplog
+    ):
+        result = self._invoke(mock_db_class, mock_edit, error)
+
+        assert result.exit_code == 1
+        assert str(error) in caplog.text
+
+    @patch("rekordbox_edit.cli.edit.edit")
+    @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
+    def test_unexpected_errors_are_not_swallowed(self, mock_db_class, mock_edit):
+        # A stray RuntimeError is a bug, not user error, so it must reach
+        # main()'s crash handler rather than being reported as usage.
+        result = self._invoke(mock_db_class, mock_edit, RuntimeError("boom"))
+
+        assert isinstance(result.exception, RuntimeError)

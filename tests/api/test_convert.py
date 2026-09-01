@@ -954,7 +954,7 @@ class TestConvertRealRun:
         content = make_djmd_content_item(ID="1", FileType=11, FolderPath="/in.wav")
         _seed_filter(mock_gfc, content)
 
-        with pytest.raises(RuntimeError, match="Conversion failed"):
+        with pytest.raises(ConvertAborted, match="Conversion failed"):
             convert(mock_db, ConvertRequest(format_out="aiff", overwrite=True))
 
         mock_rollback.assert_called_once()
@@ -1199,7 +1199,7 @@ class TestConvertRealRun:
         content = make_djmd_content_item(ID="1", FileType=11, FolderPath="/in.wav")
         _seed_filter(mock_gfc, content)
 
-        with pytest.raises(RuntimeError, match="DB error"):
+        with pytest.raises(ConvertAborted, match="DB error"):
             convert(mock_db, ConvertRequest(format_out="aiff", overwrite=True))
         mock_rollback.assert_called_once()
 

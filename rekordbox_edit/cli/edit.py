@@ -21,13 +21,14 @@ from rekordbox_edit.cli._utils import (
     _handle_stdin,
     _print_response_ids,
     _print_response_json,
+    UserQuit,
     _validate_scripting_preconditions,
+    confirm,
     with_database,
 )
 from rekordbox_edit.display import PrintableField, print_track_info
 from rekordbox_edit.logger import get_debug_file_path, set_level
 from rekordbox_edit.models import EditRequest
-from rekordbox_edit.utils import UserQuit, confirm
 
 logger = logging.getLogger(__name__)
 
@@ -68,10 +69,7 @@ def edit_command(db, **kwargs):
     )
 
     if yes or dry_run:
-        try:
-            response = edit(db, args, dry_run=dry_run)
-        except ValueError as e:
-            raise click.UsageError(str(e)) from e
+        response = edit(db, args, dry_run=dry_run)
 
         if not response.result.edits and not dry_run:
             logger.info("No changes to make.")
@@ -81,10 +79,7 @@ def edit_command(db, **kwargs):
         return
 
     # Default / interactive: preview first.
-    try:
-        preview = edit(db, args, dry_run=True)
-    except ValueError as e:
-        raise click.UsageError(str(e)) from e
+    preview = edit(db, args, dry_run=True)
 
     gated = [s for s in preview.result.skipped if s.reason in _GATED_SKIP_REASONS]
     if gated and not args.force:
@@ -97,10 +92,7 @@ def edit_command(db, **kwargs):
                 default=False,
             ):
                 args = args.model_copy(update={"force": True})
-                try:
-                    preview = edit(db, args, dry_run=True)
-                except ValueError as e:
-                    raise click.UsageError(str(e)) from e
+                preview = edit(db, args, dry_run=True)
         except UserQuit:
             return
 
@@ -128,10 +120,7 @@ def edit_command(db, **kwargs):
             return
         chosen = set(selected_ids)
         selected = [op for op in preview.result.edits if op.id in chosen]
-        try:
-            response = edit(db, args, ops=selected)
-        except ValueError as e:
-            raise click.UsageError(str(e)) from e
+        response = edit(db, args, ops=selected)
     else:
         try:
             if not confirm(f"Apply {len(preview.result.edits)} edit(s)?", default=True):
@@ -139,10 +128,7 @@ def edit_command(db, **kwargs):
                 return
         except UserQuit:
             return
-        try:
-            response = edit(db, args, ops=preview.result.edits)
-        except ValueError as e:
-            raise click.UsageError(str(e)) from e
+        response = edit(db, args, ops=preview.result.edits)
 
     _print_edit_result(response, print_opt, dry_run=False)
 

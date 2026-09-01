@@ -15,7 +15,7 @@ from rekordbox_edit.models import (
     SkippedTrack,
     Track,
 )
-from rekordbox_edit.utils import UserQuit
+from rekordbox_edit.cli._utils import UserQuit
 
 
 @pytest.fixture(autouse=True)

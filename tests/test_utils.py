@@ -6,7 +6,6 @@ import pytest
 
 from rekordbox_edit.utils import (
     FILE_TYPES,
-    UserQuit,
     get_audio_info,
     get_extension_for_format,
     get_file_type_codes_for_format,
@@ -450,101 +449,6 @@ class TestGetAudioInfo:
 
         assert result["codec"] is None
         assert result["container"] is None
-
-
-class TestConfirm:
-    """Test confirm function."""
-
-    @pytest.fixture
-    def mock_dependencies(self, mocker):
-        """Mock all dependencies for confirm function."""
-        mock_click_prompt = mocker.patch("rekordbox_edit.utils.click.prompt")
-        mock_logger = mocker.patch("rekordbox_edit.utils.logger")
-        return {
-            "click_prompt": mock_click_prompt,
-            "logger": mock_logger,
-        }
-
-    def test_confirm_yes(self, mock_dependencies):
-        """Test confirm returns True when user enters 'y'."""
-        from rekordbox_edit.utils import confirm
-
-        mock_dependencies["click_prompt"].return_value = "y"
-
-        result = confirm("Continue?", default=False, abort=False)
-
-        assert result is True
-        mock_dependencies["click_prompt"].assert_called_once()
-
-    def test_confirm_no(self, mock_dependencies):
-        """Test confirm returns False when user enters 'n' with abort=False."""
-        from rekordbox_edit.utils import confirm
-
-        mock_dependencies["click_prompt"].return_value = "n"
-
-        result = confirm("Continue?", default=True, abort=False)
-
-        assert result is False
-        mock_dependencies["click_prompt"].assert_called_once()
-
-    def test_confirm_quit(self, mock_dependencies):
-        """Test confirm raises UserQuit when user enters 'q' with abort=False."""
-        from rekordbox_edit.utils import confirm
-
-        mock_dependencies["click_prompt"].return_value = "q"
-
-        with pytest.raises(UserQuit, match="User quit"):
-            confirm("Continue?", default=True, abort=False)
-
-    def test_confirm_no_abort_true(self, mock_dependencies):
-        """Test confirm raises UserQuit when user enters 'n' with abort=True."""
-        from rekordbox_edit.utils import confirm
-
-        mock_dependencies["click_prompt"].return_value = "n"
-
-        with pytest.raises(UserQuit, match="User declined"):
-            confirm("Continue?", default=True, abort=True)
-
-        mock_dependencies["click_prompt"].assert_called_once()
-
-    def test_confirm_no_binary_true(self, mock_dependencies):
-        """Test confirm raises UserQuit when user enters 'n' with abort=True."""
-        from rekordbox_edit.utils import confirm
-
-        mock_dependencies["click_prompt"].return_value = "n"
-
-        confirm("Continue?", default=True, binary=True)
-
-        mock_dependencies["click_prompt"].assert_called_once()
-
-    def test_confirm_case_insensitive_yes(self, mock_dependencies):
-        """Test confirm handles case-insensitive 'YES' input."""
-        from rekordbox_edit.utils import confirm
-
-        mock_dependencies["click_prompt"].return_value = "Y"
-
-        result = confirm("Continue?", default=False, abort=False)
-
-        assert result is True
-
-    def test_confirm_case_insensitive_no(self, mock_dependencies):
-        """Test confirm handles case-insensitive 'NO' input."""
-        from rekordbox_edit.utils import confirm
-
-        mock_dependencies["click_prompt"].return_value = "N"
-
-        result = confirm("Continue?", default=True, abort=False)
-
-        assert result is False
-
-    def test_confirm_case_insensitive_quit(self, mock_dependencies):
-        """Test confirm handles case-insensitive 'QUIT' input."""
-        from rekordbox_edit.utils import confirm
-
-        mock_dependencies["click_prompt"].return_value = "Q"
-
-        with pytest.raises(UserQuit, match="User quit"):
-            confirm("Continue?", default=True, abort=False)
 
 
 class TestProbeMatchesFileType:

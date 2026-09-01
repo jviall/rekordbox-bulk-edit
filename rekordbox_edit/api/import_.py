@@ -10,6 +10,7 @@ from pyrekordbox import Rekordbox6Database
 from pyrekordbox.db6 import tables as tb
 
 from rekordbox_edit.api._utils import _track_from_content, stamp_usns
+from rekordbox_edit.errors import InputError
 from rekordbox_edit.models import (
     ImportOp,
     ImportRequest,
@@ -45,10 +46,10 @@ UNMAPPED_EXTENSIONS = frozenset(
 )
 
 
-class ImportInputError(ValueError):
+class ImportInputError(InputError):
     """The request itself is invalid: a path that does not exist, an
     unconfirmed directory argument, or a playlist name that matches no
-    playlist or more than one. Distinct from a write-phase ValueError, which
+    playlist or more than one. Distinct from a write-phase failure, which
     means the database failed and must not be reported as user error."""
 
 
