@@ -373,9 +373,9 @@ class TestImportCommand:
         assert "Path does not exist" in result.output
         assert "Traceback" not in result.output
 
-    def test_no_interactive_flag_registered(self, runner):
+    def test_interactive_flag_is_registered(self, runner):
         result = runner.invoke(import_command, ["--help"])
-        assert "--interactive" not in result.output
+        assert "--interactive" in result.output
 
     @patch("rekordbox_edit.cli.import_.import_tracks")
     @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
@@ -568,3 +568,78 @@ class TestImportCommand:
         messages = [c.args[0] for c in mock_log.info.call_args_list]
         assert "Added 1 track(s)." in messages
         assert "Placed 1 existing track(s) in the playlist." in messages
+
+
+class TestImportInteractive:
+    @patch("rekordbox_edit.cli.import_.print_track_info")
+    @patch("rekordbox_edit.cli.import_.confirm")
+    @patch("rekordbox_edit.cli.import_.import_tracks")
+    @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
+    def test_only_confirmed_ops_are_applied(
+        self, mock_db_class, mock_import, mock_confirm, _print
+    ):
+        mock_db_class.return_value = Mock(session=Mock())
+        tracks = [
+            Track(ID="1", FileNameL="a.flac", FolderPath="/m/a.flac"),
+            Track(ID="2", FileNameL="b.flac", FolderPath="/m/b.flac"),
+        ]
+        preview = _response(tracks=tracks)
+        mock_import.side_effect = [preview, _response(tracks=tracks[:1])]
+        mock_confirm.side_effect = [True, False]
+
+        result = CliRunner().invoke(import_command, ["/m/a.flac", "/m/b.flac", "-i"])
+
+        assert result.exit_code == 0
+        applied = mock_import.call_args.kwargs["ops"]
+        assert [op.id for op in applied] == ["1"]
+
+    @patch("rekordbox_edit.cli.import_.print_track_info")
+    @patch("rekordbox_edit.cli.import_.confirm", side_effect=UserQuit)
+    @patch("rekordbox_edit.cli.import_.import_tracks")
+    @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
+    def test_quitting_imports_nothing(
+        self, mock_db_class, mock_import, _confirm, _print
+    ):
+        mock_db_class.return_value = Mock(session=Mock())
+        mock_import.return_value = _response()
+
+        result = CliRunner().invoke(import_command, ["/m/a.flac", "-i"])
+
+        assert result.exit_code == 0
+        mock_import.assert_called_once()  # preview only
+
+    @patch("rekordbox_edit.cli.import_.print_track_info")
+    @patch("rekordbox_edit.cli.import_.confirm", return_value=True)
+    @patch("rekordbox_edit.cli.import_.import_tracks")
+    @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
+    def test_a_create_with_a_playlist_asks_once(
+        self, mock_db_class, mock_import, mock_confirm, _print
+    ):
+        # The write pass places a newly created track in the playlist as part
+        # of the same op, so it must not be two questions.
+        mock_db_class.return_value = Mock(session=Mock())
+        preview = _response(playlist="Crate")
+        mock_import.side_effect = [preview, preview]
+
+        CliRunner().invoke(
+            import_command, ["/m/a.flac", "--to-playlist", "Crate", "-i"]
+        )
+
+        assert mock_confirm.call_count == 1
+        assert "and place it in Crate" in mock_confirm.call_args.args[0]
+
+
+class TestImportDryRunWalksDirectories:
+    @patch("rekordbox_edit.cli.import_.print_track_info")
+    @patch("rekordbox_edit.cli.import_.import_tracks")
+    @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
+    def test_dry_run_authorizes_the_walk(self, mock_db_class, mock_import, _print):
+        # Previewing is how you inspect what a walk covers, and it writes
+        # nothing, so it must not stop to ask.
+        mock_db_class.return_value = Mock(session=Mock())
+        mock_import.return_value = _response()
+
+        result = CliRunner().invoke(import_command, ["/m/crate", "--dry-run"])
+
+        assert result.exit_code == 0
+        assert mock_import.call_args.args[1].recurse is True

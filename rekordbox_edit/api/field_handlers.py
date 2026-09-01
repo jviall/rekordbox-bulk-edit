@@ -34,6 +34,14 @@ class FieldHandler:
     name: str
     supports_match: bool = True
 
+    forceable_skip_reasons: frozenset[SkipReason] = frozenset()
+    """Reasons this handler's validate_track returns that `force` overrides.
+
+    Declared here so a caller offering to retry with force does not have to
+    keep its own copy of what force covers, which would silently stop covering
+    a reason added later.
+    """
+
     def validate_request(self, args: EditRequest) -> None:
         """Validate request-level input. Raise ValueError on bad input."""
 
@@ -221,6 +229,7 @@ class FolderPathField(FieldHandler):
 
     name = "FolderPath"
     supports_match = True
+    forceable_skip_reasons = frozenset({"file_not_found", "length_mismatch"})
 
     _LENGTH_TOLERANCE_SECONDS = 1.0
 

@@ -7,11 +7,10 @@ import click
 from rekordbox_edit._click import (
     PrintChoice,
     add_click_options,
-    dry_run_option,
+    global_click_confirmations,
     import_command_options,
     paths_argument,
     print_option,
-    yes_option,
 )
 from rekordbox_edit.api.import_ import (
     DirectoryConfirmationRequired,
@@ -37,7 +36,13 @@ logger = logging.getLogger(__name__)
 @click.command(
     epilog=f"Debug logs for each run can be found at:\n{get_debug_file_path().parent}"
 )
-@add_click_options([*import_command_options, dry_run_option, yes_option, print_option])
+@add_click_options(
+    [
+        *import_command_options,
+        *global_click_confirmations,
+        print_option,
+    ]
+)
 @paths_argument
 @with_database(writes=True)
 def import_command(db, **kwargs):
@@ -45,15 +50,21 @@ def import_command(db, **kwargs):
     print_opt = kwargs.pop("print_opt", None)
     dry_run = kwargs.pop("dry_run", False)
     yes = kwargs.pop("yes", False)
+    interactive = kwargs.pop("interactive", False)
     kwargs["paths"] = list(kwargs.get("paths") or ())
-    # --yes is the only authorization for a directory walk; an interactive run
-    # earns it from the prompt below instead.
-    kwargs["recurse"] = yes
+    # --yes authorizes a directory walk outright. A dry run writes nothing, and
+    # previewing is how you inspect what a walk covers, so it walks freely too.
+    # Anything else earns the walk from the prompt below.
+    kwargs["recurse"] = yes or dry_run
     args = _build_args(ImportRequest, kwargs)
     set_level(print_opt)
 
     _validate_scripting_preconditions(
-        print_opt, piped_stdin=False, dry_run=dry_run, yes=yes
+        print_opt,
+        piped_stdin=False,
+        dry_run=dry_run,
+        yes=yes,
+        interactive=interactive,
     )
 
     interactive_ok = print_opt not in SCRIPTING_MODES and not yes
@@ -110,19 +121,53 @@ def import_command(db, **kwargs):
     # scripting --print mode, so the preview always prints.
     print_track_info(preview.tracks)
 
-    created, linked = _count_added(preview.result.added)
-    try:
-        if not confirm(f"{_add_summary(created, linked)}?", default=True):
+    if interactive:
+        chosen = _select_ops(preview)
+        if not chosen:
             logger.info("Cancelled.")
             return
-    except UserQuit:
-        return
+    else:
+        created, linked = _count_added(preview.result.added)
+        try:
+            if not confirm(f"{_add_summary(created, linked)}?", default=True):
+                logger.info("Cancelled.")
+                return
+        except UserQuit:
+            return
+        chosen = preview.result.added
 
     # Passing the previewed ops means no second directory walk, so a file
     # created during the prompt cannot be imported unseen, and the directory
     # gate cannot fire again.
-    response = import_tracks(db, confirmed_args, ops=preview.result.added)
+    response = import_tracks(db, confirmed_args, ops=chosen)
     _print_import_result(response, print_opt, dry_run=False)
+
+
+def _op_prompt(op: ImportOp, track, playlist: str | None) -> str:
+    """The question for one pending op, phrased for what it will actually do.
+
+    A create places the track in the playlist too when one was named, so it
+    reads as one action rather than two.
+    """
+    name = track.FileNameL or op.path
+    if op.action == "playlist_add":
+        return f"  Place {name} in {playlist}?"
+    if playlist:
+        return f"  Add {name} and place it in {playlist}?"
+    return f"  Add {name}?"
+
+
+def _select_ops(preview) -> list[ImportOp]:
+    """Walk the previewed ops, keeping the ones the user confirms."""
+    playlist = preview.result.playlist
+    chosen: list[ImportOp] = []
+    for track, op in zip(preview.tracks, preview.result.added):
+        try:
+            if confirm(_op_prompt(op, track, playlist), default=True):
+                chosen.append(op)
+        except UserQuit:
+            break
+    return chosen
 
 
 def _count_added(added: list[ImportOp]) -> tuple[int, int]:
