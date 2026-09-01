@@ -1735,18 +1735,27 @@ class TestClassifyFidelity:
 
 
 class TestRunFfmpeg:
+    @pytest.fixture
+    def chain(self):
+        """The mocked ffmpeg builder chain, ending at the object .run() lands on."""
+        with (
+            patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=True),
+            patch("rekordbox_edit.api.convert.ffmpeg") as mock_ffmpeg,
+        ):
+            output = Mock()
+            mock_ffmpeg.input.return_value.output.return_value = output
+            output.overwrite_output.return_value = output
+            output.global_args.return_value = output
+            yield mock_ffmpeg, output
+
     @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=False)
     def test_ffmpeg_not_found_raises(self, _):
         with pytest.raises(Exception, match="FFmpeg not found in PATH"):
             _run_ffmpeg("in.flac", "out.aiff", {"acodec": "pcm_s16be"}, "aiff")
 
-    @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=True)
-    @patch("rekordbox_edit.api.convert.ffmpeg")
-    def test_success_passes_kwargs_through(self, mock_ffmpeg, _ffmpeg_in_path):
-        mock_output = Mock()
-        mock_ffmpeg.input.return_value.output.return_value = mock_output
-        mock_output.overwrite_output.return_value = mock_output
-        mock_output.run.return_value = None
+    def test_success_passes_kwargs_through(self, chain):
+        mock_ffmpeg, output = chain
+        output.run.return_value = None
 
         result = _run_ffmpeg(
             "in.flac", "out.wav", {"acodec": "pcm_s16le", "ar": 44100}, "wav"
@@ -1758,33 +1767,32 @@ class TestRunFfmpeg:
             "out.wav", acodec="pcm_s16le", ar=44100
         )
 
-    @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=True)
-    @patch("rekordbox_edit.api.convert.ffmpeg")
-    def test_ffmpeg_error_returns_false(self, mock_ffmpeg, _ffmpeg_in_path):
-        mock_output = Mock()
-        mock_ffmpeg.input.return_value.output.return_value = mock_output
-        mock_output.overwrite_output.return_value = mock_output
-        mock_output.run.side_effect = ffmpeg.Error("cmd", b"stdout", b"stderr")
+    def test_the_child_is_kept_off_the_terminal(self, chain):
+        # Without -nostdin, ffmpeg puts the tty in non-canonical mode to watch
+        # for keys like "q". Concurrent encodes race on restoring it and the
+        # loser leaves the shell echoing ^M instead of accepting Enter.
+        _, output = chain
+        output.run.return_value = None
+
+        _run_ffmpeg("in.flac", "out.aiff", {}, "aiff")
+
+        output.global_args.assert_called_once_with("-nostdin")
+
+    def test_ffmpeg_error_returns_false(self, chain):
+        _, output = chain
+        output.run.side_effect = ffmpeg.Error("cmd", b"stdout", b"stderr")
 
         assert _run_ffmpeg("in.flac", "out.aiff", {}, "aiff") is False
 
-    @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=True)
-    @patch("rekordbox_edit.api.convert.ffmpeg")
-    def test_ffmpeg_error_no_stderr_returns_false(self, mock_ffmpeg, _ffmpeg_in_path):
-        mock_output = Mock()
-        mock_ffmpeg.input.return_value.output.return_value = mock_output
-        mock_output.overwrite_output.return_value = mock_output
-        mock_output.run.side_effect = ffmpeg.Error("cmd", b"stdout", None)
+    def test_ffmpeg_error_no_stderr_returns_false(self, chain):
+        _, output = chain
+        output.run.side_effect = ffmpeg.Error("cmd", b"stdout", None)
 
         assert _run_ffmpeg("in.flac", "out.aiff", {}, "aiff") is False
 
-    @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=True)
-    @patch("rekordbox_edit.api.convert.ffmpeg")
-    def test_unexpected_exception_reraises(self, mock_ffmpeg, _ffmpeg_in_path):
-        mock_output = Mock()
-        mock_ffmpeg.input.return_value.output.return_value = mock_output
-        mock_output.overwrite_output.return_value = mock_output
-        mock_output.run.side_effect = RuntimeError("disk full")
+    def test_unexpected_exception_reraises(self, chain):
+        _, output = chain
+        output.run.side_effect = RuntimeError("disk full")
 
         with pytest.raises(RuntimeError, match="disk full"):
             _run_ffmpeg("in.flac", "out.aiff", {}, "aiff")
