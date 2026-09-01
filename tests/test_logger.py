@@ -73,6 +73,42 @@ class TestSetupLogging:
         assert "from child" in content
 
 
+class TestConsoleOutput:
+    """Console output goes through rich, which reads some text as markup."""
+
+    @pytest.fixture
+    def emit(self, tmp_path, capsys):
+        setup_logging(log_file=str(tmp_path / "test.log"))
+
+        def _emit(message, level=logging.INFO):
+            logging.getLogger("rekordbox_edit.test").log(level, message)
+            return capsys.readouterr().out
+
+        return _emit
+
+    def test_a_bracketed_track_name_survives(self, emit):
+        # Rich would read "[b]" as a request for bold and drop it, logging
+        # "Set .wav". Bracketed titles are common in music libraries.
+        assert "Set [b].wav" in emit("Skipping Set [b].wav")
+
+    def test_a_bracketed_style_word_survives(self, emit):
+        assert "[bold]" in emit("Track [bold]remix.mp3 converted")
+
+    def test_a_long_path_is_not_wrapped(self, emit):
+        path = "/Users/me/Music/" + "Very Long Directory Name/" * 6 + "track.flac"
+
+        out = emit(f"Skipping {path}: source file is gone")
+
+        assert path in out
+        assert out.count("\n") == 1
+
+    @pytest.mark.parametrize(
+        "level", [logging.WARNING, logging.ERROR, logging.CRITICAL]
+    )
+    def test_higher_levels_still_reach_the_console(self, emit, level):
+        assert "attention" in emit("needs attention", level)
+
+
 class TestSetLevel:
     def test_default_console_level_is_info(self):
         """Console handler starts at INFO level."""
