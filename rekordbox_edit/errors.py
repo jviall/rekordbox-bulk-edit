@@ -32,8 +32,22 @@ class RekordboxRunningError(RekordboxEditError):
     """
 
 
-class DatabaseBusyError(RekordboxEditError):
-    """Another rekordbox-edit process holds the write lock for this database."""
+class DatabaseNotConnectedError(RekordboxEditError, RuntimeError):
+    """The database has no open session.
+
+    Usually a database that was never opened, or one closed early. Keeps
+    RuntimeError in its MRO, which is what this raised before the hierarchy.
+    """
+
+
+class DatabaseBusyError(RekordboxEditError, TimeoutError):
+    """Another rekordbox-edit process holds the write lock for this database.
+
+    A TimeoutError because that is literally what happened: the lock did not
+    come free within the caller's timeout. This mirrors filelock.Timeout, the
+    exception it translates, which is itself a TimeoutError, so catching it as
+    one keeps working. Note that makes it an OSError too.
+    """
 
 
 class OperationAborted(RekordboxEditError):

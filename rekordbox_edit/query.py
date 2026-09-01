@@ -15,6 +15,7 @@ from pyrekordbox.db6.tables import (
 from sqlalchemy import ColumnElement, Result, and_, func, or_, select
 from sqlalchemy.orm import Session, aliased
 
+from rekordbox_edit.errors import DatabaseNotConnectedError
 from rekordbox_edit.models import FilterArgs
 
 logger = logging.getLogger(__name__)
@@ -25,7 +26,9 @@ MatchMode = Literal["grouped", "all", "any"]
 def require_session(db: Rekordbox6Database) -> Session:
     """The database's open session, narrowed from `Session | None`."""
     if not db.session:
-        raise RuntimeError("Failed to connect to Rekordbox Database: No Session.")
+        raise DatabaseNotConnectedError(
+            "Failed to connect to Rekordbox Database: No Session."
+        )
     return db.session
 
 

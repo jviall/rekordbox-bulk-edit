@@ -444,3 +444,90 @@ class TestEditForceFlow:
         assert result.exit_code == 0
         mock_edit.assert_called_once()
         assert mock_edit.call_args.args[1].force is False
+
+
+def _warnings(mock_logger) -> str:
+    return "\n".join(str(c.args[0]) for c in mock_logger.warning.call_args_list)
+
+
+def _infos(mock_logger) -> str:
+    return "\n".join(str(c.args[0]) for c in mock_logger.info.call_args_list)
+
+
+class TestEditSkipReporting:
+    """A run used to report only what it changed, so a filter matching 30
+    tracks and editing 4 looked like it found 4."""
+
+    @patch("rekordbox_edit.cli.edit.print_track_info")
+    @patch("rekordbox_edit.cli.edit.edit")
+    @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
+    def test_yes_reports_why_tracks_were_passed_over(
+        self, mock_db_class, mock_edit, _print, mock_logger
+    ):
+        mock_db_class.return_value = Mock(session=Mock())
+        mock_edit.return_value = _response(
+            skipped=[
+                SkippedTrack(id="2", reason="no_change"),
+                SkippedTrack(id="3", reason="no_change"),
+                SkippedTrack(id="4", reason="unknown_file_type"),
+            ]
+        )
+
+        result = CliRunner().invoke(
+            edit_command, ["Title", "--replace", "New", "--yes"]
+        )
+
+        assert result.exit_code == 0
+        warnings = _warnings(mock_logger)
+        assert "Skipping 2 track(s): already hold the requested value" in warnings
+        assert "Skipping 1 track(s): name a file in no format" in warnings
+
+    @patch("rekordbox_edit.cli.edit.print_track_info")
+    @patch("rekordbox_edit.cli.edit.edit")
+    @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
+    def test_dry_run_reports_them_too(
+        self, mock_db_class, mock_edit, _print, mock_logger
+    ):
+        mock_db_class.return_value = Mock(session=Mock())
+        mock_edit.return_value = _response(
+            skipped=[SkippedTrack(id="2", reason="no_change")]
+        )
+
+        CliRunner().invoke(edit_command, ["Title", "--replace", "New", "--dry-run"])
+
+        assert "already hold the requested value" in _warnings(mock_logger)
+
+    @patch("rekordbox_edit.cli.edit.print_track_info")
+    @patch("rekordbox_edit.cli.edit.confirm")
+    @patch("rekordbox_edit.cli.edit.edit")
+    @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
+    def test_gated_reasons_are_not_reported_twice(
+        self, mock_db_class, mock_edit, mock_confirm, _print, mock_logger
+    ):
+        # The force prompt names those tracks individually, so the summary
+        # must leave that reason out.
+        mock_db_class.return_value = Mock(session=Mock())
+        mock_edit.side_effect = [_gated_response(), _gated_response()]
+        mock_confirm.side_effect = [False, True]
+
+        CliRunner().invoke(edit_command, ["FolderPath", "--replace", "/new/x.wav"])
+
+        assert "were held back by safety checks" in _infos(mock_logger)
+        assert "name a file that does not exist" not in _warnings(mock_logger)
+
+    @patch("rekordbox_edit.cli.edit.print_track_info")
+    @patch("rekordbox_edit.cli.edit.confirm", return_value=True)
+    @patch("rekordbox_edit.cli.edit.edit")
+    @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
+    def test_a_track_that_changed_after_the_preview_is_reported(
+        self, mock_db_class, mock_edit, _confirm, _print, mock_logger
+    ):
+        mock_db_class.return_value = Mock(session=Mock())
+        applied = _response(skipped=[SkippedTrack(id="2", reason="db_or_fs_changed")])
+        mock_edit.side_effect = [_response(), applied]
+
+        CliRunner().invoke(edit_command, ["Title", "--replace", "New"])
+
+        assert "Skipping 1 track(s): changed since the preview" in _warnings(
+            mock_logger
+        )
