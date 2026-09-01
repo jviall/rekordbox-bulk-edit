@@ -65,7 +65,11 @@ def edit_command(db, **kwargs):
     piped_stdin = _handle_stdin(args)
 
     _validate_scripting_preconditions(
-        print_opt, piped_stdin=piped_stdin, dry_run=dry_run, yes=yes
+        print_opt,
+        piped_stdin=piped_stdin,
+        dry_run=dry_run,
+        yes=yes,
+        interactive=interactive,
     )
 
     if yes or dry_run:
