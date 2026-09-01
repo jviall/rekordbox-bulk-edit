@@ -173,6 +173,9 @@ SkipReason: TypeAlias = Literal[
     "already_exists",
     "unsupported_file_type",
     "unreadable_file",
+    # Approved during the preview, then its file or its database row changed
+    # before the write ran.
+    "db_or_fs_changed",
 ]
 
 

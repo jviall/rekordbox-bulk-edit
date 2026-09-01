@@ -367,6 +367,21 @@ def find_content_by_key(
     return found
 
 
+def find_content_by_ids(
+    db: Rekordbox6Database, ids: Collection[str]
+) -> dict[str, DjmdContent]:
+    """Rows for `ids`, keyed by ID as a string. IDs with no row are absent."""
+    if not ids:
+        return {}
+    session = require_session(db)
+    rows = session.execute(
+        select(DjmdContent).where(DjmdContent.ID.in_(list(ids)))
+    ).scalars()
+    found = {str(row.ID): row for row in rows}
+    logger.debug(f"id lookup matched {len(found)} of {len(set(ids))} requested row(s)")
+    return found
+
+
 def find_playlists_by_name(db: Rekordbox6Database, name: str) -> list[DjmdPlaylist]:
     """Normal playlists whose name matches case-insensitively.
 
