@@ -21,9 +21,11 @@ All conversions target **16-bit / 44.1 kHz**, with a few nuances:
 
 `--delete-originals` controls what happens to the source file after a successful conversion:
 
-- `lossless` (default) — delete the original only when the conversion lost no audio information; keep it when the conversion was lossy (MP3 output or down-sampled hi-res output)
+- `none` (default) — never delete the original
+- `lossless` — delete the original only when the conversion lost no audio information; keep it when the conversion was lossy (MP3 output or down-sampled hi-res output)
 - `all` — always delete the original
-- `none` — never delete the original
+
+Deleting a source file is not something a run should do unless you asked for it, so the default keeps every original and you opt in per run.
 
 ## Converting Several Files at Once
 

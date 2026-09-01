@@ -109,7 +109,7 @@ class TestConvertRequest:
         assert isinstance(args, FilterArgs)
         assert args.format_out == "mp3"
         assert args.overwrite is True
-        assert args.delete_originals == "lossless"
+        assert args.delete_originals == "none"
         assert args.artist == ["X"]
 
 

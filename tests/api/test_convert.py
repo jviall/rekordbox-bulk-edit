@@ -1614,7 +1614,12 @@ class TestConvertPerFileCommits:
         _seed_filter(mock_gfc, *contents)
         _seed_db(mock_db, *contents)
 
-        response = convert(mock_db, ConvertRequest(format_out="aiff", overwrite=True))
+        response = convert(
+            mock_db,
+            ConvertRequest(
+                format_out="aiff", overwrite=True, delete_originals="lossless"
+            ),
+        )
 
         assert mock_db.session.commit.call_count == 2
         assert response.result.deleted == 1
