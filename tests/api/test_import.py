@@ -881,6 +881,63 @@ class TestImport:
         assert any("rolling back" in message for message in caplog.messages)
 
 
+class TestImportFromApprovedOps:
+    """The write pass walks no directories, so nothing joins the batch late."""
+
+    def test_a_file_created_during_the_prompt_is_not_imported(
+        self, mock_db, tmp_path, stub_tags
+    ):
+        crate = tmp_path / "crate"
+        crate.mkdir()
+        previewed = crate / "a.flac"
+        previewed.write_bytes(b"")
+        latecomer = crate / "b.flac"
+        latecomer.write_bytes(b"")
+        approved = [ImportOp(id="", path=str(previewed), action="create")]
+
+        with patch("rekordbox_edit.api.import_.find_content_by_key", return_value={}):
+            response = import_tracks(
+                mock_db,
+                ImportRequest(paths=[str(crate)], recurse=True),
+                dry_run=True,
+                ops=approved,
+            )
+
+        assert [op.path for op in response.result.added] == [str(previewed)]
+
+    def test_a_vanished_file_is_db_or_fs_changed(self, mock_db, tmp_path, stub_tags):
+        gone = str(tmp_path / "gone.flac")
+        approved = [ImportOp(id="", path=gone, action="create")]
+
+        with patch("rekordbox_edit.api.import_.find_content_by_key", return_value={}):
+            response = import_tracks(
+                mock_db, ImportRequest(paths=[gone]), dry_run=True, ops=approved
+            )
+
+        assert response.result.added == []
+        assert response.result.skipped == [
+            SkippedTrack(id="", reason="db_or_fs_changed")
+        ]
+
+    def test_ops_skip_the_directory_gate(self, mock_db, tmp_path, stub_tags):
+        # _expand_paths never runs, so an unconfirmed directory cannot raise.
+        crate = tmp_path / "crate"
+        crate.mkdir()
+        track = crate / "a.flac"
+        track.write_bytes(b"")
+        approved = [ImportOp(id="", path=str(track), action="create")]
+
+        with patch("rekordbox_edit.api.import_.find_content_by_key", return_value={}):
+            response = import_tracks(
+                mock_db,
+                ImportRequest(paths=[str(crate)]),
+                dry_run=True,
+                ops=approved,
+            )
+
+        assert len(response.result.added) == 1
+
+
 class TestImportStampsUsns:
     """Against the real library, since stamping is a database behavior."""
 

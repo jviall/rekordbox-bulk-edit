@@ -1,10 +1,9 @@
-"""CLI-private helpers: stdin handling, scripting guards, args narrowing, print emitters."""
+"""CLI-private helpers: stdin handling, scripting guards, print emitters."""
 
 import contextlib
 import functools
 import logging
 import sys
-from copy import copy
 from typing import TypeVar
 
 import click
@@ -61,40 +60,6 @@ def _validate_scripting_preconditions(
         )
     if piped_stdin and not confirmed:
         raise click.UsageError("Piping track IDs requires --dry-run or --yes")
-
-
-def _narrow_to_track_ids(args, ids: list[str]):
-    """Return a new args of the same type with track_ids=ids and all other
-    FilterArgs criteria cleared, preserving command-specific fields.
-
-    Used when the CLI's interactive mode has trimmed the planned operation
-    to a user-selected subset. The narrowed args is passed to the real-run
-    call so the second pass only considers the chosen track IDs.
-    """
-    narrowed = copy(args)
-    for field_name in (
-        "track_id",
-        "track_ids",
-        "title",
-        "exact_title",
-        "playlist",
-        "exact_playlist",
-        "artist",
-        "exact_artist",
-        "album",
-        "exact_album",
-        "path",
-        "resolved_path",
-        "format",
-    ):
-        if hasattr(narrowed, field_name):
-            setattr(narrowed, field_name, [])
-    narrowed.track_ids = list(ids)
-    narrowed.match_all = False
-    narrowed.match_any = False
-    narrowed.first = None
-    narrowed.last = None
-    return narrowed
 
 
 def _print_response_ids(response) -> None:

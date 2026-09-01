@@ -335,32 +335,24 @@ class TestImportCommand:
         assert mock_import.call_args.kwargs["dry_run"] is True
 
     @patch("rekordbox_edit.cli.import_.print_track_info")
+    @patch("rekordbox_edit.cli.import_.confirm", return_value=True)
     @patch("rekordbox_edit.cli.import_.import_tracks")
     @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
-    def test_quitting_the_directory_prompt_on_the_write_pass_skips_it(
-        self, mock_db_class, mock_import, _print
+    def test_the_write_pass_applies_the_previewed_ops(
+        self, mock_db_class, mock_import, _confirm, _print
     ):
-        # The confirmed write is a second import_tracks call, so it hits the
-        # recurse gate again; quitting there must not fall through to
-        # printing a result that never happened.
+        # Passing ops means no second directory walk, so the recurse gate
+        # cannot fire again and nothing created during the prompt joins in.
         mock_db_class.return_value = Mock(session=Mock())
-        mock_import.side_effect = [
-            _response(),
-            DirectoryConfirmationRequired(1, 3),
-        ]
-        answers = iter([True])
+        preview = _response()
+        mock_import.side_effect = [preview, _response()]
 
-        def _confirm(*_args, **_kwargs):
-            try:
-                return next(answers)
-            except StopIteration:
-                raise UserQuit from None
-
-        with patch("rekordbox_edit.cli.import_.confirm", side_effect=_confirm):
-            result = CliRunner().invoke(import_command, ["/m/crate"])
+        result = CliRunner().invoke(import_command, ["/m/crate"])
 
         assert result.exit_code == 0
         assert mock_import.call_count == 2
+        assert mock_import.call_args.kwargs["ops"] == preview.result.added
+        assert "dry_run" not in mock_import.call_args.kwargs
 
     def test_add_summary_leads_with_creates_when_a_batch_does_both(self):
         assert _add_summary(2, 3) == (
