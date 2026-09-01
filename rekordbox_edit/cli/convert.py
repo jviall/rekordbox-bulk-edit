@@ -20,7 +20,6 @@ from rekordbox_edit.cli._utils import (
     SCRIPTING_MODES,
     _build_args,
     _handle_stdin,
-    _narrow_to_track_ids,
     _print_response_ids,
     _print_response_json,
     _validate_scripting_preconditions,
@@ -35,7 +34,7 @@ logger = logging.getLogger(__name__)
 
 # Skips a dry run cannot predict: it neither probes a source nor re-stats one,
 # so these surface only from the live pass.
-_LIVE_ONLY_SKIPS = frozenset({"codec_mismatch", "file_not_found"})
+_LIVE_ONLY_SKIPS = frozenset({"codec_mismatch", "file_not_found", "db_or_fs_changed"})
 
 
 @click.command(
@@ -115,9 +114,12 @@ def convert_command(db, **kwargs):
         if not selected_ids:
             logger.info("Cancelled.")
             return
-        narrowed = _narrow_to_track_ids(args, selected_ids)
+        chosen = set(selected_ids)
+        selected = [op for op in preview.result.converted if op.id in chosen]
         with convert_progress(enabled=True) as progress:
-            response = _convert_reporting_partials(db, narrowed, progress=progress)
+            response = _convert_reporting_partials(
+                db, args, ops=selected, progress=progress
+            )
     else:
         try:
             if not confirm(
@@ -130,17 +132,21 @@ def convert_command(db, **kwargs):
         except UserQuit:
             return
         with convert_progress(enabled=True) as progress:
-            response = _convert_reporting_partials(db, args, progress=progress)
+            response = _convert_reporting_partials(
+                db, args, ops=preview.result.converted, progress=progress
+            )
 
     _report_skips([s for s in response.result.skipped if s.reason in _LIVE_ONLY_SKIPS])
     _print_convert_result(response, print_opt, scripting_mode, dry_run=False)
 
 
-def _convert_reporting_partials(db, args, *, dry_run: bool = False, progress=None):
+def _convert_reporting_partials(
+    db, args, *, dry_run: bool = False, progress=None, ops=None
+):
     """Convert, reporting a batch that stopped partway as a plain result rather
     than as a crash. The committed conversions are real and are kept."""
     try:
-        return convert(db, args, dry_run=dry_run, progress=progress)
+        return convert(db, args, dry_run=dry_run, progress=progress, ops=ops)
     except ConvertAborted as e:
         logger.error(f"Conversion stopped at {e.failed_path}: {e}")
         logger.error(
@@ -156,6 +162,7 @@ def _report_skips(skipped) -> None:
     conflicts = sum(1 for s in skipped if s.reason == "output_file_exists")
     mismatches = sum(1 for s in skipped if s.reason == "codec_mismatch")
     missing = sum(1 for s in skipped if s.reason == "file_not_found")
+    drifted = sum(1 for s in skipped if s.reason == "db_or_fs_changed")
     if already_target:
         logger.warning(f"Skipping {already_target} file(s): already in target format")
     if unsupported:
@@ -174,6 +181,8 @@ def _report_skips(skipped) -> None:
         )
     if missing:
         logger.warning(f"Skipping {missing} file(s): source file is gone")
+    if drifted:
+        logger.warning(f"Skipping {drifted} file(s): changed since the preview")
 
 
 def _print_convert_result(
