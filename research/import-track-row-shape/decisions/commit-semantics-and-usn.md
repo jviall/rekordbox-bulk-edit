@@ -1,6 +1,7 @@
 # Commit Semantics: session.commit Against db.commit, and the USN Gap
 
-**Status:** open. Recorded while designing `import`; deliberately not addressed there.
+**Status:** settled for USNs; the `masterPlaylists6.xml` gap remains open.
+Recorded while designing `import`, closed while adding USN maintenance.
 
 ## Context
 
@@ -39,10 +40,10 @@ about precisely this state on its next commit:
 
 > `Playlist {ID} not found in masterPlaylists6.xml! Did you add it manually?`
 
-## Consequences Today
+## Consequences Before the Fix
 
-Every row that `edit`, `convert`, and `import` write carries no `rb_local_usn`, and
-the global counter does not advance. **The practical effect is untested.** The
+Every row that `edit`, `convert`, and `import` wrote carried no `rb_local_usn`, and
+the global counter did not advance. **The practical effect was untested.** The
 plausible risk is that cloud or device synchronization cannot tell the row
 changed, but this has not been verified, and the claim should not be repeated as
 though it had been.
@@ -55,26 +56,66 @@ something this repository introduces.
 
 ## Decision
 
+**Status update:** the USN half is closed. See `stamp_usns` in
+`rekordbox_edit/api/usn.py` and the measurements in
+`../../database-concurrency/usn-maintenance.md`.
+
 `import` commits through `db.session.commit()`, consistent with `edit` and
 `convert`, and does not create playlists. Requiring `--playlist` to name an
 existing playlist keeps the command clear of `masterPlaylists6.xml` entirely,
 so the XML gap cannot be reached by any `import` code path.
 
-The USN gap is left as it stands. It predates `import`, spans all three write
-commands, and closing it for one command alone would introduce an inconsistency
-worse than the gap.
+`edit`, `convert`, and `import` now stamp every row they write and advance
+`localUpdateCount` to match, in the same transaction as the rows themselves.
 
-## What a Future Fix Has To Reconcile
+## How the USN Gap Was Closed
 
-Anyone addressing this should treat it as one cross-cutting change across all
-write commands rather than a per-command fix:
+Not through `db.commit()` or `autoincrement_local_update_count`, both of which
+were rejected:
 
-1. **Test the consequence first.** Determine what actually breaks when a row
-   carries no USN, before designing around an assumed failure.
-2. **Preserve the running-rekordbox prompt.** A shared commit helper needs the
-   USN and XML handling from `db.commit()` without its unconditional
-   `RuntimeError`, since that would remove an affordance users rely on.
-3. **Handle the XML whenever playlists are created or deleted.** Any future
-   playlist creation, in `import --to-playlist` or elsewhere, must save
-   `masterPlaylists6.xml` or leave rekordbox in the state it warns about.
-4. **Decide on `updated_at` propagation** for playlists whose membership changes.
+- `db.commit()` refuses outright while rekordbox is running, which would remove
+  the "Continue anyway?" affordance this repository deliberately offers.
+- `autoincrement_local_update_count` reads the counter and writes it back.
+  Measured against the real engine with two concurrent writers, that loses
+  exactly one writer's increments and raises nothing. Rekordbox writes to the
+  same counter, and the advisory lock has no authority over it.
+
+Instead one expression `UPDATE ... RETURNING` reserves a block of values, so
+the counter is never read into application code and cannot go stale. The
+reservation lands in the transaction that writes the rows, so a crash between
+them is impossible: a counter advanced past unstamped rows would hide those
+rows from sync permanently.
+
+One USN is reserved per row stamped, which does not reproduce rekordbox's
+numbering. The sampled library's 906 imported tracks hold 906 distinct stamps
+spread across 969 to 2694, so about 820 values in that span went elsewhere;
+what consumed them was never established. Matching exactly would mean knowing
+everything rekordbox counts, and it does not matter: a peer asks for rows
+*above* a value, so extra values cost nothing while a reused stamp would hide
+a row.
+
+Two of the original conditions were satisfied, and one was overtaken:
+
+1. **Test the consequence first.** Not done, and knowingly so. The maintainer
+   chose to proceed on the grounds that writing rows the way rekordbox writes
+   them is the standard `import` already holds itself to, and that a silent
+   failure for anyone using cloud sync is worse than the cost of maintaining
+   one column. The consequence of an unstamped row remains untested.
+2. **Preserve the running-rekordbox prompt.** Kept. Correctness comes from the
+   statement being atomic rather than from having checked for a process
+   beforehand, so the prompt was never load-bearing. It no longer fires for dry
+   runs, which write nothing.
+3. **`RekordboxAgentRegistry` is still untouched.** Its change buffer and
+   tracking flag are class attributes shared by every instance in the process,
+   which is also why database work stays on the main thread in `convert`.
+
+## What Remains Open
+
+1. **The XML gap.** Any future playlist creation, in `import --to-playlist` or
+   elsewhere, must save `masterPlaylists6.xml` or leave rekordbox in the state
+   it warns about. No command creates playlists today.
+2. **`updated_at` propagation** for playlists whose membership changes.
+3. **The untested consequence.** Whether an unstamped row actually breaks cloud
+   or device sync is still unverified. `../../convert-export-impact/` ruled out
+   USNs as the cause of the one sync failure this repository has observed,
+   which was a path-and-format gate, so no evidence either way exists yet.

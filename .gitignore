@@ -55,5 +55,6 @@ site/
 
 # Superpowers SDD scratch
 .superpowers/
+docs/superpowers/
 
 worktrees/
