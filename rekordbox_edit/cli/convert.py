@@ -15,6 +15,7 @@ from rekordbox_edit._click import (
     track_ids_argument,
 )
 from rekordbox_edit.api.convert import ConvertAborted, convert
+from rekordbox_edit.cli._progress import convert_progress
 from rekordbox_edit.cli._utils import (
     SCRIPTING_MODES,
     _build_args,
@@ -76,7 +77,14 @@ def convert_command(db, **kwargs):
     scripting_mode = print_opt in SCRIPTING_MODES
 
     if yes or dry_run:
-        response = _convert_reporting_partials(db, args, dry_run=dry_run)
+        # A dry run encodes nothing, and the count is unknown until convert
+        # classifies, so the overall bar counts up without a target.
+        with convert_progress(
+            None, enabled=not scripting_mode and not dry_run
+        ) as progress:
+            response = _convert_reporting_partials(
+                db, args, dry_run=dry_run, progress=progress
+            )
         _report_skips(response.result.skipped)
         _print_convert_result(response, print_opt, scripting_mode, dry_run=dry_run)
         return
@@ -112,7 +120,8 @@ def convert_command(db, **kwargs):
             logger.info("Cancelled.")
             return
         narrowed = _narrow_to_track_ids(args, selected_ids)
-        response = _convert_reporting_partials(db, narrowed)
+        with convert_progress(len(selected_ids), enabled=True) as progress:
+            response = _convert_reporting_partials(db, narrowed, progress=progress)
     else:
         try:
             if not confirm(
@@ -124,17 +133,18 @@ def convert_command(db, **kwargs):
                 return
         except UserQuit:
             return
-        response = _convert_reporting_partials(db, args)
+        with convert_progress(len(preview.result.converted), enabled=True) as progress:
+            response = _convert_reporting_partials(db, args, progress=progress)
 
     _report_skips([s for s in response.result.skipped if s.reason in _LIVE_ONLY_SKIPS])
     _print_convert_result(response, print_opt, scripting_mode, dry_run=False)
 
 
-def _convert_reporting_partials(db, args, *, dry_run: bool = False):
+def _convert_reporting_partials(db, args, *, dry_run: bool = False, progress=None):
     """Convert, reporting a batch that stopped partway as a plain result rather
     than as a crash. The committed conversions are real and are kept."""
     try:
-        return convert(db, args, dry_run=dry_run)
+        return convert(db, args, dry_run=dry_run, progress=progress)
     except ConvertAborted as e:
         logger.error(f"Conversion stopped at {e.failed_path}: {e}")
         logger.error(

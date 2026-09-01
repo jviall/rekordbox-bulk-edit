@@ -6,7 +6,7 @@ from collections.abc import Iterable
 from concurrent.futures import Future, ThreadPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Literal, NamedTuple, Tuple, cast
+from typing import Literal, NamedTuple, Protocol, Tuple, cast
 
 import ffmpeg
 from ffmpeg import Error as FfmpegError
@@ -218,6 +218,22 @@ class _EncodeJob:
     output_path: str
     temp_path: str
     output_format: str
+
+
+class ConvertProgress(Protocol):
+    """Reports which files are being encoded, for a caller that wants to show it.
+
+    `convert()` knows when an encode starts and finishes; how that is displayed
+    belongs to the caller. Implementations must tolerate calls from any order
+    of starts and finishes, and must not raise.
+    """
+
+    def started(self, index: int, file_name: str | None) -> None:
+        """An encode for `index` has been handed to a worker."""
+
+    def finished(self, index: int, converted: bool) -> None:
+        """The encode for `index` was collected. `converted` is False when the
+        file was skipped rather than encoded."""
 
 
 @dataclass
@@ -456,6 +472,7 @@ def convert(
     args: ConvertRequest,
     *,
     dry_run: bool = False,
+    progress: ConvertProgress | None = None,
 ) -> ConvertResponse:
     """Convert audio files to a target format and update the Rekordbox database.
 
@@ -554,6 +571,8 @@ def convert(
             """Hand job `index` to a worker, if the batch runs that far."""
             if index < len(jobs):
                 encoding[index] = pool.submit(_encode_one, jobs[index])
+                if progress:
+                    progress.started(index, jobs[index].file_name)
 
         def _stop_pending_encodes() -> None:
             """Give up on everything still in flight, leaving no stray files.
@@ -603,6 +622,9 @@ def convert(
             # keeps the in-flight count capped and leaves no queued work behind
             # on an abort.
             _start_encode(index + thread_count)
+
+            if progress:
+                progress.finished(index, converted=result.skipped is None)
 
             if result.skipped:
                 skipped.append(result.skipped)

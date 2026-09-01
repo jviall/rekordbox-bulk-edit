@@ -1643,6 +1643,137 @@ class TestConvertParallelEncoding:
         assert mock_remove.called
 
 
+class TestConvertProgressReporting:
+    @pytest.fixture(autouse=True)
+    def _stub_temp_file_moves(self):
+        with (
+            patch("rekordbox_edit.api.convert.os.replace"),
+            patch("rekordbox_edit.api.convert.os.listdir", return_value=[]),
+            patch("rekordbox_edit.api.convert._probe_converted_file"),
+        ):
+            yield
+
+    @patch("rekordbox_edit.api.convert.get_audio_info", return_value=_PROBE_WAV_16_44)
+    @patch("rekordbox_edit.api.convert._apply_converted_record")
+    @patch("rekordbox_edit.api.convert._run_ffmpeg", return_value=True)
+    @patch("rekordbox_edit.api.convert.os.path.exists", return_value=True)
+    @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=True)
+    @patch("rekordbox_edit.api.convert._get_output_path")
+    @patch("rekordbox_edit.api.convert.get_file_type_for_format")
+    @patch("rekordbox_edit.api.convert.get_filtered_content")
+    def test_every_file_is_reported_started_then_finished(
+        self,
+        mock_gfc,
+        mock_get_type,
+        mock_get_output,
+        _ffmpeg,
+        _exists,
+        _run,
+        _apply,
+        _probe,
+        mock_db,
+        make_djmd_content_item,
+    ):
+        mock_get_type.side_effect = lambda fmt: {"AIFF": 1, "MP3": 5, "M4A": 6}.get(
+            fmt.upper(), 99
+        )
+        mock_get_output.side_effect = lambda content, fmt: (
+            f"/{content.ID}.aif",
+            f"{content.ID}.aif",
+            "/",
+        )
+        events = []
+
+        class _Recorder:
+            def started(self, index, file_name):
+                events.append(("started", index))
+
+            def finished(self, index, converted):
+                events.append(("finished", index, converted))
+
+        contents = [
+            make_djmd_content_item(
+                ID=str(i), FileType=11, FolderPath=f"/in{i}.wav", FileNameL=f"in{i}.wav"
+            )
+            for i in (1, 2, 3)
+        ]
+        _seed_filter(mock_gfc, *contents)
+        _seed_db(mock_db, *contents)
+
+        convert(
+            mock_db,
+            ConvertRequest(format_out="aiff", overwrite=True, threads=1),
+            progress=_Recorder(),
+        )
+
+        assert [e for e in events if e[0] == "started"] == [
+            ("started", 0),
+            ("started", 1),
+            ("started", 2),
+        ]
+        assert [e for e in events if e[0] == "finished"] == [
+            ("finished", 0, True),
+            ("finished", 1, True),
+            ("finished", 2, True),
+        ]
+
+    @patch("rekordbox_edit.api.convert.get_audio_info", return_value=_PROBE_WAV_16_44)
+    @patch("rekordbox_edit.api.convert._apply_converted_record")
+    @patch("rekordbox_edit.api.convert._run_ffmpeg", return_value=True)
+    @patch("rekordbox_edit.api.convert.os.path.exists")
+    @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=True)
+    @patch("rekordbox_edit.api.convert._get_output_path")
+    @patch("rekordbox_edit.api.convert.get_file_type_for_format")
+    @patch("rekordbox_edit.api.convert.get_filtered_content")
+    def test_a_skipped_file_is_reported_as_not_converted(
+        self,
+        mock_gfc,
+        mock_get_type,
+        mock_get_output,
+        _ffmpeg,
+        mock_exists,
+        _run,
+        _apply,
+        _probe,
+        mock_db,
+        make_djmd_content_item,
+    ):
+        # The overall bar still advances for a skip, so the caller has to be
+        # told the difference rather than inferring it from a missing call.
+        mock_get_type.side_effect = lambda fmt: {"AIFF": 1, "MP3": 5, "M4A": 6}.get(
+            fmt.upper(), 99
+        )
+        mock_get_output.side_effect = lambda content, fmt: (
+            f"/{content.ID}.aif",
+            f"{content.ID}.aif",
+            "/",
+        )
+        mock_exists.side_effect = lambda path: path != "/in2.wav"
+        finished = []
+
+        class _Recorder:
+            def started(self, index, file_name):
+                pass
+
+            def finished(self, index, converted):
+                finished.append((index, converted))
+
+        contents = [
+            make_djmd_content_item(ID=str(i), FileType=11, FolderPath=f"/in{i}.wav")
+            for i in (1, 2, 3)
+        ]
+        _seed_filter(mock_gfc, *contents)
+        _seed_db(mock_db, *contents)
+
+        convert(
+            mock_db,
+            ConvertRequest(format_out="aiff", overwrite=True, threads=1),
+            progress=_Recorder(),
+        )
+
+        assert finished == [(0, True), (1, False), (2, True)]
+
+
 class TestConvertLogging:
     @pytest.fixture(autouse=True)
     def _stub_temp_file_moves(self):
