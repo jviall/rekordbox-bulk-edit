@@ -264,8 +264,8 @@ class FolderPathField(FieldHandler):
         try:
             probe = get_audio_info(new_value)
         except DependencyMissingError:
-            # A missing install is not a property of this track, so it must not
-            # be reported as one; every track would skip for the wrong reason.
+            # A missing install is not a property of this track
+            # Re-raise up to the handler so that we can prompt for install
             raise
         except Exception:
             return "unknown_file_type"

@@ -32,6 +32,10 @@ from rekordbox_edit.models import EditRequest
 
 logger = logging.getLogger(__name__)
 
+# Skips a preview cannot predict: they surface only when the approved plan is
+# re-checked against the database and filesystem at write time.
+_LIVE_ONLY_SKIPS = frozenset({"db_or_fs_changed"})
+
 
 @click.command(
     epilog=f"Debug logs for each run can be found at:\n{get_debug_file_path().parent}"
@@ -71,6 +75,7 @@ def edit_command(db, **kwargs):
 
     if yes or dry_run:
         response = edit(db, args, dry_run=dry_run)
+        _report_skips(response.result.skipped)
 
         if not response.result.edits and not dry_run:
             logger.info("No changes to make.")
@@ -84,7 +89,11 @@ def edit_command(db, **kwargs):
 
     forceable = FIELD_HANDLERS[args.field].forceable_skip_reasons
     gated = [s for s in preview.result.skipped if s.reason in forceable]
+    # Reasons the prompt below spells out per track, so the summary does not
+    # repeat them.
+    reported_individually: frozenset[str] = frozenset()
     if gated and not args.force:
+        reported_individually = forceable
         logger.info(f"{len(gated)} track(s) were held back by safety checks:")
         for s in gated:
             logger.info(f"  {s.id}: {s.reason}")
@@ -95,8 +104,11 @@ def edit_command(db, **kwargs):
             ):
                 args = args.model_copy(update={"force": True})
                 preview = edit(db, args, dry_run=True)
+                reported_individually = frozenset()
         except UserQuit:
             return
+
+    _report_skips(preview.result.skipped, exclude=reported_individually)
 
     if not preview.result.edits:
         logger.info("No changes to make.")
@@ -132,7 +144,37 @@ def edit_command(db, **kwargs):
             return
         response = edit(db, args, ops=preview.result.edits)
 
+    _report_skips([s for s in response.result.skipped if s.reason in _LIVE_ONLY_SKIPS])
     _print_edit_result(response, print_opt, dry_run=False)
+
+
+#: How each skip reason reads as a one-line summary. Phrased as a reason rather
+#: than a reason code, since these are the only account a user gets of tracks
+#: their filters matched but the command did not touch.
+_SKIP_MESSAGES: dict[str, str] = {
+    "no_change": "already hold the requested value",
+    "file_not_found": "name a file that does not exist (--force writes the path anyway)",
+    "length_mismatch": (
+        "name a file whose duration contradicts the stored length "
+        "(--force writes it anyway)"
+    ),
+    "unknown_file_type": "name a file in no format Rekordbox recognizes",
+    "db_or_fs_changed": "changed since the preview",
+}
+
+
+def _report_skips(skipped, *, exclude: frozenset[str] = frozenset()) -> None:
+    """Say what was passed over and why, one line per reason.
+
+    Without this a run reports only what it changed, so a filter that matched
+    30 tracks and edited 4 looks like it found 4.
+    """
+    for reason, message in _SKIP_MESSAGES.items():
+        if reason in exclude:
+            continue
+        count = sum(1 for s in skipped if s.reason == reason)
+        if count:
+            logger.warning(f"Skipping {count} track(s): {message}")
 
 
 def _print_edit_result(response, print_opt, *, dry_run: bool) -> None:
