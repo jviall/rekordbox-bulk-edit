@@ -11,19 +11,93 @@ Plain text output should continue to use ``logger.info()``.
 
 import logging
 import os
+import re
 from enum import Enum
 from typing import Dict, Sequence
 
 from rich import box
 from rich.console import Console
+from rich.highlighter import RegexHighlighter
 from rich.table import Table
+from rich.theme import Theme
 
 from rekordbox_edit.models import Track
-from rekordbox_edit.utils import get_file_type_name, stored_to_star_rating
+from rekordbox_edit.utils import FILE_TYPES, get_file_type_name, stored_to_star_rating
 
 logger = logging.getLogger(__name__)
 
-console = Console(record=True)
+#: Verbs that open a status line, e.g. "[1/49] converted foo.aiff" or
+#: "Skipping 1 file(s): ...".
+_ACTION_WORDS = (
+    "converted",
+    "skipping",
+    "skipped",
+    "deleted",
+    "added",
+    "applied",
+    "kept",
+    "cancelled",
+    "placed",
+)
+
+
+def _format_words() -> tuple[str, ...]:
+    """Every name/token/extension/alias the FileType registry answers to,
+    so a format called out by any of its spellings ("FLAC", "flac",
+    ".flac").
+
+    Sorted longest-first so a shorter word (e.g. "AAC") can't shadow a
+    longer one that starts with it in the alternation.
+    """
+    words: set[str] = set()
+    for info in FILE_TYPES.items():
+        words.add(info.name)
+        words.add(info.token)
+        words.update(ext.lstrip(".") for ext in info.extensions)
+        words.update(info.aliases)
+    return tuple(sorted(words, key=len, reverse=True))
+
+
+#: Recognized output/target formats, called out separately from generic
+#: filenames because they read as a choice ("to FLAC") rather than a path.
+_FORMAT_WORDS = _format_words()
+
+
+class RbeHighlighter(RegexHighlighter):
+    """Highlights the things worth scanning for in rekordbox-edit's own
+    console output: actions taken, files touched, CLI options, and progress
+    counters. Replaces rich's default `ReprHighlighter`, which paints any
+    number or path-shaped token regardless of what it means here.
+    """
+
+    base_style = "rbe."
+    highlights = [
+        # Anchor action words to the start of the line (or, since a message
+        # can open with its own "\n", right after an embedded newline too),
+        # or right after a "[n/m] " progress counter, so a track literally
+        # named "Converted Soul.aiff" is never mistaken for the word.
+        rf"(?:^|(?<=\n)|(?<=\]\s))(?P<action>(?i:{'|'.join(_ACTION_WORDS)}))\b",
+        rf"(?P<path>(?:[\w.,()'&+-]+/)*[\w.,()'&+-]+\.(?:{'|'.join(ext for info in FILE_TYPES.items() for ext in info.extensions)}))\b",
+        r"(?P<path>/(?:[^\s:]+/)+[^\s:]*)",
+        r"(?P<option>--[a-zA-Z][\w-]*)",
+        rf"\b(?P<option>(?i:{'|'.join(re.escape(w) for w in _FORMAT_WORDS)}))\b",
+        r"(?P<count>\[\d+/\d+\])",
+    ]
+
+
+RBE_THEME = Theme(
+    {
+        "rbe.action": "bold cyan",
+        "rbe.path": "green",
+        "rbe.option": "magenta",
+        "rbe.count": "dim",
+        "logging.level.warning": "yellow",
+        "logging.level.error": "red",
+        "logging.level.critical": "bold red",
+    }
+)
+
+console = Console(record=True, theme=RBE_THEME, highlighter=RbeHighlighter())
 
 
 class PrintableField(Enum):
@@ -62,18 +136,18 @@ PRINT_HEADERS: Dict[PrintableField, str] = {
 # Per-column add_column kwargs. min_width guarantees a column is never collapsed
 # to nothing; ratio distributes remaining terminal width among wide text columns.
 _COLUMN_CONFIG: Dict[PrintableField, dict] = {
-    PrintableField.ID: {"justify": "right", "min_width": 4},
+    PrintableField.ID: {"justify": "right", "min_width": 4, "style": "dim"},
     PrintableField.Title: {"min_width": 5, "ratio": 1},
     PrintableField.ArtistName: {"min_width": 5, "ratio": 1},
     PrintableField.AlbumName: {"min_width": 5, "ratio": 1},
-    PrintableField.FileType: {"min_width": 4},
+    PrintableField.FileType: {"min_width": 4, "style": "rbe.option"},
     PrintableField.SampleRate: {"min_width": 6},
     PrintableField.BitRate: {"min_width": 5},
     PrintableField.BitDepth: {"min_width": 4},
-    PrintableField.FolderPath: {"min_width": 5, "ratio": 1},
-    PrintableField.FileNameL: {"min_width": 5, "ratio": 1},
+    PrintableField.FolderPath: {"min_width": 5, "ratio": 1, "style": "rbe.path"},
+    PrintableField.FileNameL: {"min_width": 5, "ratio": 1, "style": "rbe.path"},
     PrintableField.Comment: {"min_width": 5, "ratio": 1},
-    PrintableField.Rating: {"justify": "right", "min_width": 3},
+    PrintableField.Rating: {"justify": "right", "min_width": 3, "style": "dim"},
 }
 
 
