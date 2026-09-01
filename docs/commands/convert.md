@@ -53,8 +53,8 @@ rbe convert --format-out wav --artist "Burial" --yes
 # Convert to MP3 but delete originals
 rbe convert --format-out mp3 --playlist "Export" --yes --delete-originals all
 
-# Keep originals when converting to AIFF
-rbe convert --format-out aiff --format flac --yes --delete-originals none
+# Delete originals only where the conversion lost nothing
+rbe convert --format-out aiff --format flac --yes --delete-originals lossless
 
 # Get just the IDs of files that would be converted
 rbe convert --format-out aiff --format flac --print ids --dry-run
@@ -68,7 +68,7 @@ rbe convert --format-out mp3 --playlist "NeedsConverting" --threads 8 --yes
 
 ### Checks
 
-- Without flags, `convert` shows every planned change and asks once before applying. `--interactive` confirms each track individually; `--dry-run` previews without writing; `--yes` confirms the default choice for all prompts without asking. `--interactive` cannot be combined with `--yes` or `--dry-run`.
+- Without flags, `convert` shows every planned change and asks once before applying. See [Confirmations](../filtering.md#confirmations) for how `--dry-run`, `--interactive`, and `--yes` change that.
 - `convert` will encode exactly the tracks the preview showed. If in between the time you're prompted and later confirm a new track that matches your filters lands in your library, it won't be included.
 - **Rekordbox running:** Writing while Rekordbox is open risks losing your changes, so `convert` will refuse to perform any writes. `--dry-run` is unaffected.
 - Before a large run, walk through the checklist in [What Should I Do Before Converting?](../faqs.md#what-should-i-do-before-converting)

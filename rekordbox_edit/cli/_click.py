@@ -130,7 +130,7 @@ yes_option = click.option(
     "--yes",
     "-y",
     is_flag=True,
-    help="Skip confirmation prompt",
+    help="Take the default answer to every confirmation prompt instead of asking. Prompts guarding a risky condition default to no, so --yes leaves those items out unless the flag naming that condition is also passed",
 )
 
 interactive_option = click.option(
