@@ -267,8 +267,8 @@ class TestEditCommand:
 
         assert result.exit_code == 0
         assert mock_edit.call_count == 2
-        narrowed_args = mock_edit.call_args_list[1].args[1]
-        assert narrowed_args.track_ids == ["A"]
+        applied = mock_edit.call_args_list[1].kwargs["ops"]
+        assert [op.id for op in applied] == ["A"]
 
     @patch("rekordbox_edit.cli.edit.print_track_info")
     @patch("rekordbox_edit.cli.edit.confirm", side_effect=UserQuit)

@@ -19,7 +19,6 @@ from rekordbox_edit.cli._utils import (
     SCRIPTING_MODES,
     _build_args,
     _handle_stdin,
-    _narrow_to_track_ids,
     _print_response_ids,
     _print_response_json,
     _validate_scripting_preconditions,
@@ -127,9 +126,10 @@ def edit_command(db, **kwargs):
         if not selected_ids:
             logger.info("Cancelled.")
             return
-        narrowed = _narrow_to_track_ids(args, selected_ids)
+        chosen = set(selected_ids)
+        selected = [op for op in preview.result.edits if op.id in chosen]
         try:
-            response = edit(db, narrowed)
+            response = edit(db, args, ops=selected)
         except ValueError as e:
             raise click.UsageError(str(e)) from e
     else:
@@ -140,7 +140,7 @@ def edit_command(db, **kwargs):
         except UserQuit:
             return
         try:
-            response = edit(db, args)
+            response = edit(db, args, ops=preview.result.edits)
         except ValueError as e:
             raise click.UsageError(str(e)) from e
 

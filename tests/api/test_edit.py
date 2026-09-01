@@ -228,6 +228,84 @@ class TestEditRealRun:
             edit(mock_db, EditRequest(field="Nope", replace_value="x"))
 
 
+class TestEditFromApprovedOps:
+    """The apply pass runs no filter, so nothing can join the edit late."""
+
+    @patch("rekordbox_edit.api.edit.find_content_by_ids")
+    @patch("rekordbox_edit.api.edit.get_filtered_content")
+    def test_a_row_that_starts_matching_does_not_join(
+        self, mock_gfc, mock_by_ids, mock_db, make_djmd_content_item
+    ):
+        approved = make_djmd_content_item(ID="1", Title="Old")
+        latecomer = make_djmd_content_item(ID="2", Title="Old")
+        mock_by_ids.return_value = {"1": approved, "2": latecomer}
+
+        response = edit(
+            mock_db,
+            EditRequest(field="Title", replace_value="New"),
+            ops=[EditOp(id="1", new_value="New")],
+        )
+
+        mock_gfc.assert_not_called()
+        assert [op.id for op in response.result.edits] == ["1"]
+        assert latecomer.Title == "Old"
+
+    @patch("rekordbox_edit.api.edit.find_content_by_ids")
+    def test_an_op_that_stopped_validating_is_db_or_fs_changed(
+        self, mock_by_ids, mock_db, make_djmd_content_item, stub_handler
+    ):
+        content = make_djmd_content_item(ID="1")
+        mock_by_ids.return_value = {"1": content}
+        stub_handler.validate_track.return_value = "file_not_found"
+
+        response = edit(
+            mock_db,
+            EditRequest(field="Stub", replace_value="New"),
+            ops=[EditOp(id="1", new_value="New")],
+        )
+
+        assert response.result.edits == []
+        assert response.result.skipped == [
+            SkippedTrack(id="1", reason="db_or_fs_changed")
+        ]
+        stub_handler.apply.assert_not_called()
+
+    @patch("rekordbox_edit.api.edit.find_content_by_ids")
+    def test_a_row_deleted_since_the_preview_is_db_or_fs_changed(
+        self, mock_by_ids, mock_db
+    ):
+        mock_by_ids.return_value = {}
+
+        response = edit(
+            mock_db,
+            EditRequest(field="Title", replace_value="New"),
+            ops=[EditOp(id="1", new_value="New")],
+        )
+
+        assert response.result.skipped == [
+            SkippedTrack(id="1", reason="db_or_fs_changed")
+        ]
+        mock_db.session.commit.assert_not_called()
+
+    @patch("rekordbox_edit.api.edit.find_content_by_ids")
+    def test_ops_bypass_the_multi_guard_the_user_already_answered(
+        self, mock_by_ids, mock_db, make_djmd_content_item
+    ):
+        rows = {
+            "1": make_djmd_content_item(ID="1", Title="Old"),
+            "2": make_djmd_content_item(ID="2", Title="Old"),
+        }
+        mock_by_ids.return_value = rows
+
+        response = edit(
+            mock_db,
+            EditRequest(field="Title", replace_value="New"),
+            ops=[EditOp(id="1", new_value="New"), EditOp(id="2", new_value="New")],
+        )
+
+        assert len(response.result.edits) == 2
+
+
 class TestValidateTrackHook:
     def test_skip_reason_from_handler(
         self, mock_db, make_djmd_content_item, stub_handler
