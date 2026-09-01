@@ -3,6 +3,9 @@ from unittest.mock import MagicMock, call, patch
 
 from rekordbox_edit.api.edit import _classify_edit, edit
 from rekordbox_edit.api.field_handlers import FIELD_HANDLERS
+from sqlalchemy import text
+
+from rekordbox_edit.query import require_session
 from rekordbox_edit.models import (
     EditRequest,
     EditOp,
@@ -279,3 +282,58 @@ class TestPostCommitHook:
         edit(mock_db, EditRequest(field="Stub", replace_value="New"), dry_run=True)
 
         stub_handler.post_commit.assert_not_called()
+
+
+class TestEditStampsUsns:
+    """Against the real library, since stamping is a database behavior."""
+
+    _COUNTER = text(
+        "SELECT int_1 FROM agentRegistry WHERE registry_id = 'localUpdateCount'"
+    )
+
+    def test_an_edited_row_gets_a_fresh_usn_and_moves_the_counter(self, db):
+        session = require_session(db)
+        start = session.execute(self._COUNTER).scalar()
+        track = db.get_content().first()
+        before = track.rb_local_usn
+
+        edit(
+            db,
+            EditRequest(
+                field="Title", track_ids=[str(track.ID)], replace_value="Renamed"
+            ),
+        )
+
+        assert track.Title == "Renamed"
+        assert track.rb_local_usn > before
+        assert session.execute(self._COUNTER).scalar() == start + 1
+        assert track.rb_local_usn == start + 1
+
+    def test_a_dry_run_leaves_the_counter_alone(self, db):
+        session = require_session(db)
+        start = session.execute(self._COUNTER).scalar()
+        track = db.get_content().first()
+
+        edit(
+            db,
+            EditRequest(field="Title", track_ids=[str(track.ID)], replace_value="Nope"),
+            dry_run=True,
+        )
+
+        assert session.execute(self._COUNTER).scalar() == start
+
+    def test_a_skipped_track_consumes_no_usn(self, db):
+        session = require_session(db)
+        track = db.get_content().first()
+        start = session.execute(self._COUNTER).scalar()
+
+        # Replacing a title with the value it already has is a no_change skip.
+        response = edit(
+            db,
+            EditRequest(
+                field="Title", track_ids=[str(track.ID)], replace_value=track.Title
+            ),
+        )
+
+        assert response.result.edits == []
+        assert session.execute(self._COUNTER).scalar() == start

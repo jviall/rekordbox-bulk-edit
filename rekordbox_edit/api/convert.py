@@ -18,6 +18,7 @@ from rekordbox_edit.api._utils import (
     _order_tracks_by_op,
     _sync_audio_columns,
     _update_anlz_paths,
+    stamp_usns,
 )
 from rekordbox_edit.models import (
     ConvertOp,
@@ -650,6 +651,7 @@ def convert(
                     os.path.dirname(job.output_path),
                     output_format_name,
                 )
+                stamp_usns(db, [content])
                 db.session.commit()
             except BaseException as e:
                 _remove_temp_file(job.temp_path)

@@ -9,7 +9,7 @@ from typing import NamedTuple, cast
 from pyrekordbox import Rekordbox6Database
 from pyrekordbox.db6 import tables as tb
 
-from rekordbox_edit.api._utils import _track_from_content
+from rekordbox_edit.api._utils import _track_from_content, stamp_usns
 from rekordbox_edit.models import (
     ImportOp,
     ImportRequest,
@@ -182,18 +182,28 @@ IMPORT_DEFAULTS: dict[str, object] = {
 }
 
 
-def _get_or_create(db, table, name: str, factory):
+def _get_or_create(db, table, name: str, factory, created: list | None = None):
     """Reuse a row matching by name, else create one.
 
     Same query shape as RelationalField._get_or_create in api/field_handlers.py,
     generalized over a table and factory so one function covers all five
     relational columns instead of a per-kind branch.
+
+    New rows are appended to `created` when given: add_content flushes,
+    which moves them out of session.new before they can be found again.
     """
     existing = db.session.query(table).filter_by(Name=name).order_by(table.ID).first()
-    return existing or factory(name)
+    if existing is not None:
+        return existing
+    row = factory(name)
+    if created is not None:
+        created.append(row)
+    return row
 
 
-def _resolve_relations(db: Rekordbox6Database, tags: TrackTags) -> dict[str, str]:
+def _resolve_relations(
+    db: Rekordbox6Database, tags: TrackTags, created: list | None = None
+) -> dict[str, str]:
     """Foreign keys for a track's tags, creating shared rows as needed.
 
     A tag that is absent yields no key, leaving the column at add_content's
@@ -211,7 +221,7 @@ def _resolve_relations(db: Rekordbox6Database, tags: TrackTags) -> dict[str, str
     ):
         value = tags.get(field)
         if value:
-            relations[column] = _get_or_create(db, table, value, factory).ID
+            relations[column] = _get_or_create(db, table, value, factory, created).ID
 
     key = tags.get("key")
     row = (
@@ -239,7 +249,9 @@ def _created_date(path: str) -> str:
     return datetime.date.fromtimestamp(stamp).isoformat()
 
 
-def _build_content(db: Rekordbox6Database, candidate: _ImportCandidate):
+def _build_content(
+    db: Rekordbox6Database, candidate: _ImportCandidate, created: list | None = None
+):
     """Create the DjmdContent row for one file and return it.
 
     add_content supplies the identity and device columns. Three of its values
@@ -251,7 +263,7 @@ def _build_content(db: Rekordbox6Database, candidate: _ImportCandidate):
     content = db.add_content(
         candidate.stored,
         **IMPORT_DEFAULTS,
-        **_resolve_relations(db, tags),
+        **_resolve_relations(db, tags, created),
         Title=tags["title"],
         Commnt=tags["comment"] or "",
         ISRC=tags["isrc"] or "",
@@ -412,9 +424,11 @@ def import_tracks(
     applied: list[ImportOp] = []
     written: list[tb.DjmdContent] = []
     try:
+        # Relational rows created along the way each take a USN too.
+        incidental: list = []
         for op, candidate in planned:
             if op.action == "create":
-                content = _build_content(db, candidate)
+                content = _build_content(db, candidate, incidental)
                 applied.append(op.model_copy(update={"id": str(content.ID)}))
             else:
                 content = existing[candidate.key]
@@ -423,6 +437,7 @@ def import_tracks(
             if playlist is not None:
                 db.add_to_playlist(playlist, content)
 
+        stamp_usns(db, [*written, *incidental])
         session.commit()
         logger.debug(f"import committed {len(applied)} row(s)")
     except BaseException:
