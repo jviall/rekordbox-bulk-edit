@@ -38,6 +38,7 @@ from rekordbox_edit.utils import (
     get_file_type_for_format,
     get_file_type_name,
     probe_matches_file_type,
+    require_ffmpeg,
 )
 
 logger = logging.getLogger(__name__)
@@ -124,10 +125,7 @@ def _mp3_output_kwargs(sample_rate) -> dict:
 def _run_ffmpeg(input_path, output_path, output_kwargs: dict, label: str) -> bool:
     """Run a single ffmpeg conversion. Returns True on success, False on an
     ffmpeg error; re-raises anything else. `label` names the target for logs."""
-    from rekordbox_edit.utils import ffmpeg_in_path, get_ffmpeg_directions
-
-    if not ffmpeg_in_path():
-        raise Exception(f"FFmpeg not found in PATH.{get_ffmpeg_directions()}")
+    require_ffmpeg()
 
     try:
         (
@@ -517,15 +515,8 @@ def convert(
     op's paths are re-checked and reported as `db_or_fs_changed` if they no
     longer hold.
     """
-    from rekordbox_edit.utils import ffmpeg_in_path, get_ffmpeg_directions
-
     logger.debug(f"convert start format_out={args.format_out} dry_run={dry_run}")
-
-    if not ffmpeg_in_path():
-        logger.debug("convert aborted: FFmpeg not in PATH")
-        raise RuntimeError(
-            f"FFmpeg is required but not found in PATH.{get_ffmpeg_directions()}"
-        )
+    require_ffmpeg()
 
     planned: list[ConvertOp] = []
     skipped: list[SkippedTrack] = []

@@ -9,7 +9,7 @@ from typing import TypedDict
 
 import ffmpeg
 
-from rekordbox_edit.errors import InputError
+from rekordbox_edit.errors import DependencyMissingError, InputError
 
 logger = logging.getLogger(__name__)
 
@@ -211,20 +211,28 @@ def ffmpeg_in_path():
     return shutil.which("ffmpeg") is not None
 
 
+def require_ffmpeg() -> None:
+    """Raise DependencyMissingError unless ffmpeg is on PATH.
+
+    The single presence check. Callers that probe or encode call this first so
+    a missing install is reported as a missing install, rather than surfacing
+    as whatever the failed probe happened to look like.
+    """
+    if ffmpeg_in_path():
+        return
+    raise DependencyMissingError(
+        f"FFmpeg is required but not found in PATH.{get_ffmpeg_directions()}"
+    )
+
+
 def get_ffmpeg_directions():
-    """Get helpful error message for missing ffmpeg"""
-    if platform.system() == "Windows":  # Windows
+    """How to install ffmpeg on this platform."""
+    if platform.system() == "Windows":
         return """
-FFmpeg is required for rekordbox-edit.
-Please install FFmpeg:
-https://ffmpeg.org/download.html
+Install it from https://ffmpeg.org/download.html
 """
-    else:  # macOS
-        return """
-FFmpeg is required for rekordbox-edit.
-Please install FFmpeg:
-brew install ffmpeg
-or https://ffmpeg.org/download.html
+    return """
+Install it with `brew install ffmpeg`, or from https://ffmpeg.org/download.html
 """
 
 
@@ -248,11 +256,8 @@ def get_audio_info(file_path) -> AudioInfo:
     format-specific assumptions (e.g. MP3 has no true bit depth). ``codec``
     is the stream's codec_name and ``container`` the probe's format_name.
     """
+    require_ffmpeg()
     try:
-        # Check if ffmpeg is available first
-        if not ffmpeg_in_path():
-            raise Exception(get_ffmpeg_directions())
-
         probe = ffmpeg.probe(file_path)
         audio_stream = next(
             (stream for stream in probe["streams"] if stream["codec_type"] == "audio"),

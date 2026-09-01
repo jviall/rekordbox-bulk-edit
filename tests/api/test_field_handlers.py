@@ -8,6 +8,7 @@ from rekordbox_edit.api.field_handlers import (
     RelationalField,
     StringField,
 )
+from rekordbox_edit.errors import DependencyMissingError
 from rekordbox_edit.models import EditRequest
 
 
@@ -401,6 +402,26 @@ class TestFolderPathField:
         )
 
         assert reason == "unknown_file_type"
+
+    @patch(
+        "rekordbox_edit.api.field_handlers.get_audio_info",
+        side_effect=DependencyMissingError("FFmpeg is required"),
+    )
+    @patch("rekordbox_edit.api.field_handlers.os.path.getsize", return_value=2000)
+    @patch("rekordbox_edit.api.field_handlers.os.path.exists", return_value=True)
+    def test_validate_missing_ffmpeg_is_not_a_per_track_skip(
+        self, _exists, _getsize, _probe_fn, make_djmd_content_item
+    ):
+        # Swallowing this would report every track as an unrecognized file
+        # rather than naming the missing install.
+        content = make_djmd_content_item(ID="1")
+        content.FileSize = 1000
+        args = EditRequest(field="FolderPath", replace_value="/new/song.wav")
+
+        with pytest.raises(DependencyMissingError):
+            _folder_handler().validate_track(
+                MagicMock(), content, "/new/song.wav", args
+            )
 
     @patch(
         "rekordbox_edit.api.field_handlers.get_audio_info",

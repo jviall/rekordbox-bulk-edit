@@ -8,6 +8,7 @@ from unittest.mock import Mock, patch
 import ffmpeg
 import pytest
 
+from rekordbox_edit.errors import DependencyMissingError
 from rekordbox_edit.api.convert import (
     TEMP_PREFIX,
     ConvertAborted,
@@ -527,7 +528,7 @@ class TestConvertRealRun:
 
     @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=False)
     def test_no_ffmpeg_raises_immediately(self, _, mock_db):
-        with pytest.raises(RuntimeError, match="FFmpeg"):
+        with pytest.raises(DependencyMissingError, match="FFmpeg"):
             convert(mock_db, ConvertRequest(format_out="aiff"))
 
     @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=True)
@@ -2081,7 +2082,7 @@ class TestRunFfmpeg:
 
     @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=False)
     def test_ffmpeg_not_found_raises(self, _):
-        with pytest.raises(Exception, match="FFmpeg not found in PATH"):
+        with pytest.raises(DependencyMissingError, match="not found in PATH"):
             _run_ffmpeg("in.flac", "out.aiff", {"acodec": "pcm_s16be"}, "aiff")
 
     def test_success_passes_kwargs_through(self, chain):
