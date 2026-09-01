@@ -102,9 +102,9 @@ class ConvertRequest(FilterArgs):
     """Inputs for convert(): the shared track filters plus output format and original-file handling."""
 
     format_out: str = "aiff"
-    delete_originals: DeleteOriginalsMode = "lossless"
-    """When to delete original files after conversion: "all" always deletes
-    them, "none" never deletes them, and "lossless" (the default) deletes them
+    delete_originals: DeleteOriginalsMode = "none"
+    """When to delete original files after conversion: "none" (the default)
+    never deletes them, "all" always deletes them, and "lossless" deletes them
     only when the conversion loses no audio information. Down-sampling to the
     conversion target counts as lossy, as does MP3 output."""
     overwrite: bool = False

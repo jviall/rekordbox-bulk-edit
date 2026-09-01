@@ -173,8 +173,8 @@ convert_click_options = [
     click.option(
         "--delete-originals",
         type=click.Choice(["none", "lossless", "all"], case_sensitive=False),
-        default="lossless",
-        help="When to delete original files after conversion: 'lossless' deletes them only when no audio information was lost (down-sampling and MP3 output count as lossy), 'all' always deletes them, 'none' never deletes them (default: lossless)",
+        default="none",
+        help="When to delete original files after conversion: 'none' never deletes them, 'lossless' deletes them only when no audio information was lost (down-sampling and MP3 output count as lossy), 'all' always deletes them (default: none)",
     ),
     click.option(
         "--overwrite",
