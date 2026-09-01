@@ -8,8 +8,8 @@ from rekordbox_edit.api._utils import _order_tracks_by_op, stamp_usns, writing
 from rekordbox_edit.api.field_handlers import FIELD_HANDLERS
 from rekordbox_edit.errors import InputError
 from rekordbox_edit.models import (
-    EditRequest,
     EditOp,
+    EditRequest,
     EditResponse,
     EditResult,
     SkippedTrack,
@@ -71,7 +71,7 @@ def edit(
     With `dry_run=False` (default), commits the changes.
 
     Pass `ops` to apply an already-approved plan. No filter runs, so a row
-    that started matching since the plan was made cannot join the edit; each
+    that started matching after the plan was made will not join the edit; each
     op is re-checked against the filesystem and reported as
     `db_or_fs_changed` if it no longer holds.
 

@@ -45,10 +45,9 @@ rbe edit --exact-title "Acid Rain" FolderPath --replace "/Users/me/Music/acid-ra
 ## Checks
 
 - Without flags, `edit` shows every planned change and asks once before applying. `--interactive` confirms each track individually; `--dry-run` previews without writing; `--yes` confirms the default choice for all prompts without asking. `--interactive` cannot be combined with `--yes` or `--dry-run`.
-- Tracks your filters matched but `edit` did not touch are reported with the reason, so a filter matching 30 tracks and editing 4 does not look like it found 4.
-- `edit` writes exactly the tracks the preview showed. If in between the time you're prompted and later confirm a new track that matches your filters lands in your library, it won't be included. A track whose file changed in that window is skipped rather than written with stale metadata.
-- When filters match more than one track, an unattended run refuses unless you pass `--multi`. This prevents a mistakenly broad filter from editing across your library with nobody watching. A run that shows you the tracks and waits for an answer does not need the flag, so `--dry-run` and `--interactive` are unaffected.
-- **Rekordbox running:** writing while Rekordbox is open risks losing your changes, so `edit` refuses at the point it would write. The preview still runs, so an interactive run reports the refusal after you confirm. `--dry-run` is unaffected.
+- `edit` writes exactly the tracks the preview showed. If in between the time you're prompted and later confirm a new track lands in your library that matches your filters, it won't be included. A track whose file changed in that window is skipped rather than written with stale metadata.
+- When filters match more than one track, an unattended run (i.e. `--yes`) refuses unless you pass `--multi`. This prevents a mistakenly broad filter from editing across many tracks mistakenly. `--dry-run` and `--interactive` are unaffected.
+- **Rekordbox running:** writing while Rekordbox is open risks losing your changes, so `edit` will refuse to perform any writes. `--dry-run` is unaffected.
 
 ## Examples
 
