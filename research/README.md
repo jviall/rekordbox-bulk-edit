@@ -35,6 +35,10 @@ formal and terse, and states findings as the evidence supports them.
   analysis (the `DjmdContent` row, `DjmdCue` rows, and on-disk ANLZ files), why
   re-analysis rather than conversion is what moves a beat grid, and how far the
   analysis drifts across codecs and resolutions.
+- **`convert-thread-scaling/`** — how much each output format gains from
+  converting several files at once, why uncompressed output barely benefits
+  (ffmpeg already threads the decode, so the disk is not the constraint), and
+  what that sets the `--threads` default to.
 - **`convert-export-impact/`** — what `convert` does to a track already on a USB
   export, and why converting a track after export silently breaks re-export and
   sync-back on both legacy PDB and Device Library Plus players.
