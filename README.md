@@ -43,7 +43,7 @@ Edit track metadata:
 
 ```bash
 # Fix a typo across every matching track title
-rbe edit --title "Teh" Title --match "Teh" --replace "The" --multi
+rbe edit --title "Teh" Title --match "Teh" --replace "The"
 ```
 
 Convert audio files:

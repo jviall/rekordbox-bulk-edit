@@ -99,7 +99,6 @@ class TestEditRequest:
         assert args.field == "Title"
         assert args.replace_value == "New"
         assert args.artist == ["X"]
-        assert args.multi is False
         assert args.force is False
 
 

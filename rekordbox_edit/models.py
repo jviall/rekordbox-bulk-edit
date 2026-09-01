@@ -82,7 +82,6 @@ class EditRequest(FilterArgs):
     field: str
     replace_value: str
     match_pattern: str | None = None
-    multi: bool = False
     force: bool = False
     """Proceed on per-track safety gates that would otherwise skip the track
     (a FolderPath target that does not exist, or one whose duration contradicts
