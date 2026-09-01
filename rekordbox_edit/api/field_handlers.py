@@ -14,6 +14,7 @@ from pyrekordbox.db6 import tables as tb
 from sqlalchemy import or_
 
 from rekordbox_edit.api._utils import _sync_audio_columns, _update_anlz_paths
+from rekordbox_edit.errors import DependencyMissingError
 from rekordbox_edit.models import EditRequest, SkipReason
 from rekordbox_edit.utils import (
     AudioInfo,
@@ -253,6 +254,10 @@ class FolderPathField(FieldHandler):
             return None  # byte-identical file: nothing to probe or sync
         try:
             probe = get_audio_info(new_value)
+        except DependencyMissingError:
+            # A missing install is not a property of this track, so it must not
+            # be reported as one; every track would skip for the wrong reason.
+            raise
         except Exception:
             return "unknown_file_type"
         if get_file_type_for_probe(probe["codec"], probe["container"]) is None:
