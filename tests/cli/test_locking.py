@@ -7,7 +7,7 @@ from click.testing import CliRunner
 
 from rekordbox_edit.cli.edit import edit_command
 from rekordbox_edit.cli.search import search_command
-from rekordbox_edit.locking import database_lock
+from tests.test_locking import foreign_holder
 from rekordbox_edit.models import (
     EditOp,
     EditResponse,
@@ -19,7 +19,7 @@ from rekordbox_edit.models import (
 
 @pytest.fixture(autouse=True)
 def mock_rekordbox_not_running():
-    with patch("rekordbox_edit.cli._utils.get_rekordbox_pid", return_value=None):
+    with patch("rekordbox_edit.api._utils.get_rekordbox_pid", return_value=None):
         yield
 
 
@@ -53,7 +53,7 @@ class TestWriteLock:
         mock_db_class.return_value = Mock(session=Mock(), db_directory=library)
         mock_edit.return_value = _response()
 
-        with database_lock(library, command="convert", timeout=0):
+        with foreign_holder(library, command="convert"):
             result = CliRunner().invoke(edit_command, ["Title", "--replace", "New"])
 
         assert result.exit_code == 1
@@ -69,7 +69,7 @@ class TestWriteLock:
         mock_db_class.return_value = Mock(session=Mock(), db_directory=library)
         mock_edit.return_value = _response()
 
-        with database_lock(library, command="convert", timeout=0):
+        with foreign_holder(library, command="convert"):
             result = CliRunner().invoke(
                 edit_command, ["Title", "--replace", "New", "--dry-run"]
             )
@@ -85,7 +85,7 @@ class TestWriteLock:
         mock_db_class.return_value = Mock(session=Mock(), db_directory=library)
         mock_search.return_value = _search_response()
 
-        with database_lock(library, command="convert", timeout=0):
+        with foreign_holder(library, command="convert"):
             result = CliRunner().invoke(search_command, ["--title", "x"])
 
         assert result.exit_code == 0
@@ -100,7 +100,7 @@ class TestWriteLock:
 
         CliRunner().invoke(edit_command, ["Title", "--replace", "New", "--yes"])
 
-        with database_lock(library, command="convert", timeout=0):
+        with foreign_holder(library, command="convert"):
             pass
 
     @patch("rekordbox_edit.cli.edit.edit", side_effect=RuntimeError("boom"))
@@ -112,7 +112,7 @@ class TestWriteLock:
 
         CliRunner().invoke(edit_command, ["Title", "--replace", "New", "--yes"])
 
-        with database_lock(library, command="convert", timeout=0):
+        with foreign_holder(library, command="convert"):
             pass
 
 

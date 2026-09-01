@@ -4,7 +4,7 @@ import logging
 
 from pyrekordbox import Rekordbox6Database
 
-from rekordbox_edit.api._utils import _order_tracks_by_op, stamp_usns
+from rekordbox_edit.api._utils import _order_tracks_by_op, stamp_usns, writing
 from rekordbox_edit.api.field_handlers import FIELD_HANDLERS
 from rekordbox_edit.errors import InputError
 from rekordbox_edit.models import (
@@ -138,18 +138,19 @@ def edit(
     new_values = {op.id: op.new_value for op in ops}
     old_values: dict[str, str | None] = {}
     edited = []
-    for content in contents:
-        if str(content.ID) in new_values:
-            old_values[str(content.ID)] = handler.current_value(content)
-            handler.apply(db, content, new_values[str(content.ID)])
-            edited.append(content)
-    stamp_usns(db, edited)
-    db.session.commit()
-    logger.debug(f"edit committed {len(ops)} change(s) on field={args.field}")
+    with writing(db, "edit"):
+        for content in contents:
+            if str(content.ID) in new_values:
+                old_values[str(content.ID)] = handler.current_value(content)
+                handler.apply(db, content, new_values[str(content.ID)])
+                edited.append(content)
+        stamp_usns(db, edited)
+        db.session.commit()
+        logger.debug(f"edit committed {len(ops)} change(s) on field={args.field}")
 
-    for content in contents:
-        if str(content.ID) in new_values:
-            handler.post_commit(db, content, old_values[str(content.ID)])
+        for content in contents:
+            if str(content.ID) in new_values:
+                handler.post_commit(db, content, old_values[str(content.ID)])
 
     return EditResponse(
         tracks=_order_tracks_by_op(contents, ops),

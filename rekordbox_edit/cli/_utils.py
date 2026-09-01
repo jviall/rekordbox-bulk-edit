@@ -10,7 +10,6 @@ from typing import TypeVar
 import click
 from pydantic import BaseModel, ValidationError
 from pyrekordbox import Rekordbox6Database
-from pyrekordbox.utils import get_rekordbox_pid
 from sqlalchemy import event
 from sqlalchemy.engine import Engine
 
@@ -79,19 +78,6 @@ def _print_response_json(response: BaseModel) -> None:
     print(response.model_dump_json())
 
 
-def _refuse_while_rekordbox_runs() -> None:
-    """Exit if Rekordbox is open. Writing underneath it risks losing changes:
-    it holds rows in memory and can write its own copy back over ours."""
-    rekordbox_pid = get_rekordbox_pid()
-    if not rekordbox_pid:
-        return
-    logger.error(
-        f"Rekordbox is running (PID {rekordbox_pid}). Close it before writing "
-        "to the database."
-    )
-    sys.exit(1)
-
-
 @event.listens_for(Engine, "connect")
 def _set_busy_timeout(dbapi_connection, _record) -> None:
     """Make SQLite wait instead of failing immediately on a contended write lock.
@@ -127,9 +113,11 @@ def _write_lock(db, kwargs):
 def with_database(*, writes: bool = False):
     """Inject an opened Rekordbox6Database as `db` and close it on exit.
 
-    Pass writes=True for commands that modify the DB: the wrapper aborts when
-    Rekordbox is running, and holds the single-writer advisory lock for the
-    whole run. A dry run gets neither, since it writes nothing.
+    Pass writes=True for commands that modify the DB: the wrapper holds the
+    single-writer advisory lock across the whole run, so the plan and apply
+    passes cannot be interleaved by another process. The API takes that lock
+    again per write, which nests harmlessly, and owns the refusal to run while
+    Rekordbox is open.
 
     Also the one place API errors become CLI ones, so no command repeats the
     mapping: bad input is a usage error, and an unusable environment logs and
@@ -140,8 +128,6 @@ def with_database(*, writes: bool = False):
         @database_path_option
         @functools.wraps(func)
         def wrapper(**kwargs):
-            if writes and not kwargs.get("dry_run"):
-                _refuse_while_rekordbox_runs()
             database_path: str | None = kwargs.pop("database_path", None)
             db = Rekordbox6Database(path=database_path)  # ty: ignore[invalid-argument-type]
             try:

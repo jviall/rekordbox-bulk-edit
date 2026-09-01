@@ -73,10 +73,15 @@ def database_lock(db_directory, command: str, timeout: float) -> Iterator[None]:
     """Hold the single-writer lock for `db_directory` for the duration of the block.
 
     Raises DatabaseBusyError if the lock is not free within `timeout` seconds.
+
+    Re-entrant within one process, via filelock's per-path singleton: a CLI run
+    holds this for its whole plan/apply span while each API call it makes takes
+    it again, and only the outermost release frees it. A lock held by another
+    process is still refused, which is the exclusion that matters.
     """
     path = _lock_path(db_directory)
     path.parent.mkdir(parents=True, exist_ok=True)
-    lock = FileLock(str(path))
+    lock = FileLock(str(path), is_singleton=True)
     try:
         lock.acquire(timeout=timeout)
     except Timeout as e:

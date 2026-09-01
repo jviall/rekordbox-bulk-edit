@@ -17,6 +17,44 @@ Different filter kinds — `artist` and `format` above — AND together by defau
 
 `--print json` on any CLI command emits exactly these response envelopes, so the models below also document the JSON you get when scripting.
 
+## Writing Safely
+
+`edit`, `convert`, and `import_tracks` guard their own writes. Each one refuses to run while Rekordbox is open, raising
+[`RekordboxRunningError`][rekordbox_edit.errors.RekordboxRunningError], and holds a single-writer advisory lock for the
+duration of the write. A `dry_run=True` call reaches neither check, because it writes nothing.
+
+That per-call lock does not span two calls. Planning and then applying is two calls, and between them the lock is free, so
+another process can change a row you are about to write. Hold the lock yourself across the pair:
+
+```python
+from rekordbox_edit.api import edit
+from rekordbox_edit.locking import SCRIPTED_TIMEOUT, database_lock
+from rekordbox_edit.models import EditRequest
+
+args = EditRequest(field="Title", replace_value="Take 2", artist=["Alpha"], multi=True)
+
+with database_lock(db.db_directory, command="edit", timeout=SCRIPTED_TIMEOUT):
+    preview = edit(db, args, dry_run=True)
+    # ... decide which ops to keep ...
+    response = edit(db, args, ops=preview.result.edits)
+```
+
+The lock is re-entrant within a process, so the one each call takes nests inside yours at no cost. A lock held by another
+process raises [`DatabaseBusyError`][rekordbox_edit.errors.DatabaseBusyError].
+
+Without the outer lock the plan is still re-checked at apply time: an op whose row or file changed in the meantime is
+reported as a `db_or_fs_changed` skip rather than applied blindly.
+
+## Errors
+
+Every error these functions raise on purpose descends from
+[`RekordboxEditError`][rekordbox_edit.errors.RekordboxEditError], so one `except` clause covers them.
+[`InputError`][rekordbox_edit.errors.InputError] also subclasses `ValueError`.
+
+::: rekordbox_edit.errors
+options:
+heading_level: 3
+
 ## Functions
 
 ::: rekordbox_edit.api.search
