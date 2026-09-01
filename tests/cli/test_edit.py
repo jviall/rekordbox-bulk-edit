@@ -101,6 +101,45 @@ class TestEditCommand:
         assert result.exit_code != 0
         assert "Error" in result.output
 
+    @patch("rekordbox_edit.cli.edit.print_track_info")
+    @patch("rekordbox_edit.cli.edit.confirm", return_value=True)
+    @patch("rekordbox_edit.cli.edit.edit")
+    @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
+    def test_apply_pass_value_error_becomes_usage_error(
+        self, mock_db_class, mock_edit, _confirm, _print
+    ):
+        # The preview passes the --multi guard and the apply pass does not.
+        mock_db_class.return_value = Mock(session=Mock())
+        mock_edit.side_effect = [
+            _response(),
+            ValueError("Found 2 tracks that would be edited"),
+        ]
+
+        result = CliRunner().invoke(edit_command, ["Title", "--replace", "New"])
+
+        assert result.exit_code != 0
+        assert "Error" in result.output
+
+    @patch("rekordbox_edit.cli.edit.print_track_info")
+    @patch("rekordbox_edit.cli.edit.confirm", return_value=True)
+    @patch("rekordbox_edit.cli.edit.edit")
+    @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
+    def test_interactive_apply_value_error_becomes_usage_error(
+        self, mock_db_class, mock_edit, _confirm, _print
+    ):
+        mock_db_class.return_value = Mock(session=Mock())
+        mock_edit.side_effect = [
+            _response(),
+            ValueError("Found 2 tracks that would be edited"),
+        ]
+
+        result = CliRunner().invoke(
+            edit_command, ["Title", "--replace", "New", "--interactive"]
+        )
+
+        assert result.exit_code != 0
+        assert "Error" in result.output
+
     @patch("rekordbox_edit.cli.edit.edit")
     @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
     def test_print_ids_outputs_ids(self, mock_db_class, mock_edit):

@@ -128,7 +128,10 @@ def edit_command(db, **kwargs):
             logger.info("Cancelled.")
             return
         narrowed = _narrow_to_track_ids(args, selected_ids)
-        response = edit(db, narrowed)
+        try:
+            response = edit(db, narrowed)
+        except ValueError as e:
+            raise click.UsageError(str(e)) from e
     else:
         try:
             if not confirm(f"Apply {len(preview.result.edits)} edit(s)?", default=True):
@@ -136,7 +139,10 @@ def edit_command(db, **kwargs):
                 return
         except UserQuit:
             return
-        response = edit(db, args)
+        try:
+            response = edit(db, args)
+        except ValueError as e:
+            raise click.UsageError(str(e)) from e
 
     _print_edit_result(response, print_opt, dry_run=False)
 

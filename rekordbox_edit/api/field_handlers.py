@@ -226,6 +226,11 @@ class FolderPathField(FieldHandler):
     def __init__(self):
         self._probes: dict[tuple[str, str], AudioInfo] = {}
 
+    def validate_request(self, args):
+        # This handler is a module-scope singleton in FIELD_HANDLERS, so probes
+        # from an earlier request would otherwise outlive it.
+        self._probes.clear()
+
     def current_value(self, content):
         return content.FolderPath
 
