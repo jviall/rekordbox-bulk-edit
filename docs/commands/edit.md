@@ -32,7 +32,7 @@ By default edits will be skipped in the following cases:
 - The new path points to a file whose duration doesn't match what's in rekordbox _and_ the track has cues or an analysis, since those are time-indexed and would land misaligned.
 - The file's format is one Rekordbox doesn't support--this is always skipped.
 
-`edit` lists the held-back tracks and asks once whether to include them. Providing the `--yes` flag will skip them without prompting whereas `--force` edit them anyway. Including a missing file writes only the path columns.
+Each of the first two cases is a gate with its own flag, and `edit` lists the tracks it holds back and asks about it separately: `--allow-missing` writes a path with no file behind it, updating only the path columns, and `--allow-mismatch` accepts a duration that contradicts the stored length. Passing a flag answers its question up front, so no prompt appears. `--yes` takes the default answer to every prompt, and a gate's default is no, so `--yes` on its own leaves the held-back tracks skipped and reports them.
 
 ```bash
 # Relocate a library folder in bulk

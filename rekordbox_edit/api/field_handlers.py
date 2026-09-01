@@ -34,12 +34,12 @@ class FieldHandler:
     name: str
     supports_match: bool = True
 
-    forceable_skip_reasons: frozenset[SkipReason] = frozenset()
-    """Reasons this handler's validate_track returns that `force` overrides.
+    gated_skip_reasons: dict[SkipReason, str] = {}
+    """Skip reasons validate_track returns that a request field authorizes,
+    mapped to the name of that `EditRequest` field.
 
-    Declared here so a caller offering to retry with force does not have to
-    keep its own copy of what force covers, which would silently stop covering
-    a reason added later.
+    Declared here so a caller offering to lift a gate does not keep its own
+    copy of which gates exist or which flag lifts each one.
     """
 
     def validate_request(self, args: EditRequest) -> None:
@@ -221,15 +221,18 @@ class FolderPathField(FieldHandler):
     keeps the columns describing that file in sync.
 
     Validation stats the target: a missing file skips the track (or, under
-    force, writes the path without any metadata sync), a byte-identical file
-    needs no probe or sync, and a changed file is probed. A probed duration
+    allow_missing, writes the path without any metadata sync), a byte-identical
+    file needs no probe or sync, and a changed file is probed. A probed duration
     contradicting the stored Length gates tracks whose cues or analysis are
-    time-indexed, since those would land misaligned; force overrides both
-    gates. A probe no Rekordbox FileType matches always skips."""
+    time-indexed, since those would land misaligned; allow_mismatch lifts that
+    gate. A probe no Rekordbox FileType matches always skips."""
 
     name = "FolderPath"
     supports_match = True
-    forceable_skip_reasons = frozenset({"file_not_found", "length_mismatch"})
+    gated_skip_reasons = {
+        "file_not_found": "allow_missing",
+        "length_mismatch": "allow_mismatch",
+    }
 
     _LENGTH_TOLERANCE_SECONDS = 1.0
 
@@ -252,7 +255,7 @@ class FolderPathField(FieldHandler):
 
     def validate_track(self, db, content, new_value, args):
         if not os.path.exists(new_value):
-            if args.force:
+            if args.allow_missing:
                 logger.warning(
                     f"{new_value} does not exist; writing the path without "
                     "syncing audio metadata"
@@ -287,7 +290,7 @@ class FolderPathField(FieldHandler):
                 f"{new_value} runs {duration:.1f}s but the track's stored "
                 f"length is {content.Length}s"
             )
-            if args.force:
+            if args.allow_mismatch:
                 logger.warning(f"{mismatch}; cues and beat grid may be misaligned")
             elif self._has_time_indexed_analysis(db, content):
                 return "length_mismatch"

@@ -158,9 +158,14 @@ edit_click_options = [
         help="Find this literal string within the field value and replace only that portion",
     ),
     click.option(
-        "--force",
+        "--allow-missing",
         is_flag=True,
-        help="Proceed past per-track safety gates that would otherwise skip a track (e.g. a FolderPath target that is missing or whose duration contradicts the track's stored length)",
+        help="Write a FolderPath that does not exist instead of skipping the track. The columns describing the audio file are left alone, since there is no file to read them from",
+    ),
+    click.option(
+        "--allow-mismatch",
+        is_flag=True,
+        help="Write a FolderPath whose duration contradicts the track's stored length instead of skipping the track. Cues and the beat grid may land misaligned",
     ),
 ]
 

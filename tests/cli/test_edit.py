@@ -300,7 +300,7 @@ class TestEditCommand:
         mock_edit.assert_called_once()  # preview only — UserQuit on first track
 
 
-def _gated_response(tracks=None, edits=None):
+def _gated_response(tracks=None, edits=None, skipped=None):
     tracks = (
         tracks
         if tracks is not None
@@ -316,24 +316,30 @@ def _gated_response(tracks=None, edits=None):
         result=EditResult(
             field="FolderPath",
             edits=edits,
-            skipped=[SkippedTrack(id="9", reason="file_not_found")],
+            skipped=(
+                skipped
+                if skipped is not None
+                else [SkippedTrack(id="9", reason="file_not_found")]
+            ),
         ),
     )
 
 
-class TestEditForceFlow:
+class TestEditGateFlow:
     @patch("rekordbox_edit.cli.edit.edit")
     @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
-    def test_force_flag_passes_through(self, mock_db_class, mock_edit):
+    def test_gate_flags_pass_through(self, mock_db_class, mock_edit):
         mock_db_class.return_value = Mock(session=Mock())
         mock_edit.return_value = _response()
 
         result = CliRunner().invoke(
-            edit_command, ["Title", "--replace", "New", "--yes", "--force"]
+            edit_command,
+            ["Title", "--replace", "New", "--yes", "--allow-missing"],
         )
 
         assert result.exit_code == 0
-        assert mock_edit.call_args.args[1].force is True
+        assert mock_edit.call_args.args[1].allow_missing is True
+        assert mock_edit.call_args.args[1].allow_mismatch is False
 
     @patch("rekordbox_edit.cli.edit.print_track_info")
     @patch("rekordbox_edit.cli.edit.confirm")
@@ -352,19 +358,48 @@ class TestEditForceFlow:
         )
 
         assert result.exit_code == 0
-        # preview, forced re-preview, real run
+        # preview, re-preview with the gate lifted, real run
         assert mock_edit.call_count == 3
-        assert mock_edit.call_args_list[0].args[1].force is False
-        assert mock_edit.call_args_list[1].args[1].force is True
+        assert mock_edit.call_args_list[0].args[1].allow_missing is False
+        assert mock_edit.call_args_list[1].args[1].allow_missing is True
         assert mock_edit.call_args_list[1].kwargs.get("dry_run") is True
-        assert mock_edit.call_args_list[2].args[1].force is True
+        assert mock_edit.call_args_list[2].args[1].allow_missing is True
         assert mock_edit.call_args_list[2].kwargs.get("dry_run", False) is False
 
     @patch("rekordbox_edit.cli.edit.print_track_info")
     @patch("rekordbox_edit.cli.edit.confirm")
     @patch("rekordbox_edit.cli.edit.edit")
     @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
-    def test_default_flow_gated_declined_stays_unforced(
+    def test_each_gate_is_asked_and_lifted_on_its_own(
+        self, mock_db_class, mock_edit, mock_confirm, _print
+    ):
+        # Authorizing a path with no file behind it is a different decision
+        # from authorizing cues that may land misaligned.
+        mock_db_class.return_value = Mock(session=Mock())
+        mock_edit.return_value = _gated_response(
+            skipped=[
+                SkippedTrack(id="9", reason="file_not_found"),
+                SkippedTrack(id="8", reason="length_mismatch"),
+            ]
+        )
+        # Missing: yes. Mismatch: no. Then apply.
+        mock_confirm.side_effect = [True, False, True]
+
+        result = CliRunner().invoke(
+            edit_command, ["FolderPath", "--replace", "/new/x.wav"]
+        )
+
+        assert result.exit_code == 0
+        assert mock_confirm.call_count == 3
+        applied = mock_edit.call_args_list[-1].args[1]
+        assert applied.allow_missing is True
+        assert applied.allow_mismatch is False
+
+    @patch("rekordbox_edit.cli.edit.print_track_info")
+    @patch("rekordbox_edit.cli.edit.confirm")
+    @patch("rekordbox_edit.cli.edit.edit")
+    @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
+    def test_default_flow_gated_declined_leaves_the_gate_shut(
         self, mock_db_class, mock_edit, mock_confirm, _print
     ):
         mock_db_class.return_value = Mock(session=Mock())
@@ -378,13 +413,13 @@ class TestEditForceFlow:
 
         assert result.exit_code == 0
         assert mock_edit.call_count == 2  # preview + real run
-        assert mock_edit.call_args_list[1].args[1].force is False
+        assert mock_edit.call_args_list[1].args[1].allow_missing is False
 
     @patch("rekordbox_edit.cli.edit.print_track_info")
     @patch("rekordbox_edit.cli.edit.confirm")
     @patch("rekordbox_edit.cli.edit.edit")
     @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
-    def test_default_flow_no_gated_prompt_when_forced(
+    def test_no_gate_prompt_when_its_flag_is_already_set(
         self, mock_db_class, mock_edit, mock_confirm, _print
     ):
         mock_db_class.return_value = Mock(session=Mock())
@@ -392,7 +427,8 @@ class TestEditForceFlow:
         mock_confirm.side_effect = [True]  # only the apply prompt
 
         result = CliRunner().invoke(
-            edit_command, ["FolderPath", "--replace", "/new/x.wav", "--force"]
+            edit_command,
+            ["FolderPath", "--replace", "/new/x.wav", "--allow-missing"],
         )
 
         assert result.exit_code == 0
@@ -418,7 +454,9 @@ class TestEditForceFlow:
 
     @patch("rekordbox_edit.cli.edit.edit")
     @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
-    def test_yes_mode_leaves_gated_skipped(self, mock_db_class, mock_edit):
+    def test_yes_alone_leaves_gated_skipped(self, mock_db_class, mock_edit):
+        # --yes takes the default answer to every prompt, and a gate's default
+        # is no, so only the flag itself lets the held-back tracks through.
         mock_db_class.return_value = Mock(session=Mock())
         mock_edit.return_value = _gated_response()
 
@@ -428,7 +466,7 @@ class TestEditForceFlow:
 
         assert result.exit_code == 0
         mock_edit.assert_called_once()
-        assert mock_edit.call_args.args[1].force is False
+        assert mock_edit.call_args.args[1].allow_missing is False
 
 
 def _warnings(mock_logger) -> str:
@@ -492,7 +530,7 @@ class TestEditSkipReporting:
     def test_gated_reasons_are_not_reported_twice(
         self, mock_db_class, mock_edit, mock_confirm, _print, mock_logger
     ):
-        # The force prompt names those tracks individually, so the summary
+        # The gate prompt names those tracks individually, so the summary
         # must leave that reason out.
         mock_db_class.return_value = Mock(session=Mock())
         mock_edit.side_effect = [_gated_response(), _gated_response()]
@@ -500,7 +538,7 @@ class TestEditSkipReporting:
 
         CliRunner().invoke(edit_command, ["FolderPath", "--replace", "/new/x.wav"])
 
-        assert "were held back by safety checks" in _infos(mock_logger)
+        assert "track(s) held back" in _infos(mock_logger)
         assert "file does not exist" not in _warnings(mock_logger)
 
     @patch("rekordbox_edit.cli.edit.print_track_info")

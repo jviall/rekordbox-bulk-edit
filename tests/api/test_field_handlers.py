@@ -354,12 +354,12 @@ class TestFolderPathField:
         assert reason == "file_not_found"
 
     @patch("rekordbox_edit.api.field_handlers.os.path.exists", return_value=False)
-    def test_validate_missing_file_forced_proceeds(
+    def test_validate_missing_file_allowed_proceeds(
         self, _exists, make_djmd_content_item
     ):
         content = make_djmd_content_item(ID="1")
         args = EditRequest(
-            field="FolderPath", replace_value="/new/song.wav", force=True
+            field="FolderPath", replace_value="/new/song.wav", allow_missing=True
         )
 
         reason = _folder_handler().validate_track(
@@ -430,13 +430,16 @@ class TestFolderPathField:
     )
     @patch("rekordbox_edit.api.field_handlers.os.path.getsize", return_value=2000)
     @patch("rekordbox_edit.api.field_handlers.os.path.exists", return_value=True)
-    def test_validate_unknown_codec_skips_even_forced(
+    def test_validate_unknown_codec_skips_even_when_gates_are_lifted(
         self, _exists, _getsize, _probe_fn, make_djmd_content_item
     ):
         content = make_djmd_content_item(ID="1")
         content.FileSize = 1000
         args = EditRequest(
-            field="FolderPath", replace_value="/new/song.ogg", force=True
+            field="FolderPath",
+            replace_value="/new/song.ogg",
+            allow_missing=True,
+            allow_mismatch=True,
         )
 
         reason = _folder_handler().validate_track(
@@ -516,7 +519,7 @@ class TestFolderPathField:
     )
     @patch("rekordbox_edit.api.field_handlers.os.path.getsize", return_value=2000)
     @patch("rekordbox_edit.api.field_handlers.os.path.exists", return_value=True)
-    def test_validate_length_mismatch_forced_proceeds(
+    def test_validate_length_mismatch_allowed_proceeds(
         self, _exists, _getsize, _probe_fn, make_djmd_content_item
     ):
         content = make_djmd_content_item(ID="1")
@@ -524,7 +527,7 @@ class TestFolderPathField:
         content.Length = 214
         content.AnalysisDataPath = "/PIONEER/USBANLZ/x/ANLZ0000.DAT"
         args = EditRequest(
-            field="FolderPath", replace_value="/new/song.wav", force=True
+            field="FolderPath", replace_value="/new/song.wav", allow_mismatch=True
         )
 
         reason = _folder_handler().validate_track(
@@ -654,7 +657,7 @@ class TestFolderPathField:
         assert content.FileSize == 1000
 
     @patch("rekordbox_edit.api.field_handlers.os.path.exists", return_value=False)
-    def test_apply_forced_missing_file_writes_paths_only(
+    def test_apply_allowed_missing_file_writes_paths_only(
         self, _exists, make_djmd_content_item
     ):
         handler = _folder_handler()
@@ -664,7 +667,7 @@ class TestFolderPathField:
         content.FileSize = 1000
         db = MagicMock()
         args = EditRequest(
-            field="FolderPath", replace_value="/gone/dir/song.wav", force=True
+            field="FolderPath", replace_value="/gone/dir/song.wav", allow_missing=True
         )
         assert handler.validate_track(db, content, "/gone/dir/song.wav", args) is None
 
@@ -711,18 +714,26 @@ class TestFolderPathField:
         _folder_handler().post_commit(MagicMock(), content, "/old/dir/song.wav")
 
 
-class TestForceableSkipReasons:
-    def test_folder_path_declares_what_force_overrides(self):
-        assert FIELD_HANDLERS["FolderPath"].forceable_skip_reasons == frozenset(
-            {"file_not_found", "length_mismatch"}
-        )
+class TestGatedSkipReasons:
+    def test_folder_path_maps_each_gate_to_its_field(self):
+        assert FIELD_HANDLERS["FolderPath"].gated_skip_reasons == {
+            "file_not_found": "allow_missing",
+            "length_mismatch": "allow_mismatch",
+        }
 
     def test_handlers_without_gates_declare_nothing(self):
-        # A caller offering to retry with force reads this rather than keeping
-        # its own list, so a handler with no gates must offer no retry.
-        assert FIELD_HANDLERS["Title"].forceable_skip_reasons == frozenset()
+        # A caller offering to lift a gate reads this rather than keeping its
+        # own list, so a handler with no gates must offer no prompt.
+        assert FIELD_HANDLERS["Title"].gated_skip_reasons == {}
 
     def test_every_declared_reason_is_a_real_skip_reason(self):
         valid = set(get_args(SkipReason))
         for handler in FIELD_HANDLERS.values():
-            assert handler.forceable_skip_reasons <= valid
+            assert set(handler.gated_skip_reasons) <= valid
+
+    def test_every_declared_field_exists_on_the_request(self):
+        # The CLI reads these with getattr, so a typo would silently stop
+        # lifting the gate rather than fail.
+        for handler in FIELD_HANDLERS.values():
+            for field in handler.gated_skip_reasons.values():
+                assert field in EditRequest.model_fields

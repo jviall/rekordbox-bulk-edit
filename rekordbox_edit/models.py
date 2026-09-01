@@ -82,10 +82,14 @@ class EditRequest(FilterArgs):
     field: str
     replace_value: str
     match_pattern: str | None = None
-    force: bool = False
-    """Proceed on per-track safety gates that would otherwise skip the track
-    (a FolderPath target that does not exist, or one whose duration contradicts
-    the track's stored length)."""
+    allow_missing: bool = False
+    """Write a FolderPath that does not exist, rather than skipping the track.
+    The audio columns describing the file are left as they are, since there is
+    no file to read them from."""
+    allow_mismatch: bool = False
+    """Write a FolderPath whose duration contradicts the track's stored length,
+    rather than skipping the track. Cues and the beat grid are time-indexed
+    against the old duration, so they may land misaligned."""
 
 
 DeleteOriginalsMode: TypeAlias = Literal["none", "lossless", "all"]
