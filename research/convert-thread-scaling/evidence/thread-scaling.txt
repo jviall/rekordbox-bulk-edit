@@ -1,0 +1,30 @@
+=== format_scaling.py ===
+8 files x 300s
+
+target  threads    wall      cpu  cores used
+  AIFF        1    1.63     6.31       3.86x
+  AIFF        4    1.18    10.58       8.94x
+   WAV        1    1.62     6.17       3.81x
+   WAV        4    1.19    10.68       8.99x
+  FLAC        1    3.23     7.06       2.18x
+  FLAC        4    1.38    12.35       8.96x
+   MP3        1   15.05    19.01       1.26x
+   MP3        4    3.83    21.86       5.71x
+
+=== write_cost.py ===
+     write AIFF  threads=1   1.65s
+     write AIFF  threads=4   1.17s
+ discard output  threads=1   1.63s
+ discard output  threads=4   1.18s
+
+bytes written by the first pair: 423 MB
+
+=== shipped_path_scaling.py ===
+8 files x 300s, through _encode_one
+
+target  threads    wall   speedup
+  AIFF        1    2.27     1.00x
+  AIFF        4    1.41     1.61x
+   MP3        1   15.86     1.00x
+   MP3        4    4.07     3.90x
+
