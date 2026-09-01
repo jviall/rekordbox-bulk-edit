@@ -81,19 +81,19 @@ class TestStampUsns:
         start = require_session(db).execute(_COUNTER).scalar()
         rows = db.get_content().limit(3).all()
 
-        high = stamp_usns(db, rows)
+        last_usn = stamp_usns(db, rows)
 
-        assert high == start + 3
+        assert last_usn == start + 3
         assert [row.rb_local_usn for row in rows] == [start + 1, start + 2, start + 3]
 
     def test_the_counter_ends_where_the_last_stamp_did(self, db):
         rows = db.get_content().limit(2).all()
 
-        high = stamp_usns(db, rows)
+        last_usn = stamp_usns(db, rows)
         require_session(db).commit()
 
-        assert require_session(db).execute(_COUNTER).scalar() == high
-        assert max(row.rb_local_usn for row in rows) == high
+        assert require_session(db).execute(_COUNTER).scalar() == last_usn
+        assert max(row.rb_local_usn for row in rows) == last_usn
 
     def test_nothing_to_stamp_leaves_the_counter_alone(self, db):
         start = require_session(db).execute(_COUNTER).scalar()
@@ -186,10 +186,10 @@ class TestStampUsnsUnderConcurrency:
             stamp_usns(theirs, theirs.get_content().limit(3).all())
             require_session(theirs).commit()
 
-            high = stamp_usns(ours, rows)
+            last_usn = stamp_usns(ours, rows)
             require_session(ours).commit()
 
-            assert high == start + 3 + 2
+            assert last_usn == start + 3 + 2
             assert [row.rb_local_usn for row in rows] == [start + 4, start + 5]
         finally:
             close_database(ours)
