@@ -1,14 +1,22 @@
 """Tests for cli/edit.py."""
 
+from typing import get_args
 from unittest.mock import Mock, patch
 
 import pytest
 from click.testing import CliRunner
 
-from rekordbox_edit.cli.edit import edit_command
-from rekordbox_edit.models import EditOp, EditResponse, EditResult, SkippedTrack, Track
 from rekordbox_edit.cli._utils import UserQuit
+from rekordbox_edit.cli.edit import _SKIP_MESSAGES, edit_command
 from rekordbox_edit.errors import InputError
+from rekordbox_edit.models import (
+    EditOp,
+    EditResponse,
+    EditResult,
+    SkippedTrack,
+    SkipReason,
+    Track,
+)
 
 
 @pytest.fixture(autouse=True)
@@ -479,8 +487,11 @@ class TestEditSkipReporting:
 
         assert result.exit_code == 0
         warnings = _warnings(mock_logger)
-        assert "Skipping 2 track(s): already hold the requested value" in warnings
-        assert "Skipping 1 track(s): name a file in no format" in warnings
+        assert "Skipping 2 track(s): existing value already matches" in warnings
+        assert (
+            "Skipping 1 track(s): file is in format Rekordbox doesn't support"
+            in warnings
+        )
 
     @patch("rekordbox_edit.cli.edit.print_track_info")
     @patch("rekordbox_edit.cli.edit.edit")
@@ -495,7 +506,7 @@ class TestEditSkipReporting:
 
         CliRunner().invoke(edit_command, ["Title", "--replace", "New", "--dry-run"])
 
-        assert "already hold the requested value" in _warnings(mock_logger)
+        assert "existing value already matches" in _warnings(mock_logger)
 
     @patch("rekordbox_edit.cli.edit.print_track_info")
     @patch("rekordbox_edit.cli.edit.confirm")
@@ -513,7 +524,7 @@ class TestEditSkipReporting:
         CliRunner().invoke(edit_command, ["FolderPath", "--replace", "/new/x.wav"])
 
         assert "were held back by safety checks" in _infos(mock_logger)
-        assert "name a file that does not exist" not in _warnings(mock_logger)
+        assert "file does not exist" not in _warnings(mock_logger)
 
     @patch("rekordbox_edit.cli.edit.print_track_info")
     @patch("rekordbox_edit.cli.edit.confirm", return_value=True)
@@ -529,5 +540,28 @@ class TestEditSkipReporting:
         CliRunner().invoke(edit_command, ["Title", "--replace", "New"])
 
         assert "Skipping 1 track(s): changed since the preview" in _warnings(
+            mock_logger
+        )
+
+    def test_no_message_is_keyed_on_a_reason_that_cannot_occur(self):
+        # _report_skips matches on equality with SkippedTrack.reason, so a key
+        # that is not a SkipReason is silently never emitted.
+        assert set(_SKIP_MESSAGES) <= set(get_args(SkipReason))
+
+    @pytest.mark.parametrize("reason", sorted(_SKIP_MESSAGES))
+    @patch("rekordbox_edit.cli.edit.print_track_info")
+    @patch("rekordbox_edit.cli.edit.edit")
+    @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
+    def test_every_reason_in_the_table_is_emitted(
+        self, mock_db_class, mock_edit, _print, reason, mock_logger
+    ):
+        mock_db_class.return_value = Mock(session=Mock())
+        mock_edit.return_value = _response(
+            skipped=[SkippedTrack(id="2", reason=reason)]
+        )
+
+        CliRunner().invoke(edit_command, ["Title", "--replace", "New", "--yes"])
+
+        assert f"Skipping 1 track(s): {_SKIP_MESSAGES[reason]}" in _warnings(
             mock_logger
         )

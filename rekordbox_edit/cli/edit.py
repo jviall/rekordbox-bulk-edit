@@ -4,6 +4,8 @@ import logging
 
 import click
 
+from rekordbox_edit.api.edit import edit
+from rekordbox_edit.api.field_handlers import FIELD_HANDLERS
 from rekordbox_edit.cli._click import (
     add_click_options,
     edit_click_options,
@@ -12,15 +14,13 @@ from rekordbox_edit.cli._click import (
     print_option,
     track_ids_argument,
 )
-from rekordbox_edit.api.edit import edit
-from rekordbox_edit.api.field_handlers import FIELD_HANDLERS
 from rekordbox_edit.cli._utils import (
     SCRIPTING_MODES,
+    UserQuit,
     _build_args,
     _handle_stdin,
     _print_response_ids,
     _print_response_json,
-    UserQuit,
     _validate_scripting_preconditions,
     confirm,
     with_database,
@@ -151,13 +151,12 @@ def edit_command(db, **kwargs):
 #: than a reason code, since these are the only account a user gets of tracks
 #: their filters matched but the command did not touch.
 _SKIP_MESSAGES: dict[str, str] = {
-    "no_change": "already hold the requested value",
-    "file_not_found": "name a file that does not exist (--force writes the path anyway)",
+    "no_change": "existing value already matches the requested value",
+    "file_not_found": "file does not exist",
     "length_mismatch": (
-        "name a file whose duration contradicts the stored length "
-        "(--force writes it anyway)"
+        "file's duration contradicts the stored length (override with --force)"
     ),
-    "unknown_file_type": "name a file in no format Rekordbox recognizes",
+    "unknown_file_type": "file is in format Rekordbox doesn't support",
     "db_or_fs_changed": "changed since the preview",
 }
 

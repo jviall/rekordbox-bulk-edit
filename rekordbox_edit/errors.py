@@ -1,9 +1,7 @@
 """Exception hierarchy for rekordbox-edit.
 
-Every error the API raises on purpose descends from `RekordboxEditError`, so a
-caller can catch one type rather than the three unrelated families that
-preceded this module. `InputError` keeps `ValueError` in its MRO because bad
-input raised a plain `ValueError` before the hierarchy existed.
+Exports a top-level `RekordboxEditError`, from which all other internal
+errors descend.
 
 The CLI maps these to exit codes in one place, `cli._utils.with_database`.
 """
@@ -21,7 +19,7 @@ class InputError(RekordboxEditError, ValueError):
 
 
 class DependencyMissingError(RekordboxEditError):
-    """A required external program is not installed."""
+    """A required external program (e.g. ffmpeg) is not installed."""
 
 
 class RekordboxRunningError(RekordboxEditError):
