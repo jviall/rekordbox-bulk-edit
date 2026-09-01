@@ -12,6 +12,7 @@ from sqlalchemy import ColumnElement
 from rekordbox_edit.models import FilterArgs
 from rekordbox_edit.query import (
     CollectionQuery,
+    find_content_by_ids,
     find_content_by_key,
     find_playlists_by_name,
     get_filtered_content,
@@ -1011,3 +1012,29 @@ class TestFindPlaylistsByName:
 
         with pytest.raises(RuntimeError, match="No Session"):
             find_playlists_by_name(mock_db, "Crate")
+
+
+class TestFindContentByIds:
+    @staticmethod
+    def _db(*ids):
+        db = MagicMock()
+        db.session = MagicMock()
+        rows = [MagicMock(ID=i) for i in ids]
+        db.session.execute.return_value.scalars.return_value = rows
+        return db, rows
+
+    def test_keys_rows_by_id_as_a_string(self):
+        db, rows = self._db(1, 2)
+
+        assert find_content_by_ids(db, ["1", "2"]) == {"1": rows[0], "2": rows[1]}
+
+    def test_an_id_with_no_row_is_absent(self):
+        db, rows = self._db("A")
+
+        assert find_content_by_ids(db, ["A", "B"]) == {"A": rows[0]}
+
+    def test_no_ids_queries_nothing(self):
+        db, _ = self._db()
+
+        assert find_content_by_ids(db, []) == {}
+        db.session.execute.assert_not_called()
