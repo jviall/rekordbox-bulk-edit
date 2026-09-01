@@ -175,7 +175,7 @@ def _print_convert_result(
 ) -> None:
     if not dry_run:
         logger.info(
-            f"Converted {len(response.result.converted)} files to "
+            f"\nConverted {len(response.result.converted)} files to "
             f"{response.result.format_out.upper()}"
         )
         if response.result.deleted:
