@@ -64,10 +64,11 @@ rbe search --artist "Lauryn Hill" --print ids | rbe convert --yes
 rbe convert --format-out mp3 --playlist "NeedsConverting" --threads 8 --yes
 ```
 
-### Guardrails
+### Checks
 
 - Without flags, `convert` shows every planned change and asks once before applying. `--interactive` confirms each track individually; `--dry-run` previews without writing; `--yes` confirms the default choice for all prompts without asking.
-- **Rekordbox running:** writing while Rekordbox is open risks losing your changes, so `convert` refuses to run until you close it. `--dry-run` still works.
+- `convert` will encode exactly the tracks the preview showed. If in between the time you're prompted and later confirm a new track that matches your filters lands in your library, it won't be included.
+- **Rekordbox running:** Writing while Rekordbox is open risks losing your changes, so `convert` refuses to run until you close it. `--dry-run` still works.
 - Before a large run, walk through the checklist in [What Should I Do Before Converting?](../faqs.md#what-should-i-do-before-converting)
 
 ## Reference

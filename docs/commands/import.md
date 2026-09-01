@@ -35,13 +35,15 @@ A file that already has a row in the library but is missing from the named playl
 
 A directory argument is walked recursively for audio files. Ran interactively, `import` reports how many files it found and asks you to confirm before continuing. `--yes` skips this prompt, and is required when providing a non-interactive `--print` mode and a directory argument.
 
+The walk happens once, before the preview. A file dropped into the directory while you are answering the prompt is not imported, since `import` writes exactly the files it showed you.
+
 ## Skipped Files
 
-A file already in the library, matched by its resolved, case-insensitive path, is skipped rather than duplicated. One that cannot be read as audio, or that is not an audio file at all, is skipped with a warning, and the rest of the batch continues.
+A file already in the library, matched by its resolved, case-insensitive path, is skipped rather than duplicated. One that cannot be read as audio, or that is not an audio file at all, is skipped with a warning, and the rest of the batch continues. A file that disappears between the preview and the write is skipped too.
 
-## Guardrails
+## Checks
 
-- **Preview and confirm by default.** Without flags, `import` shows every track it plans to add and asks once before writing; `--dry-run` previews without writing; `--yes` confirms the default choice for all prompts without asking.
+- Without flags, `import` shows every track it plans to add and asks once before writing; `--dry-run` previews without writing; `--yes` confirms the default choice for all prompts without asking.
 - **Rekordbox running:** writing while Rekordbox is open risks losing your changes, so `import` refuses to run until you close it. `--dry-run` still works.
 
 ## Reference
