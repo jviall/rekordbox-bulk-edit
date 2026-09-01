@@ -455,3 +455,113 @@ class TestThreadsFlag:
         )
 
         assert result.exit_code != 0
+
+
+class TestConvertOverwriteGate:
+    """An output file that already exists used to be skipped with only a
+    warning count, so a run could pass over files silently."""
+
+    @patch("rekordbox_edit.cli.convert.print_track_info")
+    @patch("rekordbox_edit.cli.convert.confirm")
+    @patch("rekordbox_edit.cli.convert.convert")
+    @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
+    @patch("rekordbox_edit.api._utils.get_rekordbox_pid", return_value=None)
+    def test_confirming_reconverts_with_overwrite(
+        self, _pid, mock_db_class, mock_convert, mock_confirm, _print
+    ):
+        mock_db_class.return_value = Mock(session=Mock())
+        mock_convert.return_value = _response(
+            skipped=[SkippedTrack(id="9", reason="output_file_exists")]
+        )
+        mock_confirm.side_effect = [True, True]  # overwrite, then apply
+
+        result = CliRunner().invoke(convert_command, ["--format-out", "aiff"])
+
+        assert result.exit_code == 0
+        # preview, re-preview with overwrite on, real run
+        assert mock_convert.call_count == 3
+        assert mock_convert.call_args_list[0].args[1].overwrite is False
+        assert mock_convert.call_args_list[1].args[1].overwrite is True
+        assert mock_convert.call_args_list[1].kwargs.get("dry_run") is True
+        assert mock_convert.call_args_list[2].args[1].overwrite is True
+
+    @patch("rekordbox_edit.cli.convert.print_track_info")
+    @patch("rekordbox_edit.cli.convert.confirm")
+    @patch("rekordbox_edit.cli.convert.convert")
+    @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
+    @patch("rekordbox_edit.api._utils.get_rekordbox_pid", return_value=None)
+    def test_declining_leaves_the_conflicts_skipped(
+        self, _pid, mock_db_class, mock_convert, mock_confirm, _print
+    ):
+        mock_db_class.return_value = Mock(session=Mock())
+        mock_convert.return_value = _response(
+            skipped=[SkippedTrack(id="9", reason="output_file_exists")]
+        )
+        mock_confirm.side_effect = [False, True]  # keep them, then apply
+
+        result = CliRunner().invoke(convert_command, ["--format-out", "aiff"])
+
+        assert result.exit_code == 0
+        assert mock_convert.call_count == 2  # preview + real run
+        assert mock_convert.call_args_list[1].args[1].overwrite is False
+
+    @patch("rekordbox_edit.cli.convert.print_track_info")
+    @patch("rekordbox_edit.cli.convert.confirm")
+    @patch("rekordbox_edit.cli.convert.convert")
+    @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
+    @patch("rekordbox_edit.api._utils.get_rekordbox_pid", return_value=None)
+    def test_no_prompt_when_overwrite_is_already_set(
+        self, _pid, mock_db_class, mock_convert, mock_confirm, _print
+    ):
+        mock_db_class.return_value = Mock(session=Mock())
+        mock_convert.return_value = _response(
+            skipped=[SkippedTrack(id="9", reason="output_file_exists")]
+        )
+        mock_confirm.side_effect = [True]  # only the apply prompt
+
+        result = CliRunner().invoke(
+            convert_command, ["--format-out", "aiff", "--overwrite"]
+        )
+
+        assert result.exit_code == 0
+        assert mock_confirm.call_count == 1
+        assert mock_convert.call_count == 2
+
+    @patch("rekordbox_edit.cli.convert.print_track_info")
+    @patch("rekordbox_edit.cli.convert.confirm", side_effect=UserQuit)
+    @patch("rekordbox_edit.cli.convert.convert")
+    @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
+    @patch("rekordbox_edit.api._utils.get_rekordbox_pid", return_value=None)
+    def test_quitting_the_prompt_skips_the_run(
+        self, _pid, mock_db_class, mock_convert, _confirm, _print
+    ):
+        mock_db_class.return_value = Mock(session=Mock())
+        mock_convert.return_value = _response(
+            skipped=[SkippedTrack(id="9", reason="output_file_exists")]
+        )
+
+        result = CliRunner().invoke(convert_command, ["--format-out", "aiff"])
+
+        assert result.exit_code == 0
+        mock_convert.assert_called_once()  # preview only
+
+    @patch("rekordbox_edit.cli.convert.convert")
+    @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
+    @patch("rekordbox_edit.api._utils.get_rekordbox_pid", return_value=None)
+    def test_yes_alone_leaves_the_conflicts_skipped(
+        self, _pid, mock_db_class, mock_convert, mock_logger
+    ):
+        # --yes takes the default answer to every prompt, and this gate's
+        # default is no, so only --overwrite clobbers anything.
+        mock_db_class.return_value = Mock(session=Mock())
+        mock_convert.return_value = _response(
+            skipped=[SkippedTrack(id="9", reason="output_file_exists")]
+        )
+
+        result = CliRunner().invoke(convert_command, ["--format-out", "aiff", "--yes"])
+
+        assert result.exit_code == 0
+        mock_convert.assert_called_once()
+        assert mock_convert.call_args.args[1].overwrite is False
+        warnings = [c.args[0] for c in mock_logger.warning.call_args_list]
+        assert any("output exists" in w for w in warnings)
