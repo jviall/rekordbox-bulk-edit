@@ -158,11 +158,14 @@ class TestWaitBudget:
 
 
 class TestBusyTimeout:
-    def test_pragma_is_applied_to_new_sqlite_connections(self, tmp_path):
+    def test_the_driver_supplies_a_busy_timeout_without_help(self, tmp_path):
+        # rekordbox-edit used to install this pragma through a connect
+        # listener. The DBAPI already sets it from sqlite3.connect's default
+        # timeout=5.0, so the listener set a value that was already in effect
+        # and was removed. Pinned here because dropping to 0 would quietly
+        # take the retry window away.
         from sqlalchemy import create_engine, text
-
-        from rekordbox_edit.cli._utils import BUSY_TIMEOUT_MS
 
         engine = create_engine(f"sqlite:///{tmp_path / 'probe.db'}")
         with engine.connect() as conn:
-            assert conn.execute(text("PRAGMA busy_timeout")).scalar() == BUSY_TIMEOUT_MS
+            assert conn.execute(text("PRAGMA busy_timeout")).scalar() >= 5000

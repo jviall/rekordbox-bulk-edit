@@ -1,3 +1,4 @@
+from typing import get_args
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -9,7 +10,7 @@ from rekordbox_edit.api.field_handlers import (
     StringField,
 )
 from rekordbox_edit.errors import DependencyMissingError
-from rekordbox_edit.models import EditRequest
+from rekordbox_edit.models import EditRequest, SkipReason
 
 
 def _artist_handler():
@@ -708,3 +709,20 @@ class TestFolderPathField:
 
         # Must not raise: the row commit already succeeded.
         _folder_handler().post_commit(MagicMock(), content, "/old/dir/song.wav")
+
+
+class TestForceableSkipReasons:
+    def test_folder_path_declares_what_force_overrides(self):
+        assert FIELD_HANDLERS["FolderPath"].forceable_skip_reasons == frozenset(
+            {"file_not_found", "length_mismatch"}
+        )
+
+    def test_handlers_without_gates_declare_nothing(self):
+        # A caller offering to retry with force reads this rather than keeping
+        # its own list, so a handler with no gates must offer no retry.
+        assert FIELD_HANDLERS["Title"].forceable_skip_reasons == frozenset()
+
+    def test_every_declared_reason_is_a_real_skip_reason(self):
+        valid = set(get_args(SkipReason))
+        for handler in FIELD_HANDLERS.values():
+            assert handler.forceable_skip_reasons <= valid

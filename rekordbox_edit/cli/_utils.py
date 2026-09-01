@@ -10,8 +10,6 @@ from typing import TypeVar
 import click
 from pydantic import BaseModel, ValidationError
 from pyrekordbox import Rekordbox6Database
-from sqlalchemy import event
-from sqlalchemy.engine import Engine
 
 from rekordbox_edit._click import PrintChoice, database_path_option
 from rekordbox_edit.errors import (
@@ -25,10 +23,6 @@ from rekordbox_edit.locking import SCRIPTED_TIMEOUT, database_lock
 logger = logging.getLogger(__name__)
 
 SCRIPTING_MODES = (PrintChoice.IDS, PrintChoice.SILENT, PrintChoice.JSON)
-
-#: How long SQLite retries when another connection (typically Rekordbox
-#: itself) holds the write lock, before raising OperationalError.
-BUSY_TIMEOUT_MS = 5000
 
 _ArgsT = TypeVar("_ArgsT", bound=BaseModel)
 
@@ -92,21 +86,6 @@ def _print_response_ids(response) -> None:
 def _print_response_json(response: BaseModel) -> None:
     """Print the response envelope as JSON."""
     print(response.model_dump_json())
-
-
-@event.listens_for(Engine, "connect")
-def _set_busy_timeout(dbapi_connection, _record) -> None:
-    """Make SQLite wait instead of failing immediately on a contended write lock.
-
-    Bound to the Engine class rather than an instance because pyrekordbox
-    builds the engine itself and connects lazily on the first query, leaving
-    no point at which to attach a per-engine listener.
-    """
-    cursor = dbapi_connection.cursor()
-    try:
-        cursor.execute(f"PRAGMA busy_timeout = {BUSY_TIMEOUT_MS}")
-    finally:
-        cursor.close()
 
 
 def _write_lock(db, kwargs):
