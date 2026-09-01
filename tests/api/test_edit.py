@@ -6,7 +6,7 @@ from rekordbox_edit.api.field_handlers import FIELD_HANDLERS
 from sqlalchemy import text
 
 from rekordbox_edit.query import require_session
-from rekordbox_edit.errors import RekordboxRunningError
+from rekordbox_edit.errors import InputError, RekordboxRunningError
 from rekordbox_edit.models import (
     EditRequest,
     EditOp,
@@ -115,23 +115,39 @@ class TestEditDryRun:
         assert response.result.skipped[0].reason == "no_change"
 
     @patch("rekordbox_edit.api.edit.get_filtered_content")
-    def test_dry_run_still_raises_multi_guard(
+    def test_dry_run_reports_a_bulk_edit_instead_of_refusing_it(
         self, mock_gfc, mock_db, make_djmd_content_item
     ):
-        # multi guard MUST still raise even in dry-run; it's a usage error,
-        # not a side effect. Verify behaviour matches real-run.
+        # The guard is about applying an unattended bulk edit. A dry run writes
+        # nothing, and refusing to preview would contradict the guard's own
+        # advice to inspect with a dry run first.
         contents = [
             make_djmd_content_item(ID="1", Title="Old"),
             make_djmd_content_item(ID="2", Title="Old"),
         ]
         mock_gfc.return_value.scalars.return_value.all.return_value = contents
 
-        with pytest.raises(ValueError, match="multi"):
-            edit(
-                mock_db,
-                EditRequest(field="Title", replace_value="New", multi=False),
-                dry_run=True,
-            )
+        response = edit(
+            mock_db,
+            EditRequest(field="Title", replace_value="New", multi=False),
+            dry_run=True,
+        )
+
+        assert len(response.result.edits) == 2
+        mock_db.session.commit.assert_not_called()
+
+    @patch("rekordbox_edit.api.edit.get_filtered_content")
+    def test_one_shot_bulk_edit_still_needs_multi(
+        self, mock_gfc, mock_db, make_djmd_content_item
+    ):
+        contents = [
+            make_djmd_content_item(ID="1", Title="Old"),
+            make_djmd_content_item(ID="2", Title="Old"),
+        ]
+        mock_gfc.return_value.scalars.return_value.all.return_value = contents
+
+        with pytest.raises(InputError, match="multi"):
+            edit(mock_db, EditRequest(field="Title", replace_value="New"))
 
 
 class TestEditRealRun:
