@@ -4,8 +4,7 @@ import logging
 
 import click
 
-from rekordbox_edit._click import (
-    PrintChoice,
+from rekordbox_edit.cli._click import (
     add_click_options,
     global_click_confirmations,
     import_command_options,
@@ -27,7 +26,7 @@ from rekordbox_edit.cli._utils import (
     with_database,
 )
 from rekordbox_edit.display import print_track_info
-from rekordbox_edit.logger import get_debug_file_path, set_level
+from rekordbox_edit.logger import PrintChoice, get_debug_file_path, set_level
 from rekordbox_edit.models import ImportOp, ImportRequest
 
 logger = logging.getLogger(__name__)

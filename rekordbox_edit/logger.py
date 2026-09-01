@@ -3,6 +3,7 @@
 
 import atexit
 import logging
+from enum import Enum
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
@@ -10,7 +11,6 @@ from typing import Optional
 from platformdirs import PlatformDirs
 from rich.console import Console
 
-from rekordbox_edit._click import PrintChoice
 from rekordbox_edit.display import RBE_THEME, RbeHighlighter
 
 LOG_FILE_NAME = f"debug_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.log"
@@ -18,6 +18,17 @@ LOG_FILE_NAME = f"debug_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.log"
 _APP_DIR = Path(
     PlatformDirs(appname="rekordbox-edit", ensure_exists=True).user_data_dir
 )
+
+
+class PrintChoice(Enum):
+    """How much console output a command should produce."""
+
+    SILENT = 0
+    IDS = 1
+    INFO = 2
+    DEBUG = 3
+    JSON = 4
+
 
 _console_handler: Optional["ConsoleLogHandler"] = None
 _debug_file_path: Path = _APP_DIR / LOG_FILE_NAME

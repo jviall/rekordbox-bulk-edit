@@ -11,7 +11,7 @@ import click
 from pydantic import BaseModel, ValidationError
 from pyrekordbox import Rekordbox6Database
 
-from rekordbox_edit._click import PrintChoice, database_path_option
+from rekordbox_edit.cli._click import database_path_option
 from rekordbox_edit.errors import (
     DatabaseBusyError,
     DependencyMissingError,
@@ -19,6 +19,7 @@ from rekordbox_edit.errors import (
     RekordboxRunningError,
 )
 from rekordbox_edit.locking import SCRIPTED_TIMEOUT, database_lock
+from rekordbox_edit.logger import PrintChoice
 
 logger = logging.getLogger(__name__)
 
