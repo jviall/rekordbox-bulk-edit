@@ -311,6 +311,17 @@ class TestFolderPathField:
         assert isinstance(handler, FolderPathField)
         assert handler.supports_match is True
 
+    def test_validate_request_drops_probes_from_an_earlier_run(self):
+        # FIELD_HANDLERS holds one instance for the life of the process.
+        handler = _folder_handler()
+        handler._probes[("1", "/new/song.wav")] = _probe()
+
+        handler.validate_request(
+            EditRequest(field="FolderPath", replace_value="/new/song.wav")
+        )
+
+        assert handler._probes == {}
+
     def test_current_value_reads_folder_path(self, make_djmd_content_item):
         content = make_djmd_content_item(ID="1", FolderPath="/old/song.wav")
         assert _folder_handler().current_value(content) == "/old/song.wav"
