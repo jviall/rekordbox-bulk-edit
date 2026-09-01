@@ -42,7 +42,7 @@ A file already in the library, matched by its resolved, case-insensitive path, i
 ## Guardrails
 
 - **Preview and confirm by default.** Without flags, `import` shows every track it plans to add and asks once before writing; `--dry-run` previews without writing; `--yes` confirms the default choice for all prompts without asking.
-- **Rekordbox running:** importing while Rekordbox is open risks corrupting your database. By default `import` warns; in a non-interactive mode (e.g. `--print ids`) it throws an error.
+- **Rekordbox running:** writing while Rekordbox is open risks losing your changes, so `import` refuses to run until you close it. `--dry-run` still works.
 
 ## Reference
 

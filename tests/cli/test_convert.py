@@ -128,16 +128,44 @@ class TestConvertCommand:
 
         mock_logger.info.assert_any_call("Deleted 2 original file(s)")
 
-    @patch("rekordbox_edit.cli._utils.confirm")
     @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
     @patch("rekordbox_edit.cli._utils.get_rekordbox_pid", return_value=12345)
-    def test_rekordbox_running_user_declines(self, _pid, mock_db_class, mock_confirm):
-        mock_confirm.return_value = False
-
+    def test_a_write_refuses_while_rekordbox_runs(self, _pid, mock_db_class):
         result = CliRunner().invoke(convert_command, ["--format-out", "aiff"])
 
-        assert result.exit_code == 0
+        assert result.exit_code == 1
         mock_db_class.assert_not_called()
+
+    @patch("rekordbox_edit.cli.convert.convert")
+    @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
+    @patch("rekordbox_edit.cli._utils.get_rekordbox_pid", return_value=12345)
+    def test_a_dry_run_runs_while_rekordbox_runs(
+        self, _pid, mock_db_class, mock_convert
+    ):
+        # A preview writes nothing, so there is nothing to refuse.
+        mock_db_class.return_value = Mock(session=Mock())
+        mock_convert.return_value = _response()
+
+        result = CliRunner().invoke(
+            convert_command, ["--format-out", "aiff", "--dry-run"]
+        )
+
+        assert result.exit_code == 0
+        mock_convert.assert_called_once()
+
+    @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
+    def test_a_scripting_dry_run_is_not_blocked_either(self, mock_db_class):
+        mock_db_class.return_value = Mock(session=Mock())
+        with (
+            patch("rekordbox_edit.cli._utils.get_rekordbox_pid", return_value=12345),
+            patch("rekordbox_edit.cli.convert.convert", return_value=_response()),
+        ):
+            result = CliRunner().invoke(
+                convert_command,
+                ["--format-out", "aiff", "--dry-run", "--print", "ids"],
+            )
+
+        assert result.exit_code == 0
 
     @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
     def test_aborts_in_scripting_mode_when_rekordbox_running(self, mock_db_class):
@@ -292,22 +320,13 @@ class TestConvertCommand:
         narrowed_args = mock_convert.call_args_list[1].args[1]
         assert narrowed_args.track_ids == ["A"]
 
-    @patch("rekordbox_edit.cli._utils.confirm", return_value=True)
     @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
     @patch("rekordbox_edit.cli._utils.get_rekordbox_pid", return_value=12345)
-    def test_rekordbox_running_user_accepts_continues(
-        self, _pid, mock_db_class, _confirm
-    ):
-        with patch("rekordbox_edit.cli.convert.convert") as mock_convert:
-            mock_db_class.return_value = Mock(session=Mock())
-            mock_convert.return_value = _response()
+    def test_yes_does_not_override_the_refusal(self, _pid, mock_db_class):
+        result = CliRunner().invoke(convert_command, ["--format-out", "aiff", "--yes"])
 
-            result = CliRunner().invoke(
-                convert_command, ["--format-out", "aiff", "--yes"]
-            )
-
-        assert result.exit_code == 0
-        mock_db_class.assert_called_once()
+        assert result.exit_code == 1
+        mock_db_class.assert_not_called()
 
 
 class TestPartialBatchReporting:
