@@ -22,6 +22,7 @@ from rekordbox_edit.api.convert import (
     _hi_res_output_kwargs,
     _mp3_output_kwargs,
     _probe_converted_file,
+    _recheck_convert,
     _rollback_session,
     _run_ffmpeg,
     _sweep_orphan_temp_files,
@@ -385,6 +386,130 @@ class TestSweepOrphanTempFiles:
 
     def test_an_unreadable_directory_does_not_raise(self, tmp_path):
         _sweep_orphan_temp_files([str(tmp_path / "absent" / "song.aiff")])
+
+
+def _op(id="A", source="/A.wav", output="/A.aif"):
+    return ConvertOp(
+        id=id,
+        source_path=source,
+        output_path=output,
+        source_file_type="WAV",
+        output_file_type="AIFF",
+    )
+
+
+class TestRecheckConvert:
+    """Every op here passed classification during the preview, so a path that
+    reads differently now changed while the user was deciding."""
+
+    @patch("rekordbox_edit.api.convert.os.path.exists")
+    def test_unchanged_paths_keep_the_op(self, mock_exists):
+        op = _op()
+        mock_exists.side_effect = lambda path: path == op.source_path
+
+        assert _recheck_convert(op, ConvertRequest(format_out="aiff")) is op
+
+    @patch("rekordbox_edit.api.convert.os.path.exists", return_value=False)
+    def test_a_vanished_source_is_db_or_fs_changed(self, _exists):
+        result = _recheck_convert(_op(), ConvertRequest(format_out="aiff"))
+
+        assert result == SkippedTrack(id="A", reason="db_or_fs_changed")
+
+    @patch("rekordbox_edit.api.convert.os.path.exists")
+    def test_an_output_that_appeared_is_db_or_fs_changed(self, mock_exists):
+        mock_exists.side_effect = lambda path: True  # source and output both there
+
+        result = _recheck_convert(_op(), ConvertRequest(format_out="aiff"))
+
+        assert result == SkippedTrack(id="A", reason="db_or_fs_changed")
+
+    @patch("rekordbox_edit.api.convert.os.path.exists", return_value=True)
+    def test_overwrite_tolerates_an_output_that_appeared(self, _exists):
+        op = _op()
+        assert (
+            _recheck_convert(op, ConvertRequest(format_out="aiff", overwrite=True))
+            is op
+        )
+
+
+class TestConvertFromApprovedOps:
+    @patch("rekordbox_edit.api.convert.find_content_by_ids")
+    @patch("rekordbox_edit.api.convert.get_filtered_content")
+    @patch("rekordbox_edit.api.convert.os.path.exists", return_value=False)
+    @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=True)
+    def test_a_vanished_source_never_reaches_ffmpeg(
+        self, _ffmpeg, _exists, mock_gfc, mock_by_ids, mock_db, make_djmd_content_item
+    ):
+        mock_by_ids.return_value = {"A": make_djmd_content_item(ID="A")}
+
+        response = convert(mock_db, ConvertRequest(format_out="aiff"), ops=[_op()])
+
+        mock_gfc.assert_not_called()
+        assert response.result.converted == []
+        assert response.result.skipped == [
+            SkippedTrack(id="A", reason="db_or_fs_changed")
+        ]
+        mock_db.session.commit.assert_not_called()
+
+    @pytest.fixture(autouse=True)
+    def _stub_temp_file_moves(self):
+        with (
+            patch("rekordbox_edit.api.convert.os.replace"),
+            patch("rekordbox_edit.api.convert.os.listdir", return_value=[]),
+            patch("rekordbox_edit.api.convert._probe_converted_file"),
+        ):
+            yield
+
+    @patch("rekordbox_edit.api.convert.get_audio_info", return_value=_PROBE_WAV_16_44)
+    @patch("rekordbox_edit.api.convert._apply_converted_record")
+    @patch("rekordbox_edit.api.convert._run_ffmpeg", return_value=True)
+    @patch("rekordbox_edit.api.convert.find_content_by_ids")
+    @patch("rekordbox_edit.api.convert.get_filtered_content")
+    @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=True)
+    def test_an_op_that_still_holds_is_converted_and_committed(
+        self,
+        _ffmpeg,
+        mock_gfc,
+        mock_by_ids,
+        mock_run,
+        mock_apply,
+        _probe,
+        mock_db,
+        make_djmd_content_item,
+    ):
+        content = make_djmd_content_item(ID="A", FileType=11, FolderPath="/A.wav")
+        mock_by_ids.return_value = {"A": content}
+        _seed_db(mock_db, content)
+        op = _op(source="/A.wav", output="/A.aif")
+
+        with patch(
+            "rekordbox_edit.api.convert.os.path.exists",
+            side_effect=lambda path: path != op.output_path,
+        ):
+            response = convert(
+                mock_db,
+                ConvertRequest(format_out="aiff", delete_originals="none"),
+                ops=[op],
+            )
+
+        mock_gfc.assert_not_called()
+        assert [o.id for o in response.result.converted] == ["A"]
+        assert [t.ID for t in response.tracks] == ["A"]
+        assert response.result.skipped == []
+        mock_run.assert_called_once()
+        mock_apply.assert_called_once()
+        mock_db.session.commit.assert_called_once()
+
+    @patch("rekordbox_edit.api.convert.find_content_by_ids", return_value={})
+    @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=True)
+    def test_a_row_deleted_since_the_preview_is_db_or_fs_changed(
+        self, _ffmpeg, _by_ids, mock_db
+    ):
+        response = convert(mock_db, ConvertRequest(format_out="aiff"), ops=[_op()])
+
+        assert response.result.skipped == [
+            SkippedTrack(id="A", reason="db_or_fs_changed")
+        ]
 
 
 class TestConvertRealRun:

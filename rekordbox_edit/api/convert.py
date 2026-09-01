@@ -27,7 +27,7 @@ from rekordbox_edit.models import (
     ConvertResult,
     SkippedTrack,
 )
-from rekordbox_edit.query import get_filtered_content
+from rekordbox_edit.query import find_content_by_ids, get_filtered_content
 from rekordbox_edit.utils import (
     FILE_TYPES,
     AudioInfo,
@@ -462,6 +462,27 @@ def _classify_convert(content, args: ConvertRequest) -> ConvertOp | SkippedTrack
     )
 
 
+def _recheck_convert(op: ConvertOp, args: ConvertRequest) -> ConvertOp | SkippedTrack:
+    """Confirm an already-approved conversion still holds.
+
+    The op cleared classification during the preview, so a path that reads
+    differently now changed while the user was deciding.
+    """
+    if not os.path.exists(op.source_path):
+        logger.debug(
+            f"skip convert id={op.id} reason=db_or_fs_changed "
+            f"source_gone={op.source_path}"
+        )
+        return SkippedTrack(id=op.id, reason="db_or_fs_changed")
+    if not args.overwrite and os.path.exists(op.output_path):
+        logger.debug(
+            f"skip convert id={op.id} reason=db_or_fs_changed "
+            f"output_appeared={op.output_path}"
+        )
+        return SkippedTrack(id=op.id, reason="db_or_fs_changed")
+    return op
+
+
 def _deletes_original(mode: str, is_lossless: bool) -> bool:
     """Whether this conversion's original should be deleted under `mode`."""
     if mode == "all":
@@ -478,6 +499,7 @@ def convert(
     *,
     dry_run: bool = False,
     progress: ConvertProgress | None = None,
+    ops: list[ConvertOp] | None = None,
 ) -> ConvertResponse:
     """Convert audio files to a target format and update the Rekordbox database.
 
@@ -488,6 +510,11 @@ def convert(
     ConvertAborted with the files already converted left committed. Only the
     failing file rolls back, and its post-commit work (the ANLZ path update and
     the original deletion) only warns.
+
+    Pass `ops` to convert an already-approved plan. No filter runs, so a track
+    that started matching since the plan was made cannot join the batch; each
+    op's paths are re-checked and reported as `db_or_fs_changed` if they no
+    longer hold.
     """
     from rekordbox_edit.utils import ffmpeg_in_path, get_ffmpeg_directions
 
@@ -499,18 +526,39 @@ def convert(
             f"FFmpeg is required but not found in PATH.{get_ffmpeg_directions()}"
         )
 
-    contents = get_filtered_content(db, args).scalars().all()
-    logger.debug(f"convert fetched {len(contents)} candidate(s) from filter")
-
-    ops: list[ConvertOp] = []
+    planned: list[ConvertOp] = []
     skipped: list[SkippedTrack] = []
-    for c in contents:
-        result = _classify_convert(c, args)
-        if isinstance(result, ConvertOp):
-            ops.append(result)
-        else:
-            skipped.append(result)
-    logger.debug(f"convert classified ops={len(ops)} skipped={len(skipped)}")
+
+    if ops is None:
+        contents = get_filtered_content(db, args).scalars().all()
+        logger.debug(f"convert fetched {len(contents)} candidate(s) from filter")
+        for c in contents:
+            result = _classify_convert(c, args)
+            if isinstance(result, ConvertOp):
+                planned.append(result)
+            else:
+                skipped.append(result)
+        logger.debug(f"convert classified ops={len(planned)} skipped={len(skipped)}")
+    else:
+        rows = find_content_by_ids(db, [op.id for op in ops])
+        contents = []
+        for op in ops:
+            content = rows.get(op.id)
+            if content is None:
+                logger.debug(
+                    f"skip convert id={op.id} reason=db_or_fs_changed row_gone"
+                )
+                skipped.append(SkippedTrack(id=op.id, reason="db_or_fs_changed"))
+                continue
+            result = _recheck_convert(op, args)
+            if isinstance(result, ConvertOp):
+                planned.append(result)
+                contents.append(content)
+            else:
+                skipped.append(result)
+        logger.debug(f"convert re-checked ops={len(planned)} skipped={len(skipped)}")
+
+    ops = planned
 
     if dry_run:
         logger.debug(f"convert dry-run return with {len(ops)} planned conversion(s)")

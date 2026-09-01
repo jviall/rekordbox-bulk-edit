@@ -317,8 +317,55 @@ class TestConvertCommand:
 
         assert result.exit_code == 0
         assert mock_convert.call_count == 2
-        narrowed_args = mock_convert.call_args_list[1].args[1]
-        assert narrowed_args.track_ids == ["A"]
+        applied = mock_convert.call_args_list[1].kwargs["ops"]
+        assert [op.id for op in applied] == ["A"]
+
+    @patch("rekordbox_edit.cli.convert.print_track_info")
+    @patch("rekordbox_edit.cli.convert.confirm")
+    @patch("rekordbox_edit.cli.convert.convert")
+    @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
+    @patch("rekordbox_edit.cli._utils.get_rekordbox_pid", return_value=None)
+    def test_quitting_mid_prompt_converts_only_what_was_confirmed(
+        self, _pid, mock_db_class, mock_convert, mock_confirm, _print
+    ):
+        mock_db_class.return_value = Mock(session=Mock())
+        tracks = [
+            Track(ID="A", FileNameL="a.aiff", FolderPath="/a.aiff"),
+            Track(ID="B", FileNameL="b.aiff", FolderPath="/b.aiff"),
+        ]
+        ops = [
+            ConvertOp(id="A", source_path="/a.wav", output_path="/a.aiff"),
+            ConvertOp(id="B", source_path="/b.wav", output_path="/b.aiff"),
+        ]
+        mock_convert.return_value = _response(tracks=tracks, converted=ops)
+        # Confirm A, then quit before answering for B.
+        mock_confirm.side_effect = [True, UserQuit]
+
+        result = CliRunner().invoke(
+            convert_command, ["--format-out", "aiff", "--interactive"]
+        )
+
+        assert result.exit_code == 0
+        applied = mock_convert.call_args_list[1].kwargs["ops"]
+        assert [op.id for op in applied] == ["A"]
+
+    @patch("rekordbox_edit.cli.convert.print_track_info")
+    @patch("rekordbox_edit.cli.convert.confirm", side_effect=UserQuit)
+    @patch("rekordbox_edit.cli.convert.convert")
+    @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
+    @patch("rekordbox_edit.cli._utils.get_rekordbox_pid", return_value=None)
+    def test_quitting_before_confirming_anything_converts_nothing(
+        self, _pid, mock_db_class, mock_convert, _confirm, _print
+    ):
+        mock_db_class.return_value = Mock(session=Mock())
+        mock_convert.return_value = _response()
+
+        result = CliRunner().invoke(
+            convert_command, ["--format-out", "aiff", "--interactive"]
+        )
+
+        assert result.exit_code == 0
+        mock_convert.assert_called_once()  # preview only
 
     @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
     @patch("rekordbox_edit.cli._utils.get_rekordbox_pid", return_value=12345)
@@ -374,6 +421,30 @@ class TestMissingSourceReporting:
         assert result.exit_code == 0
         warnings = " ".join(str(c) for c in mock_logger.warning.call_args_list)
         assert "source file is gone" in warnings
+
+
+class TestDriftReporting:
+    @patch("rekordbox_edit.cli.convert.print_track_info")
+    @patch("rekordbox_edit.cli.convert.confirm", return_value=True)
+    @patch("rekordbox_edit.cli.convert.convert")
+    @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
+    @patch("rekordbox_edit.cli._utils.get_rekordbox_pid", return_value=None)
+    def test_a_file_that_changed_during_the_prompt_is_reported(
+        self, _pid, mock_db_class, mock_convert, _confirm, _print, mock_logger
+    ):
+        # Only the live pass can see this, so it has to survive the filter
+        # that drops skips the preview already reported.
+        mock_db_class.return_value = Mock(session=Mock())
+        mock_convert.side_effect = [
+            _response(),
+            _response(skipped=[SkippedTrack(id="9", reason="db_or_fs_changed")]),
+        ]
+
+        result = CliRunner().invoke(convert_command, ["--format-out", "aiff"])
+
+        assert result.exit_code == 0
+        warnings = " ".join(str(c) for c in mock_logger.warning.call_args_list)
+        assert "changed since the preview" in warnings
 
 
 class TestThreadsFlag:
