@@ -653,7 +653,6 @@ def convert(
                 except Exception as e:
                     logger.warning(f"Failed to delete {job.source_path}: {e}")
 
-    logger.info(f"\nConverted {len(converted_ops)} files to {output_format_name}")
     logger.debug(f"convert committed {len(converted_ops)} conversion(s)")
 
     kept = len(converted_ops) - deletable

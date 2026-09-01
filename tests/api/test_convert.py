@@ -1,3 +1,4 @@
+import logging
 import os
 import threading
 import time
@@ -1640,6 +1641,61 @@ class TestConvertParallelEncoding:
         assert mock_run.call_count <= 3
         # Whatever ran ahead and succeeded had its temp file cleaned up.
         assert mock_remove.called
+
+
+class TestConvertLogging:
+    @pytest.fixture(autouse=True)
+    def _stub_temp_file_moves(self):
+        with (
+            patch("rekordbox_edit.api.convert.os.replace"),
+            patch("rekordbox_edit.api.convert.os.listdir", return_value=[]),
+            patch("rekordbox_edit.api.convert._probe_converted_file"),
+        ):
+            yield
+
+    @patch("rekordbox_edit.api.convert.get_audio_info", return_value=_PROBE_WAV_16_44)
+    @patch("rekordbox_edit.api.convert._apply_converted_record")
+    @patch("rekordbox_edit.api.convert._run_ffmpeg", return_value=True)
+    @patch("rekordbox_edit.api.convert.os.path.exists", return_value=True)
+    @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=True)
+    @patch("rekordbox_edit.api.convert._get_output_path")
+    @patch("rekordbox_edit.api.convert.get_file_type_for_format")
+    @patch("rekordbox_edit.api.convert.get_filtered_content")
+    def test_the_api_leaves_the_batch_summary_to_the_caller(
+        self,
+        mock_gfc,
+        mock_get_type,
+        mock_get_output,
+        _ffmpeg,
+        _exists,
+        _run,
+        _apply,
+        _probe,
+        mock_db,
+        make_djmd_content_item,
+        caplog,
+    ):
+        # The CLI prints "Converted N files to X". The API printing it too put
+        # the line on screen twice.
+        mock_get_type.side_effect = lambda fmt: {"AIFF": 1, "MP3": 5, "M4A": 6}.get(
+            fmt.upper(), 99
+        )
+        mock_get_output.side_effect = lambda content, fmt: (
+            f"/{content.ID}.aif",
+            f"{content.ID}.aif",
+            "/",
+        )
+        contents = [
+            make_djmd_content_item(ID=str(i), FileType=11, FolderPath=f"/in{i}.wav")
+            for i in (1, 2)
+        ]
+        _seed_filter(mock_gfc, *contents)
+        _seed_db(mock_db, *contents)
+
+        with caplog.at_level(logging.INFO, logger="rekordbox_edit.api.convert"):
+            convert(mock_db, ConvertRequest(format_out="aiff", overwrite=True))
+
+        assert "Converted 2 files" not in caplog.text
 
 
 class TestConvertInterrupt:
