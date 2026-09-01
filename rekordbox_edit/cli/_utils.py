@@ -16,7 +16,6 @@ from sqlalchemy.engine import Engine
 
 from rekordbox_edit._click import PrintChoice, database_path_option
 from rekordbox_edit.locking import SCRIPTED_TIMEOUT, DatabaseBusyError, database_lock
-from rekordbox_edit.utils import UserQuit, confirm
 
 logger = logging.getLogger(__name__)
 
@@ -108,23 +107,17 @@ def _print_response_json(response: BaseModel) -> None:
     print(response.model_dump_json())
 
 
-def _rekordbox_running_confirm(print_opt) -> bool:
+def _refuse_while_rekordbox_runs() -> None:
+    """Exit if Rekordbox is open. Writing underneath it risks losing changes:
+    it holds rows in memory and can write its own copy back over ours."""
     rekordbox_pid = get_rekordbox_pid()
     if not rekordbox_pid:
-        return True
-    if print_opt in SCRIPTING_MODES:
-        logger.error(
-            f"Rekordbox is running (PID {rekordbox_pid}). Cannot proceed in scripting mode."
-        )
-        sys.exit(1)
-    logger.warning(
-        f"Rekordbox is running (PID {rekordbox_pid}). Modifying the database while "
-        "Rekordbox is open can cause conflicts."
+        return
+    logger.error(
+        f"Rekordbox is running (PID {rekordbox_pid}). Close it before writing "
+        "to the database."
     )
-    try:
-        return confirm("Continue anyway?", default=False)
-    except UserQuit:
-        return False
+    sys.exit(1)
 
 
 @event.listens_for(Engine, "connect")
@@ -164,15 +157,16 @@ def with_database(*, writes: bool = False):
 
     Pass writes=True for commands that modify the DB: the wrapper aborts when
     Rekordbox is running (or prompts to continue in interactive modes), and
-    holds the single-writer advisory lock for the whole run.
+    holds the single-writer advisory lock for the whole run. A dry run gets
+    neither, since it writes nothing.
     """
 
     def decorator(func):
         @database_path_option
         @functools.wraps(func)
         def wrapper(**kwargs):
-            if writes and not _rekordbox_running_confirm(kwargs.get("print_opt")):
-                return
+            if writes and not kwargs.get("dry_run"):
+                _refuse_while_rekordbox_runs()
             database_path: str | None = kwargs.pop("database_path", None)
             db = Rekordbox6Database(path=database_path)  # ty: ignore[invalid-argument-type]
             try:

@@ -67,7 +67,7 @@ rbe convert --format-out mp3 --playlist "NeedsConverting" --threads 8 --yes
 ### Guardrails
 
 - Without flags, `convert` shows every planned change and asks once before applying. `--interactive` confirms each track individually; `--dry-run` previews without writing; `--yes` confirms the default choice for all prompts without asking.
-- Editing while Rekordbox is open risks corrupting your database. By default `convert` warns and asks for confirmation (defaulting to no, so a `--yes` would exit); in a non-interactive mode (e.g. `--print ids`) it throws an error.
+- **Rekordbox running:** writing while Rekordbox is open risks losing your changes, so `convert` refuses to run until you close it. `--dry-run` still works.
 - Before a large run, walk through the checklist in [What Should I Do Before Converting?](../faqs.md#what-should-i-do-before-converting)
 
 ## Reference

@@ -46,7 +46,7 @@ rbe edit --exact-title "Acid Rain" FolderPath --replace "/Users/me/Music/acid-ra
 
 - **Preview and confirm by default.** Without flags, `edit` shows every planned change and asks once before applying. `--interactive` confirms each track individually; `--dry-run` previews without writing; `--yes` confirms the default choice for all prompts without asking.
 - **Single-track by default.** When filters match more than one track, `edit` refuses unless you pass `--multi`. This prevents an unintentionally broad filter from making unintended edits across your library.
-- **Rekordbox running:** editing while Rekordbox is open risks corrupting your database. By default `edit` warns; in a non-interactive mode (e.g. `--print ids`) it throws an error.
+- **Rekordbox running:** writing while Rekordbox is open risks losing your changes, so `edit` refuses to run until you close it. `--dry-run` still works.
 
 ## Examples
 
