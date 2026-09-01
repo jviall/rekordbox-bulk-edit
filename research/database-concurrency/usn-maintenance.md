@@ -127,12 +127,16 @@ The design that follows:
    shape, it walks `RekordboxAgentRegistry.__update_sequence__`, a class
    attribute shared by every instance in the process, which rekordbox-edit
    never clears.
-3. Reserve one USN per row stamped. Rekordbox appears to advance its counter
-   more than once per track, roughly 1.9 times in the sampled library, so this
-   does not reproduce its counting exactly. That is safe: a high-water-mark
-   consumer asks for rows above a value, so over-counting costs nothing while
-   duplicate or reused stamps would break it. Uniqueness and monotonicity are
-   the properties worth guaranteeing.
+3. Reserve one USN per row stamped. This will not reproduce rekordbox's
+   numbering: in the sampled library 906 imported tracks hold 906 distinct
+   stamps spread across the range 969 to 2694, so roughly 820 values in that
+   span went to something else. What consumed them was never established, and
+   the library's 259 artists and 303 albums are enough to account for much of
+   it at one apiece. Matching rekordbox exactly would mean knowing everything
+   it counts, and it does not matter: a high-water-mark consumer asks for rows
+   above a value, so extra values cost nothing while a duplicate or reused
+   stamp would hide a row. Uniqueness and monotonicity are the properties
+   worth guaranteeing.
 4. Keep write transactions short. The reservation holds the WAL write lock from
    the `UPDATE` until commit, and per-file commits in `convert` already bound
    that to one file.
