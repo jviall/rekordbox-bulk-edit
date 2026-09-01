@@ -1,10 +1,13 @@
 import logging
 from collections.abc import Sequence
+from typing import Any
 
 from pyrekordbox import Rekordbox6Database
 from pyrekordbox.db6 import DjmdContent
+from sqlalchemy import text
 
 from rekordbox_edit.models import ConvertOp, EditOp, Track
+from rekordbox_edit.query import require_session
 from rekordbox_edit.utils import AudioInfo, get_file_type_for_format
 
 logger = logging.getLogger(__name__)
@@ -77,3 +80,44 @@ def _update_anlz_paths(
         anlz.set_path(new_ppth)
         anlz.save(anlz_path)
         logger.debug(f"Updated PPTH of {anlz_path} to {new_ppth}")
+
+
+#: Reserves a block in one statement, so the counter is never read into Python
+#: and cannot go stale. Reading it and writing it back loses increments whenever
+#: rekordbox is writing too, which the advisory lock does not prevent.
+_RESERVE_USNS = text(
+    "UPDATE agentRegistry SET int_1 = int_1 + :count "
+    "WHERE registry_id = 'localUpdateCount' RETURNING int_1"
+)
+
+
+def stamp_usns(db: Rekordbox6Database, rows: Sequence[Any]) -> int | None:
+    """Give each row a fresh USN and advance the library's counter.
+
+    A USN is rekordbox's change stamp: a syncing peer asks for rows above the
+    last value it saw, so a row written without one looks untouched.
+
+    Call this inside the transaction that writes the rows; a counter advanced
+    past unstamped rows would hide them from sync permanently.
+
+    One USN per row. Rekordbox counts more often, which is harmless: peers ask
+    for rows *above* a value, so only a reused stamp would hide one.
+    """
+    stampable = [row for row in rows if hasattr(row, "rb_local_usn")]
+    if not stampable:
+        return None
+
+    session = require_session(db)
+    high = session.execute(_RESERVE_USNS, {"count": len(stampable)}).scalar()
+    if high is None:
+        logger.warning(
+            "No localUpdateCount in agentRegistry; leaving USNs unstamped. "
+            "Cloud and device sync may not see these changes."
+        )
+        return None
+
+    for usn, row in enumerate(stampable, start=high - len(stampable) + 1):
+        row.rb_local_usn = usn
+
+    logger.debug(f"reserved USNs {high - len(stampable) + 1}..{high}")
+    return high
