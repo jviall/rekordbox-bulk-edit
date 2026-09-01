@@ -99,7 +99,8 @@ class TestEditRequest:
         assert args.field == "Title"
         assert args.replace_value == "New"
         assert args.artist == ["X"]
-        assert args.force is False
+        assert args.allow_missing is False
+        assert args.allow_mismatch is False
 
 
 class TestConvertRequest:

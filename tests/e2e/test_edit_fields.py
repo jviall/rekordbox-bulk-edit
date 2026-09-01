@@ -171,7 +171,7 @@ def test_folderpath_repoint_syncs_metadata(fresh_db, staged_audio):
             exact_title=["Wave Alpha"],
             field="FolderPath",
             replace_value=target.as_posix(),
-            force=True,
+            allow_mismatch=True,
         ),
     )
 

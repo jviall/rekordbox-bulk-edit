@@ -86,26 +86,10 @@ def edit_command(db, **kwargs):
     # Default / interactive: preview first.
     preview = edit(db, args, dry_run=True)
 
-    forceable = FIELD_HANDLERS[args.field].forceable_skip_reasons
-    gated = [s for s in preview.result.skipped if s.reason in forceable]
-    # Reasons the prompt below spells out per track, so the summary does not
-    # repeat them.
-    reported_individually: frozenset[str] = frozenset()
-    if gated and not args.force:
-        reported_individually = forceable
-        logger.info(f"{len(gated)} track(s) were held back by safety checks:")
-        for s in gated:
-            logger.info(f"  {s.id}: {s.reason}")
-        try:
-            if confirm(
-                f"Include {len(gated)} held-back track(s) anyway (--force)?",
-                default=False,
-            ):
-                args = args.model_copy(update={"force": True})
-                preview = edit(db, args, dry_run=True)
-                reported_individually = frozenset()
-        except UserQuit:
-            return
+    try:
+        args, preview, reported_individually = _prompt_gates(db, args, preview)
+    except UserQuit:
+        return
 
     _report_skips(preview.result.skipped, exclude=reported_individually)
 
@@ -147,14 +131,47 @@ def edit_command(db, **kwargs):
     _print_edit_result(response, print_opt, dry_run=False)
 
 
+def _prompt_gates(db, args, preview):
+    """Offer to lift each safety gate holding tracks back, one prompt per gate.
+
+    Gates ask about a condition the user did not ask for, so each defaults to
+    no and each is asked separately: authorizing a path with no file behind it
+    is a different decision from authorizing cues that may land misaligned.
+    A gate whose flag is already set is not re-asked.
+
+    Returns the request and preview to carry forward, and the reasons these
+    prompts already spelled out track by track so the summary skips them.
+    """
+    lifted: dict[str, bool] = {}
+    named: set[str] = set()
+    for reason, field in FIELD_HANDLERS[args.field].gated_skip_reasons.items():
+        if getattr(args, field):
+            continue
+        held = [s for s in preview.result.skipped if s.reason == reason]
+        if not held:
+            continue
+        named.add(reason)
+        logger.info(f"{len(held)} track(s) held back: {_SKIP_MESSAGES[reason]}")
+        for s in held:
+            logger.info(f"  {s.id}")
+        if confirm(f"Include {len(held)} held-back track(s) anyway?", default=False):
+            lifted[field] = True
+            named.discard(reason)
+
+    if lifted:
+        args = args.model_copy(update=lifted)
+        preview = edit(db, args, dry_run=True)
+    return args, preview, frozenset(named)
+
+
 #: How each skip reason reads as a one-line summary. Phrased as a reason rather
 #: than a reason code, since these are the only account a user gets of tracks
 #: their filters matched but the command did not touch.
 _SKIP_MESSAGES: dict[str, str] = {
     "no_change": "existing value already matches the requested value",
-    "file_not_found": "file does not exist",
+    "file_not_found": "file does not exist (override with --allow-missing)",
     "length_mismatch": (
-        "file's duration contradicts the stored length (override with --force)"
+        "file's duration contradicts the stored length (override with --allow-mismatch)"
     ),
     "unknown_file_type": "file is in format Rekordbox doesn't support",
     "db_or_fs_changed": "changed since the preview",
