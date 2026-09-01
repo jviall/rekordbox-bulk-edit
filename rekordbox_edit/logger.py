@@ -11,6 +11,7 @@ from platformdirs import PlatformDirs
 from rich.console import Console
 
 from rekordbox_edit._click import PrintChoice
+from rekordbox_edit.display import RBE_THEME, RbeHighlighter
 
 LOG_FILE_NAME = f"debug_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.log"
 
@@ -29,12 +30,12 @@ _debug_file_path: Path = _APP_DIR / LOG_FILE_NAME
 #:
 #: `soft_wrap` keeps long paths on one line, as the previous click.echo did.
 #: Rich would otherwise wrap them at the terminal width.
-console = Console(soft_wrap=True)
+console = Console(soft_wrap=True, theme=RBE_THEME, highlighter=RbeHighlighter())
 
 _LEVEL_STYLES = {
-    logging.CRITICAL: "bold red",
-    logging.ERROR: "red",
-    logging.WARNING: "yellow",
+    logging.CRITICAL: "logging.level.critical",
+    logging.ERROR: "logging.level.error",
+    logging.WARNING: "logging.level.warning",
 }
 
 
@@ -47,10 +48,19 @@ class ConsoleLogHandler(logging.Handler):
                 (s for lvl, s in _LEVEL_STYLES.items() if record.levelno >= lvl),
                 None,
             )
+            # A warning-or-worse line is colored as one block, so the
+            # per-token action/path/option accents (meant for INFO lines)
+            # don't compete with the severity color for attention.
+            #
             # markup=False because rich would read a bracketed run as a style
             # tag and drop it: a track named "Set [b].wav" would otherwise log
             # as "Set .wav".
-            console.print(self.format(record), style=style, markup=False)
+            console.print(
+                self.format(record),
+                style=style,
+                markup=False,
+                highlight=style is None,
+            )
         except Exception:
             self.handleError(record)
 

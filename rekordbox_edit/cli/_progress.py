@@ -37,7 +37,7 @@ class _OverallCountColumn(MofNCompleteColumn):
         if not task.fields.get(_OVERALL):
             return Text("")
         if task.total is None:
-            return Text(str(int(task.completed)), style="progress.download")
+            return Text(str(int(task.completed)), style="rbe.count")
         return super().render(task)
 
 

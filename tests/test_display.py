@@ -6,9 +6,65 @@ from rich.console import Console
 from rekordbox_edit import display
 from rekordbox_edit.display import (
     PrintableField,
+    RbeHighlighter,
     print_track_info,
 )
 from rekordbox_edit.utils import get_file_type_name
+
+
+def _spans(line: str) -> dict[str, list[str]]:
+    """Map each style name RbeHighlighter applied to the substrings it covers."""
+    text = RbeHighlighter()(line)
+    result: dict[str, list[str]] = {}
+    for span in text.spans:
+        result.setdefault(str(span.style), []).append(text.plain[span.start : span.end])
+    return result
+
+
+class TestRbeHighlighter:
+    """RbeHighlighter picks out actions, paths, options, and counters."""
+
+    def test_action_after_progress_counter(self):
+        spans = _spans("[1/49] converted 03 Good Drank.aiff")
+        assert spans["rbe.action"] == ["converted"]
+        assert spans["rbe.count"] == ["[1/49]"]
+
+    def test_action_at_line_start(self):
+        spans = _spans("Skipping 1 file(s): output exists (use --overwrite to convert)")
+        assert spans["rbe.action"] == ["Skipping"]
+        assert spans["rbe.option"] == ["--overwrite"]
+
+    def test_target_format_is_an_option(self):
+        spans = _spans("Converted 49 files to FLAC")
+        assert spans["rbe.action"] == ["Converted"]
+        assert spans["rbe.option"] == ["FLAC"]
+
+    def test_action_after_leading_newline(self):
+        """convert's batch summary opens with its own "\\n" (a blank line
+        before the summary); "^" alone only matches string-start, so the
+        action word right after that newline needs its own anchor."""
+        spans = _spans("\nConverted 49 files to FLAC")
+        assert spans["rbe.action"] == ["Converted"]
+
+    def test_format_whitelist_is_registry_driven(self):
+        """A format spelled as its lowercase extension (not just the display
+        name) is still recognized, since the whitelist is built from every
+        FileTypeInfo's name/token/extensions/aliases, not a hand-kept list."""
+        spans = _spans("--format-out aif")
+        assert spans["rbe.option"] == ["--format-out", "aif"]
+
+    def test_absolute_path(self):
+        spans = _spans("Failed to delete /Volumes/GIG MUSIC/track.aiff: reason")
+        assert "/Volumes/GIG" in spans["rbe.path"]
+
+    def test_action_word_inside_a_filename_is_not_highlighted(self):
+        """A track literally named 'Converted Soul.aiff' is not the verb."""
+        spans = _spans("[2/2] converted Converted Soul.aiff")
+        assert spans["rbe.action"] == ["converted"]
+
+    def test_bracketed_filename_is_not_mistaken_for_a_counter(self):
+        spans = _spans("Skipping Set [b].aiff: output exists")
+        assert "rbe.count" not in spans
 
 
 @pytest.fixture
@@ -18,7 +74,16 @@ def wide_console(monkeypatch):
     Rich's default non-TTY width is 80 cols, which truncates long values
     (e.g. FolderPath) with an ellipsis and makes substring assertions flaky.
     """
-    monkeypatch.setattr(display, "console", Console(record=True, width=400))
+    monkeypatch.setattr(
+        display,
+        "console",
+        Console(
+            record=True,
+            width=400,
+            theme=display.RBE_THEME,
+            highlighter=display.RbeHighlighter(),
+        ),
+    )
 
 
 class TestPrintTrackInfo:
