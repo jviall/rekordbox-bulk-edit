@@ -1,8 +1,11 @@
 import datetime
 import os
+import shutil
+from pathlib import Path
 import platform
 from unittest.mock import MagicMock, patch
 
+import mutagen
 import pytest
 
 from rekordbox_edit.api import import_ as import_module
@@ -18,7 +21,10 @@ from rekordbox_edit.api.import_ import (
     _resolve_relations,
     import_tracks,
 )
+from sqlalchemy import text
+
 from rekordbox_edit.models import ImportOp, ImportRequest, SkippedTrack
+from rekordbox_edit.query import require_session
 from rekordbox_edit.query import normalize_path
 from rekordbox_edit.tags import TrackTags, UnreadableFile
 
@@ -267,7 +273,9 @@ class TestBuildContent:
     @pytest.fixture(autouse=True)
     def _stub_relations(self, monkeypatch):
         monkeypatch.setattr(
-            import_module, "_resolve_relations", lambda db, tags: {"ArtistID": "art-1"}
+            import_module,
+            "_resolve_relations",
+            lambda db, tags, created=None: {"ArtistID": "art-1"},
         )
 
     @pytest.fixture()
@@ -871,3 +879,57 @@ class TestImport:
         mock_db.session.rollback.assert_called_once()
         mock_db.session.commit.assert_not_called()
         assert any("rolling back" in message for message in caplog.messages)
+
+
+class TestImportStampsUsns:
+    """Against the real library, since stamping is a database behavior."""
+
+    _COUNTER = text(
+        "SELECT int_1 FROM agentRegistry WHERE registry_id = 'localUpdateCount'"
+    )
+
+    _AUDIO = Path(__file__).parent.parent / "e2e/fixtures/audio"
+
+    @pytest.fixture
+    def audio_file(self, tmp_path):
+        source = self._AUDIO / "01-flac-44_1k-16b.flac"
+        if not source.is_file():
+            pytest.skip(f"audio fixture missing: {source}")
+        target = tmp_path / source.name
+        shutil.copy(source, target)
+        return target
+
+    def test_an_imported_row_is_stamped(self, db, audio_file):
+        session = require_session(db)
+        start = session.execute(self._COUNTER).scalar()
+
+        response = import_tracks(db, ImportRequest(paths=[str(audio_file)]))
+
+        assert len(response.result.added) == 1
+        content = db.get_content().filter_by(ID=response.result.added[0].id).one()
+        assert content.rb_local_usn is not None
+        assert content.rb_local_usn <= session.execute(self._COUNTER).scalar()
+        assert session.execute(self._COUNTER).scalar() > start
+
+    def test_rows_created_along_the_way_are_stamped_too(self, db, audio_file):
+        # The fixture already knows the stock tags, so give this file unseen
+        # ones and watch the import spend a USN on each new relation.
+        tags = mutagen.File(audio_file)
+        tags["artist"] = "An Unseen Artist"
+        tags["album"] = "An Unseen Album"
+        tags.save()
+
+        session = require_session(db)
+        start = session.execute(self._COUNTER).scalar()
+
+        import_tracks(db, ImportRequest(paths=[str(audio_file)]))
+
+        assert session.execute(self._COUNTER).scalar() > start + 1
+
+    def test_a_dry_run_leaves_the_counter_alone(self, db, audio_file):
+        session = require_session(db)
+        start = session.execute(self._COUNTER).scalar()
+
+        import_tracks(db, ImportRequest(paths=[str(audio_file)]), dry_run=True)
+
+        assert session.execute(self._COUNTER).scalar() == start

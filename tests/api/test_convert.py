@@ -29,6 +29,9 @@ from rekordbox_edit.api.convert import (
     _update_anlz_paths,
     convert,
 )
+from sqlalchemy import text
+
+from rekordbox_edit.query import require_session
 from rekordbox_edit.models import (
     ConvertOp,
     ConvertRequest,
@@ -951,8 +954,17 @@ class TestConvertRealRun:
         mock_get_output.return_value = ("/out.aif", "out.aif", "/")
         content = make_djmd_content_item(ID="1", FileType=11, FolderPath="/in.wav")
         _seed_filter(mock_gfc, content)
-        # Mock the post-commit select to raise
-        mock_db.session.execute.side_effect = RuntimeError("post-commit query failed")
+        # Only the post-commit select fails; the USN reservation shares this
+        # execute() and would otherwise abort the batch first.
+        reserved = []
+
+        def _execute(statement, *args, **kwargs):
+            if not reserved:
+                reserved.append(statement)
+                return Mock(scalar=Mock(return_value=1))
+            raise RuntimeError("post-commit query failed")
+
+        mock_db.session.execute.side_effect = _execute
 
         response = convert(
             mock_db,
@@ -2269,3 +2281,62 @@ class TestGetOutputPath:
 
         assert output_path == os.path.normpath("/music/folder/song.mp3")
         assert output_filename == "song.mp3"
+
+
+class TestConvertStampsUsns:
+    """Against the real library, since stamping is a database behavior."""
+
+    _COUNTER = text(
+        "SELECT int_1 FROM agentRegistry WHERE registry_id = 'localUpdateCount'"
+    )
+
+    @patch(
+        "rekordbox_edit.api.convert._probe_converted_file",
+        # A real probe, not a Mock: these values are written to actual columns.
+        return_value=ConvertedFileProbe(
+            audio_info=AudioInfo(
+                bit_depth=16,
+                sample_rate=44100,
+                channels=2,
+                bitrate=1411,
+                codec="pcm_s16be",
+                container="aiff",
+                duration=180.0,
+            ),
+            file_size=123456,
+        ),
+    )
+    @patch("rekordbox_edit.api.convert.os.replace")
+    @patch("rekordbox_edit.api.convert._run_ffmpeg", return_value=True)
+    @patch("rekordbox_edit.api.convert.os.path.exists", return_value=True)
+    @patch("rekordbox_edit.api.convert.os.listdir", return_value=[])
+    @patch(
+        "rekordbox_edit.api.convert.get_audio_info",
+        return_value={**_PROBE_WAV_16_44, "codec": "flac", "container": "flac"},
+    )
+    @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=True)
+    def test_each_converted_row_takes_one_usn(
+        self, _ffmpeg, _probe, _listdir, _exists, _run, _replace, _converted, db
+    ):
+        session = require_session(db)
+        start = session.execute(self._COUNTER).scalar()
+        # FLAC sources: convertable, and the fixture has three of them.
+        tracks = db.get_content().filter_by(FileType=5).limit(2).all()
+        assert len(tracks) == 2, "fixture should carry at least two FLAC tracks"
+
+        response = convert(
+            db,
+            ConvertRequest(
+                format_out="aiff",
+                overwrite=True,
+                delete_originals="none",
+                track_ids=[str(t.ID) for t in tracks],
+                threads=1,
+            ),
+        )
+
+        converted = len(response.result.converted)
+        assert converted == 2
+        assert session.execute(self._COUNTER).scalar() == start + converted
+        # Per-file commits mean per-file stamps, in the order they converted.
+        assert sorted(t.rb_local_usn for t in tracks) == [start + 1, start + 2]
