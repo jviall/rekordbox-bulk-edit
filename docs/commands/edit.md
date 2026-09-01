@@ -42,10 +42,11 @@ rbe edit FolderPath --match "/Volumes/OldDrive/Music" --replace "/Volumes/NewDri
 rbe edit --exact-title "Acid Rain" FolderPath --replace "/Users/me/Music/acid-rain-remaster.flac"
 ```
 
-## Guardrails
+## Checks
 
-- **Preview and confirm by default.** Without flags, `edit` shows every planned change and asks once before applying. `--interactive` confirms each track individually; `--dry-run` previews without writing; `--yes` confirms the default choice for all prompts without asking.
-- **Single-track by default.** When filters match more than one track, `edit` refuses unless you pass `--multi`. This prevents an unintentionally broad filter from making unintended edits across your library.
+- Without flags, `edit` shows every planned change and asks once before applying. `--interactive` confirms each track individually; `--dry-run` previews without writing; `--yes` confirms the default choice for all prompts without asking.
+- `edit` writes exactly the tracks the preview showed. If in between the time you're prompted and later confirm a new track that matches your filters lands in your library, it won't be included. A track whose file changed in that window is skipped rather than written with stale metadata.
+- When filters match more than one track, `edit` refuses unless you pass `--multi`. This prevents an mistakenly broad filter from making unintended edits across your library.
 - **Rekordbox running:** writing while Rekordbox is open risks losing your changes, so `edit` refuses to run until you close it. `--dry-run` still works.
 
 ## Examples
