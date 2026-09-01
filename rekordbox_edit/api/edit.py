@@ -74,10 +74,6 @@ def edit(
     that started matching after the plan was made will not join the edit; each
     op is re-checked against the filesystem and reported as
     `db_or_fs_changed` if it no longer holds.
-
-    `multi` guards the unattended case: a filter matching several rows applied
-    in one shot. A dry run only reports, and an `ops` list was approved by
-    whoever built it, so neither needs the flag.
     """
     logger.debug(f"edit start field={args.field} dry_run={dry_run}")
     handler = FIELD_HANDLERS.get(args.field)
@@ -98,13 +94,6 @@ def edit(
             else:
                 skipped.append(result)
         logger.debug(f"edit classified ops={len(planned)} skipped={len(skipped)}")
-
-        if not dry_run and len(planned) > 1 and not args.multi:
-            logger.debug(f"edit aborted on multi guard with {len(planned)} ops")
-            raise InputError(
-                f"Found {len(planned)} tracks that would be edited. "
-                "Refine your filters, use dry_run to inspect, or pass multi=True to edit all."
-            )
     else:
         rows = find_content_by_ids(db, [op.id for op in ops])
         contents = []

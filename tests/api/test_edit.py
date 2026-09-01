@@ -6,7 +6,7 @@ from rekordbox_edit.api.field_handlers import FIELD_HANDLERS
 from sqlalchemy import text
 
 from rekordbox_edit.query import require_session
-from rekordbox_edit.errors import InputError, RekordboxRunningError
+from rekordbox_edit.errors import RekordboxRunningError
 from rekordbox_edit.models import (
     EditRequest,
     EditOp,
@@ -115,12 +115,7 @@ class TestEditDryRun:
         assert response.result.skipped[0].reason == "no_change"
 
     @patch("rekordbox_edit.api.edit.get_filtered_content")
-    def test_dry_run_reports_a_bulk_edit_instead_of_refusing_it(
-        self, mock_gfc, mock_db, make_djmd_content_item
-    ):
-        # The guard is about applying an unattended bulk edit. A dry run writes
-        # nothing, and refusing to preview would contradict the guard's own
-        # advice to inspect with a dry run first.
+    def test_dry_run_plans_a_bulk_edit(self, mock_gfc, mock_db, make_djmd_content_item):
         contents = [
             make_djmd_content_item(ID="1", Title="Old"),
             make_djmd_content_item(ID="2", Title="Old"),
@@ -129,25 +124,12 @@ class TestEditDryRun:
 
         response = edit(
             mock_db,
-            EditRequest(field="Title", replace_value="New", multi=False),
+            EditRequest(field="Title", replace_value="New"),
             dry_run=True,
         )
 
         assert len(response.result.edits) == 2
         mock_db.session.commit.assert_not_called()
-
-    @patch("rekordbox_edit.api.edit.get_filtered_content")
-    def test_one_shot_bulk_edit_still_needs_multi(
-        self, mock_gfc, mock_db, make_djmd_content_item
-    ):
-        contents = [
-            make_djmd_content_item(ID="1", Title="Old"),
-            make_djmd_content_item(ID="2", Title="Old"),
-        ]
-        mock_gfc.return_value.scalars.return_value.all.return_value = contents
-
-        with pytest.raises(InputError, match="multi"):
-            edit(mock_db, EditRequest(field="Title", replace_value="New"))
 
 
 class TestEditRealRun:
@@ -178,7 +160,7 @@ class TestEditRealRun:
         mock_db.session.commit.assert_not_called()
 
     @patch("rekordbox_edit.api.edit.get_filtered_content")
-    def test_multi_flag_allows_multiple_edits(
+    def test_applies_every_matched_track(
         self, mock_gfc, mock_db, make_djmd_content_item
     ):
         contents = [
@@ -187,9 +169,7 @@ class TestEditRealRun:
         ]
         mock_gfc.return_value.scalars.return_value.all.return_value = contents
 
-        response = edit(
-            mock_db, EditRequest(field="Title", replace_value="New", multi=True)
-        )
+        response = edit(mock_db, EditRequest(field="Title", replace_value="New"))
 
         assert len(response.result.edits) == 2
 
@@ -206,9 +186,7 @@ class TestEditRealRun:
         ]
         mock_gfc.return_value.scalars.return_value.all.return_value = contents
 
-        response = edit(
-            mock_db, EditRequest(field="Title", replace_value="x", multi=True)
-        )
+        response = edit(mock_db, EditRequest(field="Title", replace_value="x"))
 
         # The order of result.edits follows the classifier (i.e. the order
         # of contents). tracks aligns to edits.
@@ -230,9 +208,7 @@ class TestEditRealRun:
 
         edit(
             mock_db,
-            EditRequest(
-                field="Title", replace_value="Earth", match_pattern="World", multi=True
-            ),
+            EditRequest(field="Title", replace_value="Earth", match_pattern="World"),
         )
 
         assert changed.Title == "Hello Earth"
@@ -305,7 +281,7 @@ class TestEditFromApprovedOps:
         mock_db.session.commit.assert_not_called()
 
     @patch("rekordbox_edit.api.edit.find_content_by_ids")
-    def test_ops_bypass_the_multi_guard_the_user_already_answered(
+    def test_ops_apply_without_a_filter_pass(
         self, mock_by_ids, mock_db, make_djmd_content_item
     ):
         rows = {

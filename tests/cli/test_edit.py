@@ -117,7 +117,7 @@ class TestEditCommand:
     def test_apply_pass_input_error_becomes_usage_error(
         self, mock_db_class, mock_edit, _confirm, _print
     ):
-        # The preview passes the --multi guard and the apply pass does not.
+        # The preview succeeds and the apply pass raises.
         mock_db_class.return_value = Mock(session=Mock())
         mock_edit.side_effect = [
             _response(),
@@ -415,29 +415,6 @@ class TestEditForceFlow:
 
         assert result.exit_code == 0
         mock_edit.assert_called_once()  # preview only
-
-    @patch("rekordbox_edit.cli.edit.print_track_info")
-    @patch("rekordbox_edit.cli.edit.confirm")
-    @patch("rekordbox_edit.cli.edit.edit")
-    @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
-    def test_including_gated_tracks_can_trip_multi_guard(
-        self, mock_db_class, mock_edit, mock_confirm, _print
-    ):
-        # Including the held-back track widens the edit past one track, which
-        # the single-track guard rejects on the re-preview.
-        mock_db_class.return_value = Mock(session=Mock())
-        mock_edit.side_effect = [
-            _gated_response(),
-            InputError("Found 2 tracks that would be edited"),
-        ]
-        mock_confirm.side_effect = [True]
-
-        result = CliRunner().invoke(
-            edit_command, ["FolderPath", "--replace", "/new/x.wav"]
-        )
-
-        assert result.exit_code != 0
-        assert "Error" in result.output
 
     @patch("rekordbox_edit.cli.edit.edit")
     @patch("rekordbox_edit.cli._utils.Rekordbox6Database")

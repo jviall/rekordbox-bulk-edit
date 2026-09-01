@@ -158,11 +158,6 @@ edit_click_options = [
         help="Find this literal string within the field value and replace only that portion",
     ),
     click.option(
-        "--multi",
-        is_flag=True,
-        help="Allow editing more than one track (required when --yes applies a filter matching several)",
-    ),
-    click.option(
         "--force",
         is_flag=True,
         help="Proceed past per-track safety gates that would otherwise skip a track (e.g. a FolderPath target that is missing or whose duration contradicts the track's stored length)",
