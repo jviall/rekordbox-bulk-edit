@@ -368,16 +368,35 @@ def import_tracks(
     args: ImportRequest,
     *,
     dry_run: bool = False,
+    ops: list[ImportOp] | None = None,
 ) -> ImportResponse:
     """Create database rows for audio files Rekordbox does not yet know about.
 
     With `dry_run=True`, returns the planned adds without any DB writes.
+
+    Pass `ops` to import an already-approved plan. The requested directories
+    are not walked again, so a file created since the plan was made cannot be
+    imported unpreviewed; an op whose file is gone is reported as
+    `db_or_fs_changed`.
     """
     logger.debug(f"import start paths={len(args.paths)} dry_run={dry_run}")
 
-    candidates, directories, rejected = _expand_paths(args.paths)
-    if directories and not args.recurse:
-        raise DirectoryConfirmationRequired(len(directories), len(candidates))
+    skipped: list[SkippedTrack] = []
+    if ops is None:
+        candidates, directories, rejected = _expand_paths(args.paths)
+        if directories and not args.recurse:
+            raise DirectoryConfirmationRequired(len(directories), len(candidates))
+        for path in rejected:
+            logger.warning(f"Skipping {path}: not an audio file RBE recognizes")
+            skipped.append(SkippedTrack(id="", reason="unsupported_file_type"))
+    else:
+        candidates = []
+        for op in ops:
+            if not os.path.exists(op.path):
+                logger.debug(f"skip import reason=db_or_fs_changed path={op.path}")
+                skipped.append(SkippedTrack(id=op.id, reason="db_or_fs_changed"))
+                continue
+            candidates.append(_ImportCandidate.of(op.path))
 
     session = require_session(db)
 
@@ -392,11 +411,6 @@ def import_tracks(
         }
 
     existing = find_content_by_key(db, [c.key for c in candidates])
-
-    skipped: list[SkippedTrack] = []
-    for path in rejected:
-        logger.warning(f"Skipping {path}: not an audio file RBE recognizes")
-        skipped.append(SkippedTrack(id="", reason="unsupported_file_type"))
 
     # Paired so the write and dry-run phases reach a candidate's resolved path
     # and tags without looking either up again by string.

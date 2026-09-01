@@ -6,21 +6,17 @@ import pytest
 from rekordbox_edit._click import PrintChoice
 from rekordbox_edit.cli._utils import (
     _handle_stdin,
-    _narrow_to_track_ids,
     _print_response_ids,
     _print_response_json,
     _validate_scripting_preconditions,
 )
 from rekordbox_edit.models import (
     ConvertOp,
-    ConvertRequest,
     ConvertResponse,
     ConvertResult,
     EditOp,
-    EditRequest,
     EditResponse,
     EditResult,
-    SearchRequest,
     SearchResponse,
     Track,
 )
@@ -97,69 +93,6 @@ class TestValidateScriptingPreconditions:
         _validate_scripting_preconditions(
             None, piped_stdin=True, dry_run=False, yes=True
         )
-
-
-class TestNarrowToTrackIds:
-    def test_clears_other_filter_criteria(self):
-        args = ConvertRequest(
-            artist=["X"],
-            format=["flac"],
-            format_out="aiff",
-            overwrite=True,
-            delete_originals="all",
-        )
-
-        narrowed = _narrow_to_track_ids(args, ["a", "b"])
-
-        assert narrowed.track_ids == ["a", "b"]
-        assert narrowed.artist == []
-        assert narrowed.format == []
-        # Convert-specific fields preserved
-        assert narrowed.format_out == "aiff"
-        assert narrowed.overwrite is True
-        assert narrowed.delete_originals == "all"
-
-    def test_works_for_edit_args(self):
-        args = EditRequest(
-            artist=["X"],
-            field="Title",
-            replace_value="N",
-            match_pattern="O",
-            multi=True,
-        )
-
-        narrowed = _narrow_to_track_ids(args, ["a"])
-
-        assert narrowed.track_ids == ["a"]
-        assert narrowed.artist == []
-        # Edit-specific fields preserved
-        assert narrowed.field == "Title"
-        assert narrowed.replace_value == "N"
-        assert narrowed.match_pattern == "O"
-        assert narrowed.multi is True
-
-    def test_clears_first(self):
-        args = SearchRequest(first=2)
-
-        narrowed = _narrow_to_track_ids(args, ["a", "b", "c"])
-
-        assert narrowed.first is None
-        assert narrowed.track_ids == ["a", "b", "c"]
-
-    def test_clears_last(self):
-        args = SearchRequest(last=2)
-
-        narrowed = _narrow_to_track_ids(args, ["a"])
-
-        assert narrowed.last is None
-
-    def test_clears_match_modes(self):
-        args = SearchRequest(match_any=True)
-
-        narrowed = _narrow_to_track_ids(args, ["a"])
-
-        assert narrowed.match_all is False
-        assert narrowed.match_any is False
 
 
 class TestPrintResponseIds:

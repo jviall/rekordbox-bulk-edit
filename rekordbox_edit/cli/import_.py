@@ -131,9 +131,10 @@ def import_command(db, **kwargs):
     except UserQuit:
         return
 
-    response, _ = _import_confirming_walk(confirmed_args)
-    if response is None:
-        return
+    # Passing the previewed ops means no second directory walk, so a file
+    # created during the prompt cannot be imported unseen, and the directory
+    # gate cannot fire again.
+    response = _attempt_import(confirmed_args, ops=preview.result.added)
     _print_import_result(response, print_opt, dry_run=False)
 
 
