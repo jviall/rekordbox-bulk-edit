@@ -1,9 +1,10 @@
-"""CLI-private helpers: stdin handling, scripting guards, print emitters."""
+"""CLI-private helpers: stdin handling, scripting guards, prompts, print emitters."""
 
 import contextlib
 import functools
 import logging
 import sys
+from enum import Enum
 from typing import TypeVar
 
 import click
@@ -14,7 +15,13 @@ from sqlalchemy import event
 from sqlalchemy.engine import Engine
 
 from rekordbox_edit._click import PrintChoice, database_path_option
-from rekordbox_edit.locking import SCRIPTED_TIMEOUT, DatabaseBusyError, database_lock
+from rekordbox_edit.errors import (
+    DatabaseBusyError,
+    DependencyMissingError,
+    InputError,
+    RekordboxRunningError,
+)
+from rekordbox_edit.locking import SCRIPTED_TIMEOUT, database_lock
 
 logger = logging.getLogger(__name__)
 
@@ -121,9 +128,12 @@ def with_database(*, writes: bool = False):
     """Inject an opened Rekordbox6Database as `db` and close it on exit.
 
     Pass writes=True for commands that modify the DB: the wrapper aborts when
-    Rekordbox is running (or prompts to continue in interactive modes), and
-    holds the single-writer advisory lock for the whole run. A dry run gets
-    neither, since it writes nothing.
+    Rekordbox is running, and holds the single-writer advisory lock for the
+    whole run. A dry run gets neither, since it writes nothing.
+
+    Also the one place API errors become CLI ones, so no command repeats the
+    mapping: bad input is a usage error, and an unusable environment logs and
+    exits 1.
     """
 
     def decorator(func):
@@ -139,7 +149,13 @@ def with_database(*, writes: bool = False):
                     return func(db=db, **kwargs)
                 with _write_lock(db, kwargs):
                     return func(db=db, **kwargs)
-            except DatabaseBusyError as e:
+            except InputError as e:
+                raise click.UsageError(str(e)) from e
+            except (
+                DatabaseBusyError,
+                DependencyMissingError,
+                RekordboxRunningError,
+            ) as e:
                 logger.error(str(e))
                 sys.exit(1)
             finally:
@@ -148,3 +164,58 @@ def with_database(*, writes: bool = False):
         return wrapper
 
     return decorator
+
+
+class UserQuit(Exception):
+    """Raised when the user answers a prompt with 'q'."""
+
+
+def confirm(
+    prompt: str,
+    default: bool = False,
+    binary: bool = False,
+    abort: bool = False,
+):
+    """Prompts the user to prompt [y]es/[n]o/[q]uit
+
+    Args:
+        prompt: The question to ask the user
+        default: Default response (True for y, False for n)
+        binary: If True, prompt a simple y/n
+        abort: If True, prompt a simple y/n where 'n' raises a UserQuit Exception
+    """
+
+    class ConfirmChoice(Enum):
+        YES = "y"
+        NO = "n"
+        QUIT = "q"
+
+    if abort or binary:
+        choices = [ConfirmChoice.YES.value, ConfirmChoice.NO.value]
+        default_choice = ConfirmChoice.YES.value if default else ConfirmChoice.NO.value
+    else:
+        choices = [
+            ConfirmChoice.YES.value,
+            ConfirmChoice.NO.value,
+            ConfirmChoice.QUIT.value,
+        ]
+        default_choice = ConfirmChoice.YES.value if default else ConfirmChoice.NO.value
+
+    response: str = click.prompt(
+        prompt,
+        type=click.Choice(choices, case_sensitive=False),
+        default=default_choice,
+    )
+
+    if response.lower() == ConfirmChoice.YES.value:
+        logger.debug(f"User confirmed: {prompt}")
+        return True
+    elif response.lower() == ConfirmChoice.NO.value:
+        logger.debug(f"User declined: {prompt}")
+        if abort:
+            raise UserQuit("User declined to continue")
+        else:
+            return False
+    elif response.lower()[0] == ConfirmChoice.QUIT.value:
+        logger.debug("User quit.")
+        raise UserQuit("User quit")

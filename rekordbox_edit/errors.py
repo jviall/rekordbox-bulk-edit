@@ -1,0 +1,40 @@
+"""Exception hierarchy for rekordbox-edit.
+
+Every error the API raises on purpose descends from `RekordboxEditError`, so a
+caller can catch one type rather than the three unrelated families that
+preceded this module. `InputError` keeps `ValueError` in its MRO because bad
+input raised a plain `ValueError` before the hierarchy existed.
+
+The CLI maps these to exit codes in one place, `cli._utils.with_database`.
+"""
+
+
+class RekordboxEditError(Exception):
+    """Base for every error rekordbox-edit raises on purpose."""
+
+
+class InputError(RekordboxEditError, ValueError):
+    """The request itself is invalid, and no amount of retrying will help.
+
+    The CLI reports these as usage errors.
+    """
+
+
+class DependencyMissingError(RekordboxEditError):
+    """A required external program is not installed."""
+
+
+class RekordboxRunningError(RekordboxEditError):
+    """Rekordbox holds the library open.
+
+    Writing underneath it risks losing changes: it keeps rows in memory and can
+    write its own copy back over ours.
+    """
+
+
+class DatabaseBusyError(RekordboxEditError):
+    """Another rekordbox-edit process holds the write lock for this database."""
+
+
+class OperationAborted(RekordboxEditError):
+    """A write gave up partway. Work committed before the failure is kept."""

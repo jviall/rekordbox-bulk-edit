@@ -20,6 +20,7 @@ from rekordbox_edit.api._utils import (
     _update_anlz_paths,
     stamp_usns,
 )
+from rekordbox_edit.errors import OperationAborted
 from rekordbox_edit.models import (
     ConvertOp,
     ConvertRequest,
@@ -368,7 +369,7 @@ def _sweep_orphan_temp_files(output_paths: Iterable[str]) -> None:
         logger.debug(f"convert swept {removed} orphaned temp file(s)")
 
 
-class ConvertAborted(RuntimeError):
+class ConvertAborted(OperationAborted):
     """A conversion failed partway through a batch.
 
     Files converted before the failure are already committed, so the counts

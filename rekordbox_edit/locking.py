@@ -19,7 +19,11 @@ from typing import Iterator
 from filelock import FileLock, Timeout
 from platformdirs import PlatformDirs
 
+from rekordbox_edit.errors import DatabaseBusyError
+
 logger = logging.getLogger(__name__)
+
+__all__ = ["DatabaseBusyError", "SCRIPTED_TIMEOUT", "database_lock"]
 
 #: How long a non-interactive command waits for the lock. Interactive
 #: commands pass 0 so a user at a terminal fails fast instead of hanging.
@@ -29,10 +33,6 @@ _LOCK_DIR = (
     Path(PlatformDirs(appname="rekordbox-edit", ensure_exists=True).user_data_dir)
     / "locks"
 )
-
-
-class DatabaseBusyError(RuntimeError):
-    """Another rbe process holds the write lock for this database."""
 
 
 def _lock_path(db_directory) -> Path:
