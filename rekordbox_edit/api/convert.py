@@ -19,6 +19,7 @@ from rekordbox_edit.api._utils import (
     _sync_audio_columns,
     _update_anlz_paths,
     stamp_usns,
+    writing,
 )
 from rekordbox_edit.errors import OperationAborted
 from rekordbox_edit.models import (
@@ -577,151 +578,156 @@ def convert(
 
     assert db.session is not None
 
-    # content_map enables per-op live FolderPath / FileNameL reads in the loop.
-    content_map = {str(c.ID): c for c in contents}
-    converted_ops: list[ConvertOp] = []
-    _sweep_orphan_temp_files(op.output_path for op in ops)
+    # Guards the sweep as well as the encode loop: the sweep deletes temp
+    # files, which a concurrent run would still be writing into.
+    with writing(db, "convert"):
+        # content_map enables per-op live FolderPath / FileNameL reads in the loop.
+        content_map = {str(c.ID): c for c in contents}
+        converted_ops: list[ConvertOp] = []
+        _sweep_orphan_temp_files(op.output_path for op in ops)
 
-    output_format_name = args.format_out.upper()
-    deletable = 0
-    deleted = 0
+        output_format_name = args.format_out.upper()
+        deletable = 0
+        deleted = 0
 
-    jobs = [_encode_job_for(content_map[op.id], op, output_format_name) for op in ops]
-    if progress:
-        progress.batch_size(len(jobs))
+        jobs = [
+            _encode_job_for(content_map[op.id], op, output_format_name) for op in ops
+        ]
+        if progress:
+            progress.batch_size(len(jobs))
 
-    def _abort_batch(
-        exc: BaseException, job: _EncodeJob, attempted: int
-    ) -> ConvertAborted:
-        """Give up on the batch, keeping every conversion already committed."""
-        _rollback_session(db)
-        logger.debug(
-            f"convert aborted at {job.source_path} after "
-            f"{len(converted_ops)} committed conversion(s)"
-        )
-        return ConvertAborted(
-            str(exc),
-            failed_path=job.source_path,
-            converted=len(converted_ops),
-            not_attempted=len(ops) - attempted,
-        )
-
-    # Encoding runs on worker threads; every database touch stays here on the
-    # main thread. `encoding` maps a job's position in `jobs` to the worker
-    # currently handling it.
-    thread_count = args.threads
-    encoding: dict[int, Future[_EncodeResult]] = {}
-
-    with ThreadPoolExecutor(max_workers=thread_count) as pool:
-
-        def _start_encode(index: int) -> None:
-            """Hand job `index` to a worker, if the batch runs that far."""
-            if index < len(jobs):
-                encoding[index] = pool.submit(_encode_one, jobs[index])
-                if progress:
-                    progress.started(index, jobs[index].file_name)
-
-        def _stop_pending_encodes() -> None:
-            """Give up on everything still in flight, leaving no stray files.
-
-            Cancelling only stops work no worker has picked up yet, so an
-            encode that already finished holds a temp file nobody will move
-            into place. Those are deleted here rather than left for the next
-            run's sweep.
-            """
-            for future in encoding.values():
-                future.cancel()
-            for index, future in encoding.items():
-                if future.cancelled() or future.exception() is not None:
-                    continue
-                if future.result().skipped is None:
-                    _remove_temp_file(jobs[index].temp_path)
-            encoding.clear()
-
-        # Prime the pool with one file per worker. Nothing more starts until a
-        # result is collected below, so at most `thread_count` files are ever
-        # in flight, and an abort has wasted at most that many encodes.
-        for index in range(min(thread_count, len(jobs))):
-            _start_encode(index)
-
-        # Collect results in the order the files were listed rather than the
-        # order they happen to finish: waiting on `encoding[index]` blocks
-        # until that particular file is done, so one that finished early simply
-        # waits its turn. `index` walks `jobs`; `position` is the same count
-        # from one, for the progress line. Predictable order matters because
-        # `rbe convert --print ids` feeds other commands.
-        for index, (op, job) in enumerate(zip(ops, jobs)):
-            position = index + 1
-            content = content_map[op.id]
-
-            try:
-                result = encoding.pop(index).result()
-            except KeyboardInterrupt as e:
-                _stop_pending_encodes()
-                logger.warning("Interrupted; keeping the files already converted.")
-                raise _abort_batch(e, job, position) from e
-            except BaseException as e:
-                _stop_pending_encodes()
-                raise _abort_batch(e, job, position) from e
-
-            # A worker just came free, so give it the next file nobody has
-            # started. Starting one only after a successful collection is what
-            # keeps the in-flight count capped and leaves no queued work behind
-            # on an abort.
-            _start_encode(index + thread_count)
-
-            if progress:
-                progress.finished(index, converted=result.skipped is None)
-
-            if result.skipped:
-                skipped.append(result.skipped)
-                continue
-
-            # Printed on completion rather than at dispatch: with several
-            # encodes in flight, a line printed at dispatch would name a file
-            # that is not the one being worked on next.
-            logger.info(f"[{position}/{len(ops)}] converted {job.file_name}")
-
-            try:
-                os.replace(job.temp_path, job.output_path)
-                _apply_converted_record(
-                    content,
-                    cast(ConvertedFileProbe, result.probe),
-                    os.path.basename(job.output_path),
-                    os.path.dirname(job.output_path),
-                    output_format_name,
-                )
-                stamp_usns(db, [content])
-                db.session.commit()
-            except BaseException as e:
-                _remove_temp_file(job.temp_path)
-                _stop_pending_encodes()
-                raise _abort_batch(e, job, position) from e
-
-            converted_ops.append(
-                op.model_copy(
-                    update={
-                        "source_path": job.source_path,
-                        "output_sample_rate": result.output_sample_rate,
-                    }
-                )
+        def _abort_batch(
+            exc: BaseException, job: _EncodeJob, attempted: int
+        ) -> ConvertAborted:
+            """Give up on the batch, keeping every conversion already committed."""
+            _rollback_session(db)
+            logger.debug(
+                f"convert aborted at {job.source_path} after "
+                f"{len(converted_ops)} committed conversion(s)"
+            )
+            return ConvertAborted(
+                str(exc),
+                failed_path=job.source_path,
+                converted=len(converted_ops),
+                not_attempted=len(ops) - attempted,
             )
 
-            # Past this point the row is committed, so every failure only warns.
-            try:
-                _update_anlz_paths(db, content, os.path.basename(job.output_path))
-            except Exception as e:
-                logger.warning(
-                    f"Failed to update ANLZ path tags for {job.file_name}: {e}"
+        # Encoding runs on worker threads; every database touch stays here on the
+        # main thread. `encoding` maps a job's position in `jobs` to the worker
+        # currently handling it.
+        thread_count = args.threads
+        encoding: dict[int, Future[_EncodeResult]] = {}
+
+        with ThreadPoolExecutor(max_workers=thread_count) as pool:
+
+            def _start_encode(index: int) -> None:
+                """Hand job `index` to a worker, if the batch runs that far."""
+                if index < len(jobs):
+                    encoding[index] = pool.submit(_encode_one, jobs[index])
+                    if progress:
+                        progress.started(index, jobs[index].file_name)
+
+            def _stop_pending_encodes() -> None:
+                """Give up on everything still in flight, leaving no stray files.
+
+                Cancelling only stops work no worker has picked up yet, so an
+                encode that already finished holds a temp file nobody will move
+                into place. Those are deleted here rather than left for the next
+                run's sweep.
+                """
+                for future in encoding.values():
+                    future.cancel()
+                for index, future in encoding.items():
+                    if future.cancelled() or future.exception() is not None:
+                        continue
+                    if future.result().skipped is None:
+                        _remove_temp_file(jobs[index].temp_path)
+                encoding.clear()
+
+            # Prime the pool with one file per worker. Nothing more starts until a
+            # result is collected below, so at most `thread_count` files are ever
+            # in flight, and an abort has wasted at most that many encodes.
+            for index in range(min(thread_count, len(jobs))):
+                _start_encode(index)
+
+            # Collect results in the order the files were listed rather than the
+            # order they happen to finish: waiting on `encoding[index]` blocks
+            # until that particular file is done, so one that finished early simply
+            # waits its turn. `index` walks `jobs`; `position` is the same count
+            # from one, for the progress line. Predictable order matters because
+            # `rbe convert --print ids` feeds other commands.
+            for index, (op, job) in enumerate(zip(ops, jobs)):
+                position = index + 1
+                content = content_map[op.id]
+
+                try:
+                    result = encoding.pop(index).result()
+                except KeyboardInterrupt as e:
+                    _stop_pending_encodes()
+                    logger.warning("Interrupted; keeping the files already converted.")
+                    raise _abort_batch(e, job, position) from e
+                except BaseException as e:
+                    _stop_pending_encodes()
+                    raise _abort_batch(e, job, position) from e
+
+                # A worker just came free, so give it the next file nobody has
+                # started. Starting one only after a successful collection is what
+                # keeps the in-flight count capped and leaves no queued work behind
+                # on an abort.
+                _start_encode(index + thread_count)
+
+                if progress:
+                    progress.finished(index, converted=result.skipped is None)
+
+                if result.skipped:
+                    skipped.append(result.skipped)
+                    continue
+
+                # Printed on completion rather than at dispatch: with several
+                # encodes in flight, a line printed at dispatch would name a file
+                # that is not the one being worked on next.
+                logger.info(f"[{position}/{len(ops)}] converted {job.file_name}")
+
+                try:
+                    os.replace(job.temp_path, job.output_path)
+                    _apply_converted_record(
+                        content,
+                        cast(ConvertedFileProbe, result.probe),
+                        os.path.basename(job.output_path),
+                        os.path.dirname(job.output_path),
+                        output_format_name,
+                    )
+                    stamp_usns(db, [content])
+                    db.session.commit()
+                except BaseException as e:
+                    _remove_temp_file(job.temp_path)
+                    _stop_pending_encodes()
+                    raise _abort_batch(e, job, position) from e
+
+                converted_ops.append(
+                    op.model_copy(
+                        update={
+                            "source_path": job.source_path,
+                            "output_sample_rate": result.output_sample_rate,
+                        }
+                    )
                 )
 
-            if _deletes_original(args.delete_originals, result.is_lossless):
-                deletable += 1
+                # Past this point the row is committed, so every failure only warns.
                 try:
-                    os.remove(job.source_path)
-                    deleted += 1
+                    _update_anlz_paths(db, content, os.path.basename(job.output_path))
                 except Exception as e:
-                    logger.warning(f"Failed to delete {job.source_path}: {e}")
+                    logger.warning(
+                        f"Failed to update ANLZ path tags for {job.file_name}: {e}"
+                    )
+
+                if _deletes_original(args.delete_originals, result.is_lossless):
+                    deletable += 1
+                    try:
+                        os.remove(job.source_path)
+                        deleted += 1
+                    except Exception as e:
+                        logger.warning(f"Failed to delete {job.source_path}: {e}")
 
     logger.debug(f"convert committed {len(converted_ops)} conversion(s)")
 

@@ -23,6 +23,7 @@ from rekordbox_edit.api.import_ import (
 )
 from sqlalchemy import text
 
+from rekordbox_edit.errors import RekordboxRunningError
 from rekordbox_edit.models import ImportOp, ImportRequest, SkippedTrack
 from rekordbox_edit.query import require_session
 from rekordbox_edit.query import normalize_path
@@ -990,3 +991,24 @@ class TestImportStampsUsns:
         import_tracks(db, ImportRequest(paths=[str(audio_file)]), dry_run=True)
 
         assert session.execute(self._COUNTER).scalar() == start
+
+
+class TestImportRefusesWhileRekordboxRuns:
+    def test_write_is_refused(self, mock_db, one_flac, stub_tags):
+        mock_db.session.query.return_value.filter_by.return_value.__iter__ = (
+            lambda self: iter([])
+        )
+
+        with patch("rekordbox_edit.api._utils.get_rekordbox_pid", return_value=9):
+            with pytest.raises(RekordboxRunningError):
+                import_tracks(mock_db, ImportRequest(paths=[one_flac]))
+
+        mock_db.session.commit.assert_not_called()
+
+    def test_dry_run_is_allowed(self, mock_db, one_flac, stub_tags):
+        with patch("rekordbox_edit.api._utils.get_rekordbox_pid", return_value=9):
+            response = import_tracks(
+                mock_db, ImportRequest(paths=[one_flac]), dry_run=True
+            )
+
+        assert len(response.result.added) == 1

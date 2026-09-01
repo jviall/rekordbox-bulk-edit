@@ -43,7 +43,7 @@ def _response(tracks=None, converted=None, deleted=0, skipped=None, format_out="
 class TestConvertCommand:
     @patch("rekordbox_edit.cli.convert.convert")
     @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
-    @patch("rekordbox_edit.cli._utils.get_rekordbox_pid", return_value=None)
+    @patch("rekordbox_edit.api._utils.get_rekordbox_pid", return_value=None)
     def test_yes_calls_convert_once(self, _pid, mock_db_class, mock_convert):
         mock_db_class.return_value = Mock(session=Mock())
         mock_convert.return_value = _response()
@@ -55,7 +55,7 @@ class TestConvertCommand:
 
     @patch("rekordbox_edit.cli.convert.convert")
     @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
-    @patch("rekordbox_edit.cli._utils.get_rekordbox_pid", return_value=None)
+    @patch("rekordbox_edit.api._utils.get_rekordbox_pid", return_value=None)
     def test_dry_run(self, _pid, mock_db_class, mock_convert):
         mock_db_class.return_value = Mock(session=Mock())
         mock_convert.return_value = _response()
@@ -70,7 +70,7 @@ class TestConvertCommand:
 
     @patch("rekordbox_edit.cli.convert.convert")
     @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
-    @patch("rekordbox_edit.cli._utils.get_rekordbox_pid", return_value=None)
+    @patch("rekordbox_edit.api._utils.get_rekordbox_pid", return_value=None)
     def test_warns_already_target_skip(
         self, _pid, mock_db_class, mock_convert, mock_logger
     ):
@@ -87,7 +87,7 @@ class TestConvertCommand:
 
     @patch("rekordbox_edit.cli.convert.convert")
     @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
-    @patch("rekordbox_edit.cli._utils.get_rekordbox_pid", return_value=None)
+    @patch("rekordbox_edit.api._utils.get_rekordbox_pid", return_value=None)
     def test_warns_output_conflict_skip(
         self, _pid, mock_db_class, mock_convert, mock_logger
     ):
@@ -103,7 +103,7 @@ class TestConvertCommand:
 
     @patch("rekordbox_edit.cli.convert.convert")
     @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
-    @patch("rekordbox_edit.cli._utils.get_rekordbox_pid", return_value=None)
+    @patch("rekordbox_edit.api._utils.get_rekordbox_pid", return_value=None)
     def test_warns_unsupported_source_skip(
         self, _pid, mock_db_class, mock_convert, mock_logger
     ):
@@ -119,7 +119,7 @@ class TestConvertCommand:
 
     @patch("rekordbox_edit.cli.convert.convert")
     @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
-    @patch("rekordbox_edit.cli._utils.get_rekordbox_pid", return_value=None)
+    @patch("rekordbox_edit.api._utils.get_rekordbox_pid", return_value=None)
     def test_logs_deleted_count(self, _pid, mock_db_class, mock_convert, mock_logger):
         mock_db_class.return_value = Mock(session=Mock())
         mock_convert.return_value = _response(deleted=2)
@@ -128,17 +128,9 @@ class TestConvertCommand:
 
         mock_logger.info.assert_any_call("Deleted 2 original file(s)")
 
-    @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
-    @patch("rekordbox_edit.cli._utils.get_rekordbox_pid", return_value=12345)
-    def test_a_write_refuses_while_rekordbox_runs(self, _pid, mock_db_class):
-        result = CliRunner().invoke(convert_command, ["--format-out", "aiff"])
-
-        assert result.exit_code == 1
-        mock_db_class.assert_not_called()
-
     @patch("rekordbox_edit.cli.convert.convert")
     @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
-    @patch("rekordbox_edit.cli._utils.get_rekordbox_pid", return_value=12345)
+    @patch("rekordbox_edit.api._utils.get_rekordbox_pid", return_value=12345)
     def test_a_dry_run_runs_while_rekordbox_runs(
         self, _pid, mock_db_class, mock_convert
     ):
@@ -157,7 +149,7 @@ class TestConvertCommand:
     def test_a_scripting_dry_run_is_not_blocked_either(self, mock_db_class):
         mock_db_class.return_value = Mock(session=Mock())
         with (
-            patch("rekordbox_edit.cli._utils.get_rekordbox_pid", return_value=12345),
+            patch("rekordbox_edit.api._utils.get_rekordbox_pid", return_value=12345),
             patch("rekordbox_edit.cli.convert.convert", return_value=_response()),
         ):
             result = CliRunner().invoke(
@@ -167,19 +159,9 @@ class TestConvertCommand:
 
         assert result.exit_code == 0
 
-    @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
-    def test_aborts_in_scripting_mode_when_rekordbox_running(self, mock_db_class):
-        with patch("rekordbox_edit.cli._utils.get_rekordbox_pid", return_value=12345):
-            result = CliRunner().invoke(
-                convert_command,
-                ["--format-out", "aiff", "--yes", "--print", "silent"],
-            )
-
-        assert result.exit_code != 0
-
     @patch("rekordbox_edit.cli.convert.convert")
     @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
-    @patch("rekordbox_edit.cli._utils.get_rekordbox_pid", return_value=None)
+    @patch("rekordbox_edit.api._utils.get_rekordbox_pid", return_value=None)
     def test_print_json_emits_envelope(self, _pid, mock_db_class, mock_convert):
         import json
 
@@ -198,7 +180,7 @@ class TestConvertCommand:
     @patch("rekordbox_edit.cli.convert.confirm", return_value=True)
     @patch("rekordbox_edit.cli.convert.convert")
     @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
-    @patch("rekordbox_edit.cli._utils.get_rekordbox_pid", return_value=None)
+    @patch("rekordbox_edit.api._utils.get_rekordbox_pid", return_value=None)
     def test_default_flow_previews_then_commits(
         self, _pid, mock_db_class, mock_convert, _confirm, _print
     ):
@@ -216,7 +198,7 @@ class TestConvertCommand:
     @patch("rekordbox_edit.cli.convert.confirm", return_value=True)
     @patch("rekordbox_edit.cli.convert.convert")
     @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
-    @patch("rekordbox_edit.cli._utils.get_rekordbox_pid", return_value=None)
+    @patch("rekordbox_edit.api._utils.get_rekordbox_pid", return_value=None)
     def test_default_flow_reports_live_codec_mismatch_once(
         self, _pid, mock_db_class, mock_convert, _confirm, _print, mock_logger
     ):
@@ -242,7 +224,7 @@ class TestConvertCommand:
     @patch("rekordbox_edit.cli.convert.confirm", return_value=False)
     @patch("rekordbox_edit.cli.convert.convert")
     @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
-    @patch("rekordbox_edit.cli._utils.get_rekordbox_pid", return_value=None)
+    @patch("rekordbox_edit.api._utils.get_rekordbox_pid", return_value=None)
     def test_default_flow_user_declines_skips_commit(
         self, _pid, mock_db_class, mock_convert, _confirm, _print
     ):
@@ -259,7 +241,7 @@ class TestConvertCommand:
     @patch("rekordbox_edit.cli.convert.confirm", side_effect=UserQuit)
     @patch("rekordbox_edit.cli.convert.convert")
     @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
-    @patch("rekordbox_edit.cli._utils.get_rekordbox_pid", return_value=None)
+    @patch("rekordbox_edit.api._utils.get_rekordbox_pid", return_value=None)
     def test_default_flow_user_quit_skips_commit(
         self, _pid, mock_db_class, mock_convert, _confirm, _print
     ):
@@ -273,7 +255,7 @@ class TestConvertCommand:
 
     @patch("rekordbox_edit.cli.convert.convert")
     @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
-    @patch("rekordbox_edit.cli._utils.get_rekordbox_pid", return_value=None)
+    @patch("rekordbox_edit.api._utils.get_rekordbox_pid", return_value=None)
     def test_default_flow_empty_preview_exits_cleanly(
         self, _pid, mock_db_class, mock_convert
     ):
@@ -294,7 +276,7 @@ class TestConvertCommand:
     @patch("rekordbox_edit.cli.convert.confirm")
     @patch("rekordbox_edit.cli.convert.convert")
     @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
-    @patch("rekordbox_edit.cli._utils.get_rekordbox_pid", return_value=None)
+    @patch("rekordbox_edit.api._utils.get_rekordbox_pid", return_value=None)
     def test_interactive_narrows_to_confirmed_tracks(
         self, _pid, mock_db_class, mock_convert, mock_confirm, _print
     ):
@@ -324,7 +306,7 @@ class TestConvertCommand:
     @patch("rekordbox_edit.cli.convert.confirm")
     @patch("rekordbox_edit.cli.convert.convert")
     @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
-    @patch("rekordbox_edit.cli._utils.get_rekordbox_pid", return_value=None)
+    @patch("rekordbox_edit.api._utils.get_rekordbox_pid", return_value=None)
     def test_quitting_mid_prompt_converts_only_what_was_confirmed(
         self, _pid, mock_db_class, mock_convert, mock_confirm, _print
     ):
@@ -353,7 +335,7 @@ class TestConvertCommand:
     @patch("rekordbox_edit.cli.convert.confirm", side_effect=UserQuit)
     @patch("rekordbox_edit.cli.convert.convert")
     @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
-    @patch("rekordbox_edit.cli._utils.get_rekordbox_pid", return_value=None)
+    @patch("rekordbox_edit.api._utils.get_rekordbox_pid", return_value=None)
     def test_quitting_before_confirming_anything_converts_nothing(
         self, _pid, mock_db_class, mock_convert, _confirm, _print
     ):
@@ -367,19 +349,11 @@ class TestConvertCommand:
         assert result.exit_code == 0
         mock_convert.assert_called_once()  # preview only
 
-    @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
-    @patch("rekordbox_edit.cli._utils.get_rekordbox_pid", return_value=12345)
-    def test_yes_does_not_override_the_refusal(self, _pid, mock_db_class):
-        result = CliRunner().invoke(convert_command, ["--format-out", "aiff", "--yes"])
-
-        assert result.exit_code == 1
-        mock_db_class.assert_not_called()
-
 
 class TestPartialBatchReporting:
     @patch("rekordbox_edit.cli.convert.convert")
     @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
-    @patch("rekordbox_edit.cli._utils.get_rekordbox_pid", return_value=None)
+    @patch("rekordbox_edit.api._utils.get_rekordbox_pid", return_value=None)
     def test_a_stopped_batch_reports_what_survived(
         self, _pid, mock_db_class, mock_convert, mock_logger
     ):
@@ -403,7 +377,7 @@ class TestPartialBatchReporting:
 class TestMissingSourceReporting:
     @patch("rekordbox_edit.cli.convert.convert")
     @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
-    @patch("rekordbox_edit.cli._utils.get_rekordbox_pid", return_value=None)
+    @patch("rekordbox_edit.api._utils.get_rekordbox_pid", return_value=None)
     def test_a_vanished_source_is_reported_from_the_live_pass(
         self, _pid, mock_db_class, mock_convert, mock_logger
     ):
@@ -428,7 +402,7 @@ class TestDriftReporting:
     @patch("rekordbox_edit.cli.convert.confirm", return_value=True)
     @patch("rekordbox_edit.cli.convert.convert")
     @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
-    @patch("rekordbox_edit.cli._utils.get_rekordbox_pid", return_value=None)
+    @patch("rekordbox_edit.api._utils.get_rekordbox_pid", return_value=None)
     def test_a_file_that_changed_during_the_prompt_is_reported(
         self, _pid, mock_db_class, mock_convert, _confirm, _print, mock_logger
     ):
@@ -450,7 +424,7 @@ class TestDriftReporting:
 class TestThreadsFlag:
     @patch("rekordbox_edit.cli.convert.convert")
     @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
-    @patch("rekordbox_edit.cli._utils.get_rekordbox_pid", return_value=None)
+    @patch("rekordbox_edit.api._utils.get_rekordbox_pid", return_value=None)
     def test_threads_reaches_the_request(self, _pid, mock_db_class, mock_convert):
         mock_db_class.return_value = Mock(session=Mock())
         mock_convert.return_value = _response()
@@ -464,7 +438,7 @@ class TestThreadsFlag:
 
     @patch("rekordbox_edit.cli.convert.convert")
     @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
-    @patch("rekordbox_edit.cli._utils.get_rekordbox_pid", return_value=None)
+    @patch("rekordbox_edit.api._utils.get_rekordbox_pid", return_value=None)
     def test_omitting_threads_uses_the_conservative_default(
         self, _pid, mock_db_class, mock_convert
     ):

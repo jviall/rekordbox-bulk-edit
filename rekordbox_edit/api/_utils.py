@@ -1,11 +1,15 @@
 import logging
-from collections.abc import Sequence
+from collections.abc import Iterator, Sequence
+from contextlib import contextmanager
 from typing import Any
 
 from pyrekordbox import Rekordbox6Database
 from pyrekordbox.db6 import DjmdContent
+from pyrekordbox.utils import get_rekordbox_pid
 from sqlalchemy import text
 
+from rekordbox_edit.errors import RekordboxRunningError
+from rekordbox_edit.locking import SCRIPTED_TIMEOUT, database_lock
 from rekordbox_edit.models import ConvertOp, EditOp, Track
 from rekordbox_edit.query import require_session
 from rekordbox_edit.utils import AudioInfo, get_file_type_for_format
@@ -13,6 +17,26 @@ from rekordbox_edit.utils import AudioInfo, get_file_type_for_format
 logger = logging.getLogger(__name__)
 
 _COLUMN_KEYS = tuple(c.key for c in DjmdContent.__table__.columns)
+
+
+@contextmanager
+def writing(db: Rekordbox6Database, command: str) -> Iterator[None]:
+    """Guard a block that writes to the library.
+
+    Refuses to run while Rekordbox is open, then holds the single-writer lock
+    for the block. Every API write enters through here, so a caller gets both
+    without knowing they exist; the CLI's own lock nests harmlessly inside.
+
+    Wraps only the writing region, so a dry run reaches neither check.
+    """
+    rekordbox_pid = get_rekordbox_pid()
+    if rekordbox_pid:
+        raise RekordboxRunningError(
+            f"Rekordbox is running (PID {rekordbox_pid}). Close it before "
+            "writing to the database."
+        )
+    with database_lock(db.db_directory, command=command, timeout=SCRIPTED_TIMEOUT):
+        yield
 
 
 def _track_from_content(content: DjmdContent) -> Track:

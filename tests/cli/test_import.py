@@ -29,7 +29,7 @@ def mock_logger():
 
 @pytest.fixture(autouse=True)
 def mock_rekordbox_not_running():
-    with patch("rekordbox_edit.cli._utils.get_rekordbox_pid", return_value=None):
+    with patch("rekordbox_edit.api._utils.get_rekordbox_pid", return_value=None):
         yield
 
 

@@ -5,6 +5,7 @@ import pytest
 from pyrekordbox.db6 import DjmdContent
 
 from rekordbox_edit import locking
+from rekordbox_edit.api import _utils as api_utils
 
 from rekordbox_edit.models import Track
 
@@ -13,6 +14,13 @@ from rekordbox_edit.models import Track
 def isolated_lock_dir(tmp_path, monkeypatch):
     """Keep write-lock files out of the real user data directory during tests."""
     monkeypatch.setattr(locking, "_LOCK_DIR", tmp_path / "locks")
+
+
+@pytest.fixture(autouse=True)
+def rekordbox_not_running(monkeypatch):
+    """Every API write consults this, so leaving it live would fail the suite
+    on any machine with Rekordbox open. Tests about the refusal patch it back."""
+    monkeypatch.setattr(api_utils, "get_rekordbox_pid", lambda: None)
 
 
 @pytest.fixture

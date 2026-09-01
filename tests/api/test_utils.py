@@ -2,9 +2,10 @@
 
 import logging
 import threading
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 import pytest
+from filelock import FileLock, Timeout
 from pyrekordbox import Rekordbox6Database
 from sqlalchemy import text
 
@@ -14,7 +15,10 @@ from rekordbox_edit.api._utils import (
     _order_tracks_by_op,
     _track_from_content,
     stamp_usns,
+    writing,
 )
+from rekordbox_edit.errors import DatabaseBusyError, RekordboxRunningError
+from rekordbox_edit.locking import _lock_path, database_lock
 from rekordbox_edit.models import ConvertOp, Track
 from rekordbox_edit.query import require_session
 
@@ -216,3 +220,58 @@ class TestDriverTransactionAssumption:
         stamp_usns(db, db.get_content().limit(1).all())
 
         assert self._dbapi(db).in_transaction is True
+
+
+class TestWriting:
+    """The guard every API write enters through."""
+
+    def test_refuses_while_rekordbox_runs(self, tmp_path):
+        db = Mock(db_directory=tmp_path)
+        with patch("rekordbox_edit.api._utils.get_rekordbox_pid", return_value=4321):
+            with pytest.raises(RekordboxRunningError, match="4321"):
+                with writing(db, "edit"):
+                    pass
+
+    def test_holds_the_write_lock_for_the_block(self, tmp_path):
+        db = Mock(db_directory=tmp_path)
+        with patch("rekordbox_edit.api._utils.get_rekordbox_pid", return_value=None):
+            with writing(db, "edit"):
+                # A separate FileLock instance is what another process's flock
+                # looks like, so this is the exclusion that actually matters.
+                foreign = FileLock(str(_lock_path(tmp_path)))
+                with pytest.raises(Timeout):
+                    foreign.acquire(timeout=0.1)
+
+    def test_nests_inside_a_lock_the_caller_already_holds(self, tmp_path):
+        # The CLI holds the lock across plan and apply while each API call it
+        # makes takes it again.
+        db = Mock(db_directory=tmp_path)
+        with patch("rekordbox_edit.api._utils.get_rekordbox_pid", return_value=None):
+            with database_lock(tmp_path, command="convert", timeout=0):
+                with writing(db, "convert"):
+                    pass
+
+    def test_releases_the_lock_when_the_block_raises(self, tmp_path):
+        db = Mock(db_directory=tmp_path)
+        with patch("rekordbox_edit.api._utils.get_rekordbox_pid", return_value=None):
+            with pytest.raises(RuntimeError):
+                with writing(db, "edit"):
+                    raise RuntimeError("boom")
+            with writing(db, "edit"):
+                pass
+
+    def test_a_foreign_holder_is_reported_as_busy(self, tmp_path):
+        db = Mock(db_directory=tmp_path)
+        foreign = FileLock(str(_lock_path(tmp_path)))
+        _lock_path(tmp_path).parent.mkdir(parents=True, exist_ok=True)
+        foreign.acquire(timeout=0)
+        try:
+            with (
+                patch("rekordbox_edit.api._utils.get_rekordbox_pid", return_value=None),
+                patch("rekordbox_edit.api._utils.SCRIPTED_TIMEOUT", 0),
+            ):
+                with pytest.raises(DatabaseBusyError):
+                    with writing(db, "edit"):
+                        pass
+        finally:
+            foreign.release()

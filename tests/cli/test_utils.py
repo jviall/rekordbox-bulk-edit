@@ -236,7 +236,7 @@ class TestWithDatabaseErrorTranslation:
 
     @pytest.fixture(autouse=True)
     def _rekordbox_not_running(self):
-        with patch("rekordbox_edit.cli._utils.get_rekordbox_pid", return_value=None):
+        with patch("rekordbox_edit.api._utils.get_rekordbox_pid", return_value=None):
             yield
 
     def _invoke(self, mock_db_class, mock_edit, error):

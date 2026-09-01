@@ -6,6 +6,7 @@ from rekordbox_edit.api.field_handlers import FIELD_HANDLERS
 from sqlalchemy import text
 
 from rekordbox_edit.query import require_session
+from rekordbox_edit.errors import RekordboxRunningError
 from rekordbox_edit.models import (
     EditRequest,
     EditOp,
@@ -415,3 +416,32 @@ class TestEditStampsUsns:
 
         assert response.result.edits == []
         assert session.execute(self._COUNTER).scalar() == start
+
+
+class TestEditRefusesWhileRekordboxRuns:
+    @patch("rekordbox_edit.api.edit.get_filtered_content")
+    def test_write_is_refused(self, mock_gfc, mock_db, make_djmd_content_item):
+        mock_gfc.return_value.scalars.return_value.all.return_value = [
+            make_djmd_content_item(ID="1", Title="Old")
+        ]
+
+        with patch("rekordbox_edit.api._utils.get_rekordbox_pid", return_value=9):
+            with pytest.raises(RekordboxRunningError):
+                edit(mock_db, EditRequest(field="Title", replace_value="New"))
+
+        mock_db.session.commit.assert_not_called()
+
+    @patch("rekordbox_edit.api.edit.get_filtered_content")
+    def test_dry_run_is_allowed(self, mock_gfc, mock_db, make_djmd_content_item):
+        mock_gfc.return_value.scalars.return_value.all.return_value = [
+            make_djmd_content_item(ID="1", Title="Old")
+        ]
+
+        with patch("rekordbox_edit.api._utils.get_rekordbox_pid", return_value=9):
+            response = edit(
+                mock_db,
+                EditRequest(field="Title", replace_value="New"),
+                dry_run=True,
+            )
+
+        assert len(response.result.edits) == 1

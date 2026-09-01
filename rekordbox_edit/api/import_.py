@@ -9,7 +9,7 @@ from typing import NamedTuple, cast
 from pyrekordbox import Rekordbox6Database
 from pyrekordbox.db6 import tables as tb
 
-from rekordbox_edit.api._utils import _track_from_content, stamp_usns
+from rekordbox_edit.api._utils import _track_from_content, stamp_usns, writing
 from rekordbox_edit.errors import InputError
 from rekordbox_edit.models import (
     ImportOp,
@@ -438,27 +438,30 @@ def import_tracks(
 
     applied: list[ImportOp] = []
     written: list[tb.DjmdContent] = []
-    try:
-        # Relational rows created along the way each take a USN too.
-        incidental: list = []
-        for op, candidate in planned:
-            if op.action == "create":
-                content = _build_content(db, candidate, incidental)
-                applied.append(op.model_copy(update={"id": str(content.ID)}))
-            else:
-                content = existing[candidate.key]
-                applied.append(op)
-            written.append(content)
-            if playlist is not None:
-                db.add_to_playlist(playlist, content)
+    with writing(db, "import"):
+        try:
+            # Relational rows created along the way each take a USN too.
+            incidental: list = []
+            for op, candidate in planned:
+                if op.action == "create":
+                    content = _build_content(db, candidate, incidental)
+                    applied.append(op.model_copy(update={"id": str(content.ID)}))
+                else:
+                    content = existing[candidate.key]
+                    applied.append(op)
+                written.append(content)
+                if playlist is not None:
+                    db.add_to_playlist(playlist, content)
 
-        stamp_usns(db, [*written, *incidental])
-        session.commit()
-        logger.debug(f"import committed {len(applied)} row(s)")
-    except BaseException:
-        logger.error(f"import rolling back after {len(applied)} partial operation(s)")
-        session.rollback()
-        raise
+            stamp_usns(db, [*written, *incidental])
+            session.commit()
+            logger.debug(f"import committed {len(applied)} row(s)")
+        except BaseException:
+            logger.error(
+                f"import rolling back after {len(applied)} partial operation(s)"
+            )
+            session.rollback()
+            raise
 
     tracks = [_track_from_content(content) for content in written]
     return _response(tracks, args.playlist, applied, skipped)

@@ -1,8 +1,10 @@
 import json
 import logging
 import os
+from contextlib import contextmanager
 
 import pytest
+from filelock import FileLock
 
 from rekordbox_edit import locking
 from rekordbox_edit.locking import (
@@ -11,6 +13,29 @@ from rekordbox_edit.locking import (
     _lock_path,
     database_lock,
 )
+
+
+@contextmanager
+def foreign_holder(db_directory, command="convert"):
+    """Hold the lock the way a second rekordbox-edit process would.
+
+    A separate FileLock instance takes its own flock, which is what another
+    process does at the OS level. database_lock's own instances are per-path
+    singletons and so re-enter instead of blocking, which is deliberate but
+    makes them useless for simulating contention.
+    """
+    path = _lock_path(db_directory)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    lock = FileLock(str(path))
+    lock.acquire(timeout=0)
+    _holder_path(path).write_text(
+        json.dumps({"pid": os.getpid(), "command": command, "started": "00:00:00"}),
+        encoding="utf-8",
+    )
+    try:
+        yield path
+    finally:
+        lock.release()
 
 
 class TestLockPath:
@@ -22,11 +47,20 @@ class TestLockPath:
 
 
 class TestDatabaseLock:
-    def test_second_acquisition_raises_while_held(self, tmp_path):
-        with database_lock(tmp_path, command="convert", timeout=0):
+    def test_another_process_is_refused_while_held(self, tmp_path):
+        with foreign_holder(tmp_path):
             with pytest.raises(DatabaseBusyError):
                 with database_lock(tmp_path, command="edit", timeout=0):
                     pass
+
+    def test_nesting_within_one_process_re_enters(self, tmp_path):
+        # A CLI run holds this across plan and apply while each API call it
+        # makes takes it again; only the outermost release frees it.
+        with database_lock(tmp_path, command="convert", timeout=0):
+            with database_lock(tmp_path, command="convert", timeout=0):
+                pass
+        with foreign_holder(tmp_path):
+            pass  # fully released once the outer block exits
 
     def test_lock_is_released_on_exit(self, tmp_path):
         with database_lock(tmp_path, command="convert", timeout=0):
@@ -47,7 +81,7 @@ class TestDatabaseLock:
                 pass
 
     def test_busy_message_names_the_holder(self, tmp_path):
-        with database_lock(tmp_path, command="convert", timeout=0):
+        with foreign_holder(tmp_path, command="convert"):
             with pytest.raises(DatabaseBusyError) as excinfo:
                 with database_lock(tmp_path, command="edit", timeout=0):
                     pass
@@ -56,8 +90,8 @@ class TestDatabaseLock:
         assert '"convert"' in message
 
     def test_busy_message_falls_back_when_holder_unreadable(self, tmp_path):
-        with database_lock(tmp_path, command="convert", timeout=0):
-            _holder_path(_lock_path(tmp_path)).write_text("not json", encoding="utf-8")
+        with foreign_holder(tmp_path) as path:
+            _holder_path(path).write_text("not json", encoding="utf-8")
             with pytest.raises(DatabaseBusyError) as excinfo:
                 with database_lock(tmp_path, command="edit", timeout=0):
                     pass
