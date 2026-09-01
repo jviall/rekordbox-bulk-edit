@@ -56,9 +56,25 @@ def _handle_stdin(args) -> bool:
 
 
 def _validate_scripting_preconditions(
-    print_opt, *, piped_stdin: bool, dry_run: bool, yes: bool
+    print_opt, *, piped_stdin: bool, dry_run: bool, yes: bool, interactive: bool = False
 ) -> None:
-    """Raise UsageError for invalid scripting-mode combinations."""
+    """Raise UsageError for invalid confirmation and scripting combinations.
+
+    --interactive contradicts both of the others: --yes means do not ask, and a
+    dry run applies nothing for a per-item answer to change. Rejecting the
+    combination keeps the flag from being silently discarded, which is what
+    used to happen.
+    """
+    if interactive and yes:
+        raise click.UsageError(
+            "--interactive and --yes are mutually exclusive: one asks about "
+            "every item, the other asks about none"
+        )
+    if interactive and dry_run:
+        raise click.UsageError(
+            "--interactive and --dry-run are mutually exclusive: a dry run "
+            "applies nothing, so there is nothing to confirm"
+        )
     confirmed = dry_run or yes
     if print_opt in SCRIPTING_MODES and not confirmed:
         raise click.UsageError(

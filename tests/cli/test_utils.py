@@ -278,3 +278,47 @@ class TestWithDatabaseErrorTranslation:
         result = self._invoke(mock_db_class, mock_edit, RuntimeError("boom"))
 
         assert isinstance(result.exception, RuntimeError)
+
+
+class TestInteractiveExclusivity:
+    """--interactive used to be discarded in silence whenever --yes or
+    --dry-run was present."""
+
+    @pytest.mark.parametrize(
+        "other,expected",
+        [
+            ("--yes", "asks about none"),
+            ("--dry-run", "nothing to confirm"),
+        ],
+    )
+    def test_interactive_conflicts_are_rejected(self, other, expected):
+        with pytest.raises(click.UsageError, match=expected):
+            _validate_scripting_preconditions(
+                PrintChoice.INFO,
+                piped_stdin=False,
+                dry_run=other == "--dry-run",
+                yes=other == "--yes",
+                interactive=True,
+            )
+
+    def test_interactive_alone_is_fine(self):
+        _validate_scripting_preconditions(
+            PrintChoice.INFO,
+            piped_stdin=False,
+            dry_run=False,
+            yes=False,
+            interactive=True,
+        )
+
+    def test_interactive_cannot_reach_a_scripting_print_mode(self):
+        # Prompts and the machine payload share stdout, so an interactive
+        # scripted run would interleave them. Exclusivity above rules the
+        # combination out before it can be reached.
+        with pytest.raises(click.UsageError, match="requires --dry-run or --yes"):
+            _validate_scripting_preconditions(
+                PrintChoice.IDS,
+                piped_stdin=False,
+                dry_run=False,
+                yes=False,
+                interactive=True,
+            )
