@@ -25,8 +25,8 @@ duration of the write to prevent concurrent writes by other rekordbox-edit proce
 
 ## Errors
 
-Every error these functions raise on purpose descends from
-[`RekordboxEditError`][rekordbox_edit.errors.RekordboxEditError], so one `except` clause covers them.
+Most errors these functions raise descend from
+[`RekordboxEditError`][rekordbox_edit.errors.RekordboxEditError].
 [`InputError`][rekordbox_edit.errors.InputError] also subclasses `ValueError`.
 
 ::: rekordbox_edit.errors

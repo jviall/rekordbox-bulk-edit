@@ -37,7 +37,7 @@ A file already in the library, matched by its resolved, case-insensitive path, i
 
 ## Checks
 
-- Without flags, `import` shows every track it plans to add and asks once before writing; `--interactive` asks about each file separately; `--dry-run` previews without writing; `--yes` confirms the default choice for all prompts without asking. `--interactive` cannot be combined with `--yes` or `--dry-run`.
+- Without flags, `import` shows every track it plans to add and asks once before writing. See [Confirmations](../filtering.md#confirmations) for how `--dry-run`, `--interactive`, and `--yes` change that.
 - A directory argument is walked recursively for audio files. Ran interactively, `import` reports how many files it found and asks before continuing. `--yes` authorizes the walk outright, and is required alongside a non-interactive `--print` mode. `--dry-run` walks without asking, since it writes nothing.
 - **Rekordbox running:** writing while Rekordbox is open risks losing your changes, so `import` will refuse to perform any writes. `--dry-run` is unaffected.
 
