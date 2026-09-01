@@ -86,7 +86,7 @@ def _update_anlz_paths(
 #: row as it stands, under the write lock the statement takes, and RETURNING
 #: hands back the new total, so the claimed block ends there and starts
 #: `count - 1` below it. Nothing is read into Python first, so no other writer
-#: can slip in between.
+#: (Rekordbox) can slip in between.
 _RESERVE_USNS = text(
     "UPDATE agentRegistry SET int_1 = int_1 + :count "
     "WHERE registry_id = 'localUpdateCount' RETURNING int_1"
@@ -104,18 +104,25 @@ def stamp_usns(db: Rekordbox6Database, rows: Sequence[Any]) -> int | None:
     One USN per row, which is likely more than how Rekordbox applies changes,
     because we're not going to bother stamping a commit per column changed.
     """
-    stampable = [row for row in rows if hasattr(row, "rb_local_usn")]
+    USN_COLUMN = "rb_local_usn"
+    stampable = [row for row in rows if hasattr(row, USN_COLUMN)]
+    num_stampable = len(stampable)
+    num_rows = len(rows)
+    if num_stampable < num_rows:
+        logger.warning(
+            f"{num_rows - num_stampable} rows are missing a '{USN_COLUMN}' value and won't get a fresh stamp."
+        )
     if not stampable:
         return None
 
     session = require_session(db)
-    high = session.execute(_RESERVE_USNS, {"count": len(stampable)}).scalar()
-    if high is None:
+    last_usn = session.execute(_RESERVE_USNS, {"count": num_stampable}).scalar()
+    if last_usn is None:
         logger.warning("No localUpdateCount in agentRegistry; leaving USNs unstamped. ")
         return None
 
-    for usn, row in enumerate(stampable, start=high - len(stampable) + 1):
+    for usn, row in enumerate(stampable, start=last_usn - num_stampable + 1):
         row.rb_local_usn = usn
 
-    logger.debug(f"reserved USNs {high - len(stampable) + 1}..{high}")
-    return high
+    logger.debug(f"reserved USNs {last_usn - num_stampable + 1}..{last_usn}")
+    return last_usn
