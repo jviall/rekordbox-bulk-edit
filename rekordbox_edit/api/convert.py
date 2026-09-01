@@ -132,6 +132,12 @@ def _run_ffmpeg(input_path, output_path, output_kwargs: dict, label: str) -> boo
             ffmpeg.input(input_path)
             .output(output_path, **output_kwargs)
             .overwrite_output()
+            # ffmpeg-python leaves the child on the parent's stdin, and ffmpeg
+            # then puts the terminal in non-canonical mode to watch for keys
+            # like "q". Concurrent encodes race on saving and restoring that
+            # state, and the loser restores raw mode, leaving the shell echoing
+            # ^M instead of accepting Enter.
+            .global_args("-nostdin")
             .run(capture_stdout=True, capture_stderr=True)
         )
         logger.debug(f"Conversion to {label} succeeded: {output_path}")
