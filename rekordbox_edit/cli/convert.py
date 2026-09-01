@@ -90,7 +90,13 @@ def convert_command(db, **kwargs):
 
     # Default / interactive: preview first.
     preview = convert(db, args, dry_run=True)
-    _report_skips(preview.result.skipped)
+
+    try:
+        args, preview, named = _prompt_overwrite(db, args, preview)
+    except UserQuit:
+        return
+
+    _report_skips(preview.result.skipped, exclude=named)
 
     if not preview.result.converted:
         logger.info("No files need conversion.")
@@ -160,33 +166,54 @@ def _convert_reporting_partials(
         sys.exit(1)
 
 
-def _report_skips(skipped) -> None:
-    already_target = sum(1 for s in skipped if s.reason == "already_target_format")
-    unsupported = sum(1 for s in skipped if s.reason == "unsupported_source_format")
-    conflicts = sum(1 for s in skipped if s.reason == "output_file_exists")
-    mismatches = sum(1 for s in skipped if s.reason == "codec_mismatch")
-    missing = sum(1 for s in skipped if s.reason == "file_not_found")
-    drifted = sum(1 for s in skipped if s.reason == "db_or_fs_changed")
-    if already_target:
-        logger.warning(f"Skipping {already_target} file(s): already in target format")
-    if unsupported:
-        logger.warning(
-            f"Skipping {unsupported} file(s): unsupported source format "
-            "(only FLAC, ALAC, AIFF, WAV are converted)"
-        )
-    if conflicts:
-        logger.warning(
-            f"Skipping {conflicts} file(s): output exists (use --overwrite to convert)"
-        )
-    if mismatches:
-        logger.warning(
-            f"Skipping {mismatches} file(s): file content does not match its "
-            "Rekordbox file type"
-        )
-    if missing:
-        logger.warning(f"Skipping {missing} file(s): source file is gone")
-    if drifted:
-        logger.warning(f"Skipping {drifted} file(s): changed since the preview")
+def _prompt_overwrite(db, args, preview):
+    """Offer to clobber output files that already exist, which are skipped by
+    default.
+
+    Returns the request and preview to carry forward, and the skip reason this
+    prompt accounted for so the summary does not repeat it. Passing
+    `--overwrite` answers the question up front, so no prompt appears.
+    """
+    if args.overwrite:
+        return args, preview, frozenset()
+    conflicts = [s for s in preview.result.skipped if s.reason == "output_file_exists"]
+    if not conflicts:
+        return args, preview, frozenset()
+
+    logger.info(
+        f"{len(conflicts)} file(s) already have a {args.format_out.upper()} file "
+        "at the path this would write."
+    )
+    if not confirm(
+        f"Overwrite {len(conflicts)} existing output file(s)?", default=False
+    ):
+        return args, preview, frozenset({"output_file_exists"})
+
+    args = args.model_copy(update={"overwrite": True})
+    return args, convert(db, args, dry_run=True), frozenset()
+
+
+#: How each skip reason reads as a one-line summary, so a run that converted 4
+#: of the 30 files a filter matched accounts for the other 26.
+_SKIP_MESSAGES: dict[str, str] = {
+    "already_target_format": "already in target format",
+    "unsupported_source_format": (
+        "unsupported source format (only FLAC, ALAC, AIFF, WAV are converted)"
+    ),
+    "output_file_exists": "output exists (use --overwrite to convert)",
+    "codec_mismatch": "file content does not match its Rekordbox file type",
+    "file_not_found": "source file is gone",
+    "db_or_fs_changed": "changed since the preview",
+}
+
+
+def _report_skips(skipped, *, exclude: frozenset[str] = frozenset()) -> None:
+    for reason, message in _SKIP_MESSAGES.items():
+        if reason in exclude:
+            continue
+        count = sum(1 for s in skipped if s.reason == reason)
+        if count:
+            logger.warning(f"Skipping {count} file(s): {message}")
 
 
 def _print_convert_result(

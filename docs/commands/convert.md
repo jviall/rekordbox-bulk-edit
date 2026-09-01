@@ -7,7 +7,7 @@ Convert audio files between formats and update the Rekordbox database to point a
 - **Input:** FLAC, AIFF, WAV (hi-res formats only — lossy-compressed sources are skipped)
 - **Output:** AIFF (default), FLAC, WAV, or MP3 (320kbps CBR)
 
-Tracks already in the target format are skipped, as are tracks whose output file already exists (override with `--overwrite`).
+Tracks already in the target format are skipped. So are tracks whose output file already exists: `convert` counts them and asks whether to overwrite, defaulting to no. `--overwrite` answers that up front and no prompt appears, while `--yes` takes the default and leaves them skipped.
 
 ## Bit Depth and Sample Rate
 
