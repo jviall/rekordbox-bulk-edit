@@ -7,8 +7,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
-import click
 from platformdirs import PlatformDirs
+from rich.console import Console
 
 from rekordbox_edit._click import PrintChoice
 
@@ -22,20 +22,35 @@ _console_handler: Optional["ConsoleLogHandler"] = None
 _debug_file_path: Path = _APP_DIR / LOG_FILE_NAME
 
 
+#: Console for log output. Kept apart from `display.console`, which records
+#: renderables so tables can be copied into the debug log; log lines already
+#: reach that log through the file handler, and recording them again would
+#: duplicate every one of them.
+#:
+#: `soft_wrap` keeps long paths on one line, as the previous click.echo did.
+#: Rich would otherwise wrap them at the terminal width.
+console = Console(soft_wrap=True)
+
+_LEVEL_STYLES = {
+    logging.CRITICAL: "bold red",
+    logging.ERROR: "red",
+    logging.WARNING: "yellow",
+}
+
+
 class ConsoleLogHandler(logging.Handler):
-    """Custom logging handler that outputs to Click with styling."""
+    """Logging handler that writes console output through rich."""
 
     def emit(self, record):
         try:
-            msg = self.format(record)
-            if record.levelno >= logging.CRITICAL:
-                click.echo(click.style(msg, fg="red", bold=True))
-            elif record.levelno >= logging.ERROR:
-                click.echo(click.style(msg, fg="red"))
-            elif record.levelno >= logging.WARNING:
-                click.echo(click.style(msg, fg="yellow"))
-            else:
-                click.echo(msg)
+            style = next(
+                (s for lvl, s in _LEVEL_STYLES.items() if record.levelno >= lvl),
+                None,
+            )
+            # markup=False because rich would read a bracketed run as a style
+            # tag and drop it: a track named "Set [b].wav" would otherwise log
+            # as "Set .wav".
+            console.print(self.format(record), style=style, markup=False)
         except Exception:
             self.handleError(record)
 
