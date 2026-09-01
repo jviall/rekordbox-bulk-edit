@@ -15,7 +15,7 @@ rbe edit [OPTIONS] [TRACK-IDS]... FIELD
 rbe edit --exact-title "Untitled 3" Title --replace "Acid Rain"
 
 # Fix a typo across many titles (substring replacement)
-rbe edit --title "Teh" Title --match "Teh" --replace "The" --multi
+rbe edit --title "Teh" Title --match "Teh" --replace "The"
 ```
 
 ## FolderPath
@@ -36,7 +36,7 @@ By default edits will be skipped in the following cases:
 
 ```bash
 # Relocate a library folder in bulk
-rbe edit FolderPath --match "/Volumes/OldDrive/Music" --replace "/Volumes/NewDrive/Music" --multi
+rbe edit FolderPath --match "/Volumes/OldDrive/Music" --replace "/Volumes/NewDrive/Music"
 
 # Point one track at a replacement file
 rbe edit --exact-title "Acid Rain" FolderPath --replace "/Users/me/Music/acid-rain-remaster.flac"
@@ -44,19 +44,19 @@ rbe edit --exact-title "Acid Rain" FolderPath --replace "/Users/me/Music/acid-ra
 
 ## Checks
 
-- Without flags, `edit` shows every planned change and asks once before applying. `--interactive` confirms each track individually; `--dry-run` previews without writing; `--yes` confirms the default choice for all prompts without asking.
+- Without flags, `edit` shows every planned change and asks once before applying. `--interactive` confirms each track individually; `--dry-run` previews without writing; `--yes` confirms the default choice for all prompts without asking. `--interactive` cannot be combined with `--yes` or `--dry-run`.
 - `edit` writes exactly the tracks the preview showed. If in between the time you're prompted and later confirm a new track that matches your filters lands in your library, it won't be included. A track whose file changed in that window is skipped rather than written with stale metadata.
-- When filters match more than one track, `edit` refuses unless you pass `--multi`. This prevents an mistakenly broad filter from making unintended edits across your library.
-- **Rekordbox running:** writing while Rekordbox is open risks losing your changes, so `edit` refuses to run until you close it. `--dry-run` still works.
+- When filters match more than one track, an unattended run refuses unless you pass `--multi`. This prevents a mistakenly broad filter from editing across your library with nobody watching. A run that shows you the tracks and waits for an answer does not need the flag, so `--dry-run` and `--interactive` are unaffected.
+- **Rekordbox running:** writing while Rekordbox is open risks losing your changes, so `edit` refuses at the point it would write. The preview still runs, so an interactive run reports the refusal after you confirm. `--dry-run` is unaffected.
 
 ## Examples
 
 ```bash
 # Preview a cleanup without touching the database
-rbe edit --title "(Original Mix)" Title --match " (Original Mix)" --replace "" --multi --dry-run
+rbe edit --title "(Original Mix)" Title --match " (Original Mix)" --replace "" --dry-run
 
 # Apply it, confirming each track
-rbe edit --title "(Original Mix)" Title --match " (Original Mix)" --replace "" --multi --interactive
+rbe edit --title "(Original Mix)" Title --match " (Original Mix)" --replace "" --interactive
 
 # Pipe a search result in and edit those exact tracks
 rbe search --playlist "Mislabeled" --print ids | rbe edit Title --match "  " --replace " " --multi --yes
