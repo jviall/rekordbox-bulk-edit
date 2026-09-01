@@ -20,17 +20,17 @@ rbe edit --title "Teh" Title --match "Teh" --replace "The"
 
 ## FolderPath
 
-`FolderPath` repoints a track at an audio file on disk. Because the database row carries more than the path, the edit keeps the dependent columns consistent:
+`FolderPath` repoints a track at an audio file on disk. Because several other columns are implicitly based on this path and other file metadata, the edit keeps these dependent columns consistent:
 
 - `FileNameL` always matches the new path's file name, and `OrgFolderPath` is updated when it matched the old path.
 - When the new file's size differs from the recorded `FileSize`, the file is probed and all of `FileType`, `SampleRate`, `BitDepth`, `BitRate`, `FileSize`, and `Length` are rewritten to match it.
-- When the file name changes, the `PPTH` path tag inside the track's analysis (ANLZ) files is rewritten to match. All other analysis data is preserved.
+- When the file name changes, the `PPTH` path tag inside the track's analysis (ANLZ) files is rewritten to match. All other analysis data is left alone.
 
 By default edits will be skipped in the following cases:
 
 - The new path's file does not exist.
 - The new path points to a file whose duration doesn't match what's in rekordbox _and_ the track has cues or an analysis, since those are time-indexed and would land misaligned.
-- The file's format is one Rekordbox doesn't support--always skipped.
+- The file's format is one Rekordbox doesn't support--this is always skipped.
 
 `edit` lists the held-back tracks and asks once whether to include them. Providing the `--yes` flag will skip them without prompting whereas `--force` edit them anyway. Including a missing file writes only the path columns.
 

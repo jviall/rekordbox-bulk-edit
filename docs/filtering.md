@@ -1,6 +1,6 @@
 # Filtering
 
-Every command supports filtering by all of the [`FilterArgs`][rekordbox_edit.models.FilterArgs]. The filters determine which tracks a command operates on.
+Most commands support filtering by all of the [`FilterArgs`][rekordbox_edit.models.FilterArgs]. The filters determine which Rekordbox tracks a command operates on.
 
 ## Filter Options
 
