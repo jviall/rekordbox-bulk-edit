@@ -8,7 +8,7 @@ import pytest
 from platformdirs import PlatformDirs
 
 import rekordbox_edit.logger as rbe_logger
-from rekordbox_edit._click import PrintChoice
+from rekordbox_edit.logger import PrintChoice
 from rekordbox_edit.logger import get_debug_file_path, set_level, setup_logging
 
 

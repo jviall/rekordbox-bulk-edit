@@ -1,18 +1,11 @@
-from enum import Enum
+"""Click option and argument definitions shared by the commands."""
+
 from pathlib import Path
 
 import click
 
+from rekordbox_edit.logger import PrintChoice
 from rekordbox_edit.models import DEFAULT_THREADS
-
-
-class PrintChoice(Enum):
-    SILENT = 0
-    IDS = 1
-    INFO = 2
-    DEBUG = 3
-    JSON = 4
-
 
 print_option = click.option(
     "--print",
@@ -167,7 +160,7 @@ edit_click_options = [
     click.option(
         "--multi",
         is_flag=True,
-        help="Allow editing more than one track (required when filters match multiple tracks)",
+        help="Allow editing more than one track (required when --yes applies a filter matching several)",
     ),
     click.option(
         "--force",

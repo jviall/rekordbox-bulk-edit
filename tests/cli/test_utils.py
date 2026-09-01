@@ -5,7 +5,7 @@ import pytest
 
 from click.testing import CliRunner
 
-from rekordbox_edit._click import PrintChoice
+from rekordbox_edit.logger import PrintChoice
 from rekordbox_edit.cli.edit import edit_command
 from rekordbox_edit.errors import (
     DatabaseBusyError,
