@@ -1,3 +1,203 @@
+## v0.11.0 (2026-09-02)
+
+
+- feat(convert)!: require --format-out
+- BREAKING CHANGE: --format-out and ConvertRequest.format_out no longer
+default to aiff. A run that picked its own target format was a guess at
+what the caller wanted.
+- docs: state what --yes means in one place
+- The rule is that --yes takes the default answer to every prompt, and that a
+gate's default is no. Each command page now links to it rather than
+restating it.
+- feat(convert): ask before overwriting existing output files
+- Existing output files were skipped with only a warning count, so a run could
+pass over them without the user noticing. The prompt defaults to no, and
+--overwrite answers it up front.
+- feat(convert)!: default --delete-originals to none
+- BREAKING CHANGE: the default changes from lossless to none. Deleting a
+source file now takes an explicit --delete-originals on the command line,
+so `rbe convert --yes` no longer removes originals nobody asked it to.
+- feat(edit)!: replace --force with --allow-missing and --allow-mismatch
+- BREAKING CHANGE: --force and EditRequest.force are replaced by one flag per
+gate, --allow-missing and --allow-mismatch, so authorizing a path with no
+file behind it no longer also authorizes cues landing misaligned.
+FieldHandler.forceable_skip_reasons becomes gated_skip_reasons, mapping each
+reason to the request field that lifts it.
+- refactor(edit)!: drop --multi
+- BREAKING CHANGE: --multi is removed, along with EditRequest.multi and the
+API guard behind it. --yes alone authorizes an edit across every matched
+track, and an API caller has dry_run to inspect a plan first.
+- docs: rewordings
+- docs: reword the write guards and skip reasons
+- One skip message was keyed on "length_mismatch (override with --force)",
+which no SkippedTrack.reason can equal, so that reason went unreported. The
+suffix belongs in the message. A test now asserts every key is a SkipReason.
+- refactor(cli): move _click into the cli package
+- Only cli modules imported it, but it sat at the package root. PrintChoice
+went to logger.py, whose set_level is its real consumer and which is not a
+click construct, so no root module now imports click or the cli package.
+- fix(edit): report the tracks it passed over
+- edit named skipped tracks in no code path: the held-back message sat after
+the --yes branch had already returned, and _print_edit_result counted only
+what it applied. A filter matching 30 tracks and editing 4 looked like it
+found 4. convert and import already did this.
+- feat(import): add --interactive, and let --dry-run walk directories
+- import was the only write command without per-item confirmation. Its walk
+gate also treated --dry-run as unauthorized, so previewing a directory was
+refused even though it writes nothing and previewing is how you inspect what
+a walk covers.
+- A newly created track placed in a playlist stays one op, so it asks once.
+- docs: match the guard and multi-flag changes
+- The refusal now fires where the write happens rather than before the
+preview, and --multi is only required of an unattended run, so the examples
+that paired it with --dry-run or an interactive run no longer need it.
+- fix(cli): reject --interactive alongside --yes or --dry-run
+- Both commands branched on `yes or dry_run` and returned before reading
+interactive, so the flag was discarded without a word. The scripting-mode
+error compounded it by advising --yes, which is what threw it away.
+- fix(edit): scope the multi guard to the unattended path
+- A dry run writes nothing, so refusing to preview a bulk edit contradicted
+the guard's own advice to inspect with one first, and it blocked
+--interactive: that path previews before prompting, so it could never reach
+the per-track confirmation it exists for. --yes and a one-shot edit() still
+need multi.
+- feat(api): guard writes in the API rather than the CLI
+- The refusal to write while Rekordbox is open, and the single-writer lock,
+were both CLI-only: any Python caller wrote underneath a running Rekordbox
+and could interleave with another process. Each write function now enters
+through writing(), and the advisory lock is re-entrant so the CLI's
+whole-run lock still nests around it.
+- A preview reaches neither check, so an interactive run refuses at the apply
+pass instead of before the preview.
+- fix(convert): report a missing FFmpeg as a missing dependency
+- convert() raised a bare RuntimeError, so main() logged it as an unhandled
+exception and asked the user to file a bug for an empty PATH. The edit path
+failed differently: FolderPathField swallowed the probe error and reported
+every track as unknown_file_type. Both now reach require_ffmpeg, the single
+presence check.
+- refactor(errors): give the API one exception hierarchy
+- Bad input, a missing dependency, and an aborted write each had their own
+unrelated base, so a caller could not catch one type and every command
+repeated its own translation. with_database now owns the mapping to exit
+codes, and confirm/UserQuit move to the CLI, leaving the shared layer free
+of click.
+- docs: note that the write pass applies only the previewed ops
+- test(query): cover find_content_by_ids
+- feat(import): import the ops the user approved
+- The write pass re-walked every requested directory, so a file created
+during the confirmation prompt was imported having never been previewed.
+It now takes the previewed ops, which also retires the second directory
+gate. _narrow_to_track_ids goes with it, unused now that interactive
+selection filters the op list directly.
+- feat(convert): convert the ops the user approved
+- The apply pass re-ran the filter and classifier, so a track that started
+matching during the confirmation prompt joined the batch unpreviewed. It
+now takes the previewed ops and re-checks each op's source and output
+paths, reporting a change as filesystem_changed.
+- feat(edit): apply the ops the user approved
+- The apply pass took the filter args and re-ran the query and classifier,
+so a row that started matching during the confirmation prompt joined the
+edit unpreviewed. It now takes the previewed ops, loads those rows by ID,
+and reports an op whose file changed as filesystem_changed.
+- fix(edit): guard the apply pass against usage errors and stale probes
+- The --multi guard can fire on the apply pass, where it reached the
+unhandled-exception handler. FolderPathField's probe cache is a
+module-scope singleton's state and outlived its request.
+- refactor(api): name the reserved USN block's upper bound
+- docs: update docs on USN reservation
+- fix(cli): refuse to write while Rekordbox is running
+- Rekordbox holds rows in memory and can write its own copy back over
+ours, so the "Continue anyway?" prompt offered a choice nobody can make
+safely. Dry runs still run: they write nothing.
+- fix: stamp all edited/converted/imported rows with a USN
+- - convert: per-file commits mean per-file stamps, so an interrupted batch leaves
+  every committed row correctly stamped.
+- - import: Artist, album, genre, and label rows created along the way take one
+  each. They are collected as they are made: add_content flushes, which
+  moves them out of session.new first.
+- fix(api): add USN stamping, wired to nothing yet
+- Reserves a block of counter values in one expression UPDATE rather than
+reading the counter and writing it back. Rekordbox writes to the same
+counter, so the naive shape loses increments silently.
+- chore(cli): Add thematic colors to console output
+- feat(convert): show a live progress display while encoding
+- A line per file in flight, capped by --threads, above an overall bar.
+Files spin rather than fill: ffmpeg reports twice a second and a track
+encodes in about two, so a per-file percentage would show three frames.
+Suppressed in scripting modes and when stdout is not a terminal.
+- refactor(logger): route console output through rich
+- Log lines and rich tables now share one renderer. Markup is disabled
+because rich reads a bracketed run as a style tag: a track named
+"Set [b].wav" would otherwise log as "Set .wav".
+- fix(convert): print the batch summary once
+- Both the API and the CLI logged "Converted N files to X", so an
+interactive run showed it twice. The API keeps its debug line; the
+user-facing summary belongs to the caller.
+- fix(convert): keep ffmpeg off the terminal with -nostdin
+- ffmpeg puts the tty in non-canonical mode to watch for keys like "q".
+Concurrent encodes race on saving and restoring that state, and the loser
+restores raw mode, leaving the shell echoing ^M instead of accepting
+Enter. One encode never showed it; four reproduce it every time.
+- docs: measure how convert scales across output formats
+- Uncompressed output is not disk-bound as assumed. ffmpeg already threads
+the decode, so the gain from --threads is the spare cores divided by
+those a single conversion already uses.
+- chore: update codecov config
+- docs(convert): document --threads and the result ordering
+- feat(convert): print progress on completion and report an interrupt
+- With several encodes in flight, a line printed at dispatch names a file
+that is not the one being worked on next. Ctrl-C now says what it kept.
+- feat(convert): add --threads to encode files concurrently
+- Defaults to min(4, cpu_count): MP3 and FLAC output scale well across
+files, while WAV and AIFF output is close to pure I/O and can get slower
+under concurrency on the external drives DJs keep libraries on.
+- refactor(convert): drain encodes through a thread pool
+- Fixed at one worker, so behavior is unchanged. Results are drained in
+submission order rather than completion order, and only as many jobs run
+ahead of the drain point as the pool is wide, so an abort cannot burn the
+whole batch's CPU first.
+- refactor(convert): snapshot each encode's inputs into a plain job
+- The encode half now takes values copied off the content row rather than
+the row itself, so it can move onto a worker thread without reaching
+back into a session that is not thread-safe.
+- docs: record how master.db behaves under concurrent access
+- Covers WAL mode, why a read opens no transaction, and how the identity
+map hides fresh data, then applies it to the plan-apply window and to
+maintaining the USN counter. Includes a glossary of the database terms.
+- refactor(cli): pass confirmation flags to the scripting guard directly
+- The guard read them off an object, so every caller built a throwaway class
+to carry two booleans it already had as locals.
+- refactor(convert): drop the record-update wrapper
+- The probe and apply halves are called directly. The wrapper only chained
+them and rebuilt a path the caller already had.
+- docs(convert): describe what an interrupted run leaves behind
+- feat(convert): report converted, failed, and unattempted counts on abort
+- A stopped batch leaves real committed work, so it exits through a plain
+error naming the failed file rather than through the crash handler.
+- feat(convert): commit each conversion in its own transaction
+- An interrupted run now leaves the database describing exactly the files
+that converted, and each original is deleted right after its own commit,
+so peak disk stays flat instead of doubling. ConvertAborted carries the
+converted, failed, and not-attempted counts to the caller.
+- feat(convert): encode to a temp file and move it into place
+- A hard kill now leaves a recognizable orphan rather than a truncated file
+at the path the database points at. Each run sweeps the destination
+directories it is about to write to.
+- refactor(convert): split the record update into probe and apply halves
+- The probe half reads the converted file without touching the session, so
+it can move onto a worker thread when encoding goes parallel. Passing the
+content row in retires a redundant re-query.
+- fix(locking): raise the scripted lock wait to 30 seconds
+- Also corrects the FAQ, which read as a blanket block on concurrent runs.
+- feat(cli): serialize write commands behind a single-writer lock
+- Write commands hold an advisory file lock on the database directory for
+their whole run. Interactive runs fail immediately when it is held;
+--yes runs wait five seconds. Dry runs and search never take it.
+- Also sets PRAGMA busy_timeout so a write contended by Rekordbox itself
+waits rather than raising OperationalError.
+- chore(deps): update dependency platformdirs to v4.11.5 (#193)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+
 ## v0.10.0 (2026-08-30)
 
 
