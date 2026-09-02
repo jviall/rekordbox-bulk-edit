@@ -89,23 +89,17 @@ All commands take `--print [silent|ids|info|debug|json]`:
 
 ## Confirmations
 
-Every command that writes previews its plan and asks before applying it. Three flags change that, and they mean the same thing in `edit`, `convert`, and `import`:
+Every command that writes previews its plan and asks before applying it. You can change this behavior by providing one of:
 
 - `--dry-run` prints the plan and stops. Nothing is written.
 - `--interactive` (`-i`) asks about each item separately rather than once about the whole plan. It cannot be combined with `--yes` or `--dry-run`.
-- `--yes` (`-y`) takes the default answer to every prompt instead of asking.
+- `--yes` (`-y`) approves the plan and other prompts without asking.
 
-The last one is worth stating precisely, because `--yes` is not "say yes to everything." A few prompts guard a specific risky condition, and those default to **no**:
+!!! note
 
-| Prompt | Default | Flag that authorizes it |
-|---|---|---|
-| Write a `FolderPath` with no file behind it | no | `--allow-missing` |
-| Write a `FolderPath` whose duration contradicts the stored length | no | `--allow-mismatch` |
-| Overwrite an output file that already exists | no | `--overwrite` |
+    Command-specific guards require providing their corresponding flag to override their default behavior. For example, providing `--yes` to the convert command will not overwrite existing files unless you explicitly provide the `--overwrite` flag.
 
-So `rbe edit FolderPath --replace /new/path --yes` skips the tracks whose new path does not exist and reports them; adding `--allow-missing` is what writes them. Passing one of these flags also answers its question up front, so the prompt does not appear in an interactive run either.
-
-Every item a command passes over is accounted for by reason when the run finishes, whether a gate held it back or a filter matched a track that needed no change.
+For every command, if a check decides to skip them, the corresponding operation will be returned in the response with an explanatory [SkipReason](api.md#rekordbox_edit.models.SkipReason).
 
 ## Scripting and Piping
 
@@ -113,7 +107,7 @@ Every item a command passes over is accounted for by reason when the run finishe
 
 ```bash
 # Convert all of the items found by the initial search command
-rbe search --artist "Lauryn Hill" --print ids | rbe convert --yes
+rbe search --artist "Lauryn Hill" --print ids | rbe convert --format-out aiff --yes
 ```
 
 **OR between AND-groups** — merge results from two commands using a subshell:

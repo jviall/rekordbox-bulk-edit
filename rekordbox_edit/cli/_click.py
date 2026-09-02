@@ -130,7 +130,7 @@ yes_option = click.option(
     "--yes",
     "-y",
     is_flag=True,
-    help="Take the default answer to every confirmation prompt instead of asking. Prompts guarding a risky condition default to no, so --yes leaves those items out unless the flag naming that condition is also passed",
+    help="Accept the command's plan without asking. Per-command guards require their corresponding flag to override.",
 )
 
 interactive_option = click.option(
@@ -191,8 +191,8 @@ convert_click_options = [
     click.option(
         "--format-out",
         type=click.Choice(["aiff", "flac", "wav", "mp3"], case_sensitive=False),
-        default="aiff",
-        help="Output format (default: aiff)",
+        required=True,
+        help="Format to convert to",
     ),
 ]
 

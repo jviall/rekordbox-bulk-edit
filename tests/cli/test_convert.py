@@ -43,6 +43,19 @@ def _response(tracks=None, converted=None, deleted=0, skipped=None, format_out="
 class TestConvertCommand:
     @patch("rekordbox_edit.cli.convert.convert")
     @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
+    def test_format_out_is_required(self, mock_db_class, mock_convert):
+        # Without it a bare `rbe convert --yes` would pick a target format on
+        # the user's behalf and re-encode the library into it.
+        mock_db_class.return_value = Mock(session=Mock())
+
+        result = CliRunner().invoke(convert_command, ["--yes"])
+
+        assert result.exit_code != 0
+        assert "--format-out" in result.output
+        mock_convert.assert_not_called()
+
+    @patch("rekordbox_edit.cli.convert.convert")
+    @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
     @patch("rekordbox_edit.api._utils.get_rekordbox_pid", return_value=None)
     def test_yes_calls_convert_once(self, _pid, mock_db_class, mock_convert):
         mock_db_class.return_value = Mock(session=Mock())

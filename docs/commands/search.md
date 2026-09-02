@@ -15,7 +15,7 @@ rbe search --playlist "Techno" --print ids
 rbe search --playlist "Techno" --format flac --match-any
 
 # Feed results to another command
-rbe search --artist "Lauryn Hill" --print ids | rbe convert --yes
+rbe search --artist "Lauryn Hill" --print ids | rbe convert --format-out aiff --yes
 ```
 
 See [Filtering](../filtering.md) for the full filter language and piping recipes.

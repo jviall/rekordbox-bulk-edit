@@ -101,7 +101,9 @@ DEFAULT_THREADS = min(4, os.cpu_count() or 1)
 class ConvertRequest(FilterArgs):
     """Inputs for convert(): the shared track filters plus output format and original-file handling."""
 
-    format_out: str = "aiff"
+    format_out: str
+    """The target format. Required: a conversion that picked its own output
+    format would be a guess at what the caller wanted."""
     delete_originals: DeleteOriginalsMode = "none"
     """When to delete original files after conversion: "none" (the default)
     never deletes them, "all" always deletes them, and "lossless" deletes them

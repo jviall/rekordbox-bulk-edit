@@ -30,8 +30,6 @@ Most errors these functions raise descend from
 [`InputError`][rekordbox_edit.errors.InputError] also subclasses `ValueError`.
 
 ::: rekordbox_edit.errors
-options:
-heading_level: 3
 
 ## Functions
 
@@ -48,83 +46,47 @@ heading_level: 3
 The models form three layers: the [`FilterArgs`][rekordbox_edit.models.FilterArgs] base that every command shares, the per-command requests and responses, and the lower-level domain types those req/resp models are built from.
 
 ::: rekordbox_edit.models.FilterArgs
-options:
-heading_level: 3
 
 ### Search
 
 ::: rekordbox_edit.models.SearchRequest
-options:
-heading_level: 4
 
 ::: rekordbox_edit.models.SearchResponse
-options:
-heading_level: 4
 
 ### Edit
 
 ::: rekordbox_edit.models.EditRequest
-options:
-heading_level: 4
 
 ::: rekordbox_edit.models.EditResponse
-options:
-heading_level: 4
 
 ::: rekordbox_edit.models.EditResult
-options:
-heading_level: 4
 
 ### Convert
 
 ::: rekordbox_edit.models.ConvertRequest
-options:
-heading_level: 4
 
 ::: rekordbox_edit.models.ConvertResponse
-options:
-heading_level: 4
 
 ::: rekordbox_edit.models.ConvertResult
-options:
-heading_level: 4
 
 ### Import
 
 ::: rekordbox_edit.models.ImportRequest
-options:
-heading_level: 4
 
 ::: rekordbox_edit.models.ImportResponse
-options:
-heading_level: 4
 
 ::: rekordbox_edit.models.ImportResult
-options:
-heading_level: 4
 
 ### Miscellaneous
 
 ::: rekordbox_edit.models.Track
-options:
-heading_level: 4
 
 ::: rekordbox_edit.models.EditOp
-options:
-heading_level: 4
 
 ::: rekordbox_edit.models.ConvertOp
-options:
-heading_level: 4
 
 ::: rekordbox_edit.models.ImportOp
-options:
-heading_level: 4
 
 ::: rekordbox_edit.models.SkippedTrack
-options:
-heading_level: 4
 
 ::: rekordbox_edit.models.SkipReason
-options:
-heading_level: 4

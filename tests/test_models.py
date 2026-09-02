@@ -112,6 +112,10 @@ class TestConvertRequest:
         assert args.delete_originals == "none"
         assert args.artist == ["X"]
 
+    def test_format_out_is_required(self):
+        with pytest.raises(ValidationError):
+            ConvertRequest()  # ty: ignore[missing-argument]  # missing format_out
+
 
 class TestSkippedTrack:
     def test_known_reasons_accepted(self):
