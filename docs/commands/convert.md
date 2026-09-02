@@ -5,9 +5,9 @@ Convert audio files between formats and update the Rekordbox database to point a
 ## Supported Formats
 
 - **Input:** FLAC, AIFF, WAV (hi-res formats only — lossy-compressed sources are skipped)
-- **Output:** AIFF (default), FLAC, WAV, or MP3 (320kbps CBR)
+- **Output:** AIFF, FLAC, WAV, or MP3 (320kbps CBR), chosen with the required `--format-out`
 
-Tracks already in the target format are skipped. So are tracks whose output file already exists: `convert` counts them and asks whether to overwrite, defaulting to no. `--overwrite` answers that up front and no prompt appears, while `--yes` takes the default and leaves them skipped.
+Tracks already in the target format are skipped. So are tracks whose output file already exists: `convert` counts them and asks whether to overwrite, defaulting to no. `--yes` will skip these without asking, whereas `--overwrite` will overwrite them without asking.
 
 ## Bit Depth and Sample Rate
 
@@ -24,8 +24,6 @@ All conversions target **16-bit / 44.1 kHz**, with a few nuances:
 - `none` (default) — never delete the original
 - `lossless` — delete the original only when the conversion lost no audio information; keep it when the conversion was lossy (MP3 output or down-sampled hi-res output)
 - `all` — always delete the original
-
-Deleting a source file is not something a run should do unless you asked for it, so the default keeps every original and you opt in per run.
 
 ## Converting Several Files at Once
 
@@ -60,7 +58,7 @@ rbe convert --format-out aiff --format flac --yes --delete-originals lossless
 rbe convert --format-out aiff --format flac --print ids --dry-run
 
 # Convert everything a search finds
-rbe search --artist "Lauryn Hill" --print ids | rbe convert --yes
+rbe search --artist "Lauryn Hill" --print ids | rbe convert --format-out aiff --yes
 
 # Max out your CPU to handle a batch of MP3s
 rbe convert --format-out mp3 --playlist "NeedsConverting" --threads 8 --yes

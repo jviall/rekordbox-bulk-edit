@@ -50,7 +50,7 @@ Convert audio files:
 
 ```bash
 # Preview what would be converted
-rbe convert --artist "Daft Punk" --dry-run
+rbe convert --artist "Daft Punk" --format-out aiff --dry-run
 
 # Convert all FLAC or WAV files to AIFF without confirming
 rbe convert --format flac --format wav --format-out aiff --yes
