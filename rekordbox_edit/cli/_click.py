@@ -76,14 +76,14 @@ global_click_filters = [
         "--path",
         type=str,
         multiple=True,
-        help="Find tracks whose file paths contain this value (case-insensitive)",
+        help="Find tracks whose file paths contain this value",
     ),
     click.option(
         "--resolved-path",
         type=str,
         multiple=True,
         help="Find tracks whose file paths contain this value after it is "
-        "resolved to an absolute path (case-insensitive)",
+        "resolved to an absolute path",
     ),
     click.option(
         "--format",
@@ -98,13 +98,13 @@ global_click_filters = [
         "--first",
         type=click.IntRange(min=1),
         default=None,
-        help="Return only the first N results",
+        help="Return only the first X results",
     ),
     click.option(
         "--last",
         type=click.IntRange(min=1),
         default=None,
-        help="Return only the last N results",
+        help="Return only the last X results",
     ),
     click.option(
         "--match-all",
@@ -196,6 +196,15 @@ convert_click_options = [
     ),
 ]
 
+remove_click_options = [
+    click.option(
+        "--delete-source",
+        is_flag=True,
+        default=False,
+        help=("Permanently delete each track's source audio file from disk."),
+    ),
+]
+
 
 paths_argument = click.argument("paths", type=str, required=True, nargs=-1)
 
@@ -204,7 +213,7 @@ import_command_options = [
         "--to-playlist",
         "playlist",
         default=None,
-        help="Add the tracks to this existing playlist (matched case-insensitively)",
+        help="Add the tracks to this existing playlist",
     ),
 ]
 

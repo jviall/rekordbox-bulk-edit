@@ -58,5 +58,6 @@ nav:
       - edit: commands/edit.md
       - convert: commands/convert.md
       - import: commands/import.md
+      - remove: commands/remove.md
   - FAQs: faqs.md
   - API Reference: api.md
