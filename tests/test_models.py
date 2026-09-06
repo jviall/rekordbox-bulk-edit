@@ -267,7 +267,51 @@ class TestConvertRequest:
 
     def test_format_out_is_required(self):
         with pytest.raises(ValidationError):
-            ConvertRequest()  # ty: ignore[missing-argument]  # missing format_out
+            ConvertRequest(
+                title=["x"],
+            )  # ty: ignore[missing-argument]  # missing format_out
+
+
+class TestWriteRequestsRequireAFilter:
+    """An unfiltered write would match the whole library, and remove() cannot
+    be undone."""
+
+    @pytest.fixture(params=["edit", "convert", "remove"])
+    def build(self, request):
+        """Build the request under test with `filters` and nothing else."""
+        builders = {
+            "edit": lambda **f: EditRequest(field="Title", replace_value="New", **f),
+            "convert": lambda **f: ConvertRequest(format_out="mp3", **f),
+            "remove": lambda **f: RemoveRequest(**f),
+        }
+        return builders[request.param]
+
+    def test_no_filter_is_rejected(self, build):
+        with pytest.raises(ValidationError, match="at least one filter"):
+            build()
+
+    def test_one_filter_is_enough(self, build):
+        assert build(artist=["X"]).artist == ["X"]
+
+    def test_track_ids_count_as_a_filter(self, build):
+        assert build(track_ids=["1"]).track_ids == ["1"]
+
+    def test_a_limit_alone_is_not_a_filter(self, build):
+        """`first` bounds how many tracks a selection returns; it selects none."""
+        with pytest.raises(ValidationError, match="at least one filter"):
+            build(first=10)
+
+    def test_a_match_mode_alone_is_not_a_filter(self, build):
+        with pytest.raises(ValidationError, match="at least one filter"):
+            build(match_any=True)
+
+
+class TestUnfilteredReadsStayAllowed:
+    def test_search_takes_no_filters(self):
+        assert SearchRequest().artist == []
+
+    def test_import_takes_no_filters(self):
+        assert ImportRequest(paths=["/x.mp3"]).paths == ["/x.mp3"]
 
 
 class TestSkippedTrack:
@@ -391,4 +435,9 @@ def test_remove_response_tracks_empty_on_dry_run(make_track):
 
 
 def test_remove_request_defaults_to_keeping_the_source():
-    assert RemoveRequest().delete_source is False
+    assert (
+        RemoveRequest(
+            title=["x"],
+        ).delete_source
+        is False
+    )

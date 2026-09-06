@@ -2,8 +2,9 @@
 
 Three layers:
 
-- **Filter base** (`FilterArgs`) declares track-selection criteria shared by all
-  commands.
+- **Filter bases** (`FilterArgs`, `WriteFilterArgs`) declare track-selection
+  criteria shared by all commands. The write commands extend `WriteFilterArgs`,
+  which additionally requires at least one filter.
 - **API/Command request models** (`SearchRequest`, `EditRequest`, `ConvertRequest`, `ImportRequest`, `RemoveRequest`) extend `FilterArgs`
   with command-specific fields, except `ImportRequest`, which selects paths on
   disk rather than existing rows.
@@ -70,6 +71,35 @@ class FilterArgs(BaseModel):
         return self
 
 
+#: Fields of FilterArgs that bound or combine a selection rather than making
+#: one. Everything else in FilterArgs picks tracks, and so satisfies
+#: WriteFilterArgs.
+_NON_SELECTING_FILTERS = frozenset({"first", "last", "match_all", "match_any"})
+
+
+class WriteFilterArgs(FilterArgs):
+    """Filter base for the commands that change the library, requiring at
+    least one filter that selects tracks.
+
+    An unfiltered write matches the whole library, and `remove` cannot be
+    undone. `first` and `last` bound how many tracks a selection returns
+    rather than selecting any, so neither satisfies the requirement alone.
+    """
+
+    @model_validator(mode="after")
+    def _check_has_selection(self) -> "WriteFilterArgs":
+        if not any(
+            getattr(self, name)
+            for name in FilterArgs.model_fields
+            if name not in _NON_SELECTING_FILTERS
+        ):
+            raise ValueError(
+                "at least one filter is required: an unfiltered write would "
+                "match every track in the library"
+            )
+        return self
+
+
 # ── Command args ──────────────────────────────────────────────────────────
 
 
@@ -77,7 +107,7 @@ class SearchRequest(FilterArgs):
     """Inputs for search(): the shared track filters, with no search-specific fields."""
 
 
-class EditRequest(FilterArgs):
+class EditRequest(WriteFilterArgs):
     """Inputs for edit(): the shared track filters plus the field to change and its new value."""
 
     field: str
@@ -99,7 +129,7 @@ DeleteOriginalsMode: TypeAlias = Literal["none", "lossless", "all"]
 DEFAULT_THREADS = min(4, os.cpu_count() or 1)
 
 
-class ConvertRequest(FilterArgs):
+class ConvertRequest(WriteFilterArgs):
     """Inputs for convert(): the shared track filters plus output format and original-file handling."""
 
     format_out: str
@@ -131,7 +161,7 @@ class ImportRequest(BaseModel):
     from --yes, and from an answered walk prompt."""
 
 
-class RemoveRequest(FilterArgs):
+class RemoveRequest(WriteFilterArgs):
     """Inputs for remove(): which tracks to delete, and whether to unlink their
     source audio files as well."""
 

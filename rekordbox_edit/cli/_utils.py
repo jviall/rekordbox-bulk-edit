@@ -36,8 +36,12 @@ def _build_args(model_cls: type[_ArgsT], kwargs: dict) -> _ArgsT:
         raise click.UsageError("; ".join(err["msg"] for err in e.errors())) from e
 
 
-def _handle_stdin(args) -> bool:
-    """Append track IDs from piped stdin to args.track_ids. Returns True if IDs were piped."""
+def _handle_stdin(kwargs: dict) -> bool:
+    """Append track IDs from piped stdin to kwargs["track_ids"]. Returns True if IDs were piped.
+
+    Runs before the args model is built, so piped IDs count towards the
+    filter a write command requires.
+    """
     if sys.stdin.isatty():
         return False
     # PowerShell pipes data as UTF-8-with-BOM, but Python decodes stdin with the
@@ -46,7 +50,7 @@ def _handle_stdin(args) -> bool:
     tokens = sys.stdin.buffer.read().decode("utf-8-sig", errors="replace").split()
     if not tokens:
         return False
-    args.track_ids = list(args.track_ids) + tokens
+    kwargs["track_ids"] = list(kwargs.get("track_ids") or []) + tokens
     return True
 
 

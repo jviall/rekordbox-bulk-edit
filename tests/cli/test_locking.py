@@ -56,7 +56,9 @@ class TestWriteLock:
         mock_edit.return_value = _response()
 
         with foreign_holder(library, command="convert"):
-            result = CliRunner().invoke(edit_command, ["Title", "--replace", "New"])
+            result = CliRunner().invoke(
+                edit_command, ["Title", "--replace", "New", "--title", "x"]
+            )
 
         assert result.exit_code == 1
         assert "Another rekordbox-edit process" in caplog.text
@@ -73,7 +75,7 @@ class TestWriteLock:
 
         with foreign_holder(library, command="convert"):
             result = CliRunner().invoke(
-                edit_command, ["Title", "--replace", "New", "--dry-run"]
+                edit_command, ["Title", "--replace", "New", "--dry-run", "--title", "x"]
             )
 
         assert result.exit_code == 0
@@ -100,7 +102,9 @@ class TestWriteLock:
         mock_db_class.return_value = Mock(session=Mock(), db_directory=library)
         mock_edit.return_value = _response()
 
-        CliRunner().invoke(edit_command, ["Title", "--replace", "New", "--yes"])
+        CliRunner().invoke(
+            edit_command, ["Title", "--replace", "New", "--yes", "--title", "x"]
+        )
 
         with foreign_holder(library, command="convert"):
             pass
@@ -112,7 +116,9 @@ class TestWriteLock:
     ):
         mock_db_class.return_value = Mock(session=Mock(), db_directory=library)
 
-        CliRunner().invoke(edit_command, ["Title", "--replace", "New", "--yes"])
+        CliRunner().invoke(
+            edit_command, ["Title", "--replace", "New", "--yes", "--title", "x"]
+        )
 
         with foreign_holder(library, command="convert"):
             pass
@@ -128,7 +134,9 @@ class TestWaitBudget:
         mock_db_class.return_value = Mock(session=Mock(), db_directory=library)
         mock_edit.return_value = _response()
 
-        CliRunner().invoke(edit_command, ["Title", "--replace", "New", "--yes"])
+        CliRunner().invoke(
+            edit_command, ["Title", "--replace", "New", "--yes", "--title", "x"]
+        )
 
         assert mock_lock.call_args.kwargs["timeout"] == 30.0
 
@@ -141,7 +149,9 @@ class TestWaitBudget:
         mock_db_class.return_value = Mock(session=Mock(), db_directory=library)
         mock_edit.return_value = _response()
 
-        CliRunner().invoke(edit_command, ["Title", "--replace", "New"], input="n\n")
+        CliRunner().invoke(
+            edit_command, ["Title", "--replace", "New", "--title", "x"], input="n\n"
+        )
 
         assert mock_lock.call_args.kwargs["timeout"] == 0
 
@@ -154,7 +164,9 @@ class TestWaitBudget:
         mock_db_class.return_value = Mock(session=Mock(), db_directory=library)
         mock_edit.return_value = _response()
 
-        CliRunner().invoke(edit_command, ["Title", "--replace", "New", "--yes"])
+        CliRunner().invoke(
+            edit_command, ["Title", "--replace", "New", "--yes", "--title", "x"]
+        )
 
         assert mock_lock.call_args.kwargs["command"] == "edit"
 

@@ -2,6 +2,8 @@
 
 Most commands support filtering by all of the [`FilterArgs`][rekordbox_edit.models.FilterArgs]. The filters determine which Rekordbox tracks a command operates on.
 
+`search` runs unfiltered and returns the whole collection. The commands that write — `edit`, `convert`, and `remove` — require at least one filter, since an unfiltered write would match every track in the library. `--first` and `--last` bound how many tracks a filter returns rather than selecting any, so neither satisfies the requirement on its own.
+
 ## Filter Options
 
 By default any filters provided are grouped by kind: repeating the _same_ filter with different values matches tracks that satisfy _any_ of those values (an OR), while combining _different_ filters narrows to tracks that satisfy every one of them (an AND). Pass `--match-all` to find results that match each and every filter value. Pass `--match-any` to instead match tracks that satisfy any single filter value provided.

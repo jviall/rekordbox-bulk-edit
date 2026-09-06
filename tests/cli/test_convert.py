@@ -56,7 +56,7 @@ class TestConvertCommand:
         # the user's behalf and re-encode the library into it.
         mock_db_class.return_value = Mock(session=Mock())
 
-        result = CliRunner().invoke(convert_command, ["--yes"])
+        result = CliRunner().invoke(convert_command, ["--yes", "--title", "x"])
 
         assert result.exit_code != 0
         assert "--format-out" in result.output
@@ -69,7 +69,9 @@ class TestConvertCommand:
         mock_db_class.return_value = Mock(session=Mock())
         mock_convert.return_value = _response()
 
-        result = CliRunner().invoke(convert_command, ["--format-out", "aiff", "--yes"])
+        result = CliRunner().invoke(
+            convert_command, ["--format-out", "aiff", "--yes", "--title", "x"]
+        )
 
         assert result.exit_code == 0
         mock_convert.assert_called_once()
@@ -82,7 +84,7 @@ class TestConvertCommand:
         mock_convert.return_value = _response()
 
         result = CliRunner().invoke(
-            convert_command, ["--format-out", "aiff", "--dry-run"]
+            convert_command, ["--format-out", "aiff", "--dry-run", "--title", "x"]
         )
 
         assert result.exit_code == 0
@@ -100,7 +102,9 @@ class TestConvertCommand:
             skipped=[SkippedTrack(reason="already_target_format")]
         )
 
-        CliRunner().invoke(convert_command, ["--format-out", "aiff", "--yes"])
+        CliRunner().invoke(
+            convert_command, ["--format-out", "aiff", "--yes", "--title", "x"]
+        )
 
         warnings = [c.args[0] for c in mock_logger.warning.call_args_list]
         assert any("already" in w and "1" in w for w in warnings)
@@ -117,7 +121,9 @@ class TestConvertCommand:
             skipped=[SkippedTrack(reason="output_file_exists")]
         )
 
-        CliRunner().invoke(convert_command, ["--format-out", "aiff", "--yes"])
+        CliRunner().invoke(
+            convert_command, ["--format-out", "aiff", "--yes", "--title", "x"]
+        )
 
         warnings = [c.args[0] for c in mock_logger.warning.call_args_list]
         assert any("--overwrite" in w for w in warnings)
@@ -133,7 +139,9 @@ class TestConvertCommand:
             skipped=[SkippedTrack(reason="unsupported_source_format")]
         )
 
-        CliRunner().invoke(convert_command, ["--format-out", "aiff", "--yes"])
+        CliRunner().invoke(
+            convert_command, ["--format-out", "aiff", "--yes", "--title", "x"]
+        )
 
         warnings = [c.args[0] for c in mock_logger.warning.call_args_list]
         assert any("unsupported" in w.lower() and "1" in w for w in warnings)
@@ -145,7 +153,9 @@ class TestConvertCommand:
         mock_db_class.return_value = Mock(session=Mock())
         mock_convert.return_value = _response(deleted=2)
 
-        CliRunner().invoke(convert_command, ["--format-out", "aiff", "--yes"])
+        CliRunner().invoke(
+            convert_command, ["--format-out", "aiff", "--yes", "--title", "x"]
+        )
 
         mock_logger.info.assert_any_call("Deleted 2 original file(s)")
 
@@ -160,7 +170,7 @@ class TestConvertCommand:
         mock_convert.return_value = _response()
 
         result = CliRunner().invoke(
-            convert_command, ["--format-out", "aiff", "--dry-run"]
+            convert_command, ["--format-out", "aiff", "--dry-run", "--title", "x"]
         )
 
         assert result.exit_code == 0
@@ -175,7 +185,7 @@ class TestConvertCommand:
         ):
             result = CliRunner().invoke(
                 convert_command,
-                ["--format-out", "aiff", "--dry-run", "--print", "ids"],
+                ["--format-out", "aiff", "--dry-run", "--print", "ids", "--title", "x"],
             )
 
         assert result.exit_code == 0
@@ -190,7 +200,8 @@ class TestConvertCommand:
         mock_convert.return_value = _response()
 
         result = CliRunner().invoke(
-            convert_command, ["--format-out", "aiff", "--yes", "--print", "json"]
+            convert_command,
+            ["--format-out", "aiff", "--yes", "--print", "json", "--title", "x"],
         )
 
         assert result.exit_code == 0
@@ -208,7 +219,9 @@ class TestConvertCommand:
         mock_db_class.return_value = Mock(session=Mock())
         mock_convert.return_value = _response()
 
-        result = CliRunner().invoke(convert_command, ["--format-out", "aiff"])
+        result = CliRunner().invoke(
+            convert_command, ["--format-out", "aiff", "--title", "x"]
+        )
 
         assert result.exit_code == 0
         assert mock_convert.call_count == 2
@@ -234,7 +247,9 @@ class TestConvertCommand:
             _response(skipped=live_skips),
         ]
 
-        result = CliRunner().invoke(convert_command, ["--format-out", "aiff"])
+        result = CliRunner().invoke(
+            convert_command, ["--format-out", "aiff", "--title", "x"]
+        )
 
         assert result.exit_code == 0
         warnings = [c.args[0] for c in mock_logger.warning.call_args_list]
@@ -252,7 +267,9 @@ class TestConvertCommand:
         mock_db_class.return_value = Mock(session=Mock())
         mock_convert.return_value = _response()
 
-        result = CliRunner().invoke(convert_command, ["--format-out", "aiff"])
+        result = CliRunner().invoke(
+            convert_command, ["--format-out", "aiff", "--title", "x"]
+        )
 
         assert result.exit_code == 0
         mock_convert.assert_called_once()  # preview only
@@ -269,7 +286,9 @@ class TestConvertCommand:
         mock_db_class.return_value = Mock(session=Mock())
         mock_convert.return_value = _response()
 
-        result = CliRunner().invoke(convert_command, ["--format-out", "aiff"])
+        result = CliRunner().invoke(
+            convert_command, ["--format-out", "aiff", "--title", "x"]
+        )
 
         assert result.exit_code == 0
         mock_convert.assert_called_once()  # preview only
@@ -287,7 +306,9 @@ class TestConvertCommand:
             ),
         )
 
-        result = CliRunner().invoke(convert_command, ["--format-out", "aiff"])
+        result = CliRunner().invoke(
+            convert_command, ["--format-out", "aiff", "--title", "x"]
+        )
 
         assert result.exit_code == 0
         mock_convert.assert_called_once()  # preview only
@@ -318,7 +339,7 @@ class TestConvertCommand:
         mock_confirm.side_effect = [True, False]
 
         result = CliRunner().invoke(
-            convert_command, ["--format-out", "aiff", "--interactive"]
+            convert_command, ["--format-out", "aiff", "--interactive", "--title", "x"]
         )
 
         assert result.exit_code == 0
@@ -352,7 +373,7 @@ class TestConvertCommand:
         mock_confirm.side_effect = [True, UserQuit]
 
         result = CliRunner().invoke(
-            convert_command, ["--format-out", "aiff", "--interactive"]
+            convert_command, ["--format-out", "aiff", "--interactive", "--title", "x"]
         )
 
         assert result.exit_code == 0
@@ -371,7 +392,7 @@ class TestConvertCommand:
         mock_convert.return_value = _response()
 
         result = CliRunner().invoke(
-            convert_command, ["--format-out", "aiff", "--interactive"]
+            convert_command, ["--format-out", "aiff", "--interactive", "--title", "x"]
         )
 
         assert result.exit_code == 0
@@ -393,7 +414,9 @@ class TestPartialBatchReporting:
             not_attempted=3,
         )
 
-        result = CliRunner().invoke(convert_command, ["--format-out", "aiff", "--yes"])
+        result = CliRunner().invoke(
+            convert_command, ["--format-out", "aiff", "--yes", "--title", "x"]
+        )
 
         assert result.exit_code == 1
         messages = " ".join(str(c) for c in mock_logger.error.call_args_list)
@@ -418,7 +441,9 @@ class TestMissingSourceReporting:
         ]
 
         with patch("rekordbox_edit.cli.convert.confirm", return_value=True):
-            result = CliRunner().invoke(convert_command, ["--format-out", "aiff"])
+            result = CliRunner().invoke(
+                convert_command, ["--format-out", "aiff", "--title", "x"]
+            )
 
         assert result.exit_code == 0
         warnings = " ".join(str(c) for c in mock_logger.warning.call_args_list)
@@ -442,7 +467,9 @@ class TestDriftReporting:
             _response(skipped=[SkippedTrack(reason="db_or_fs_changed")]),
         ]
 
-        result = CliRunner().invoke(convert_command, ["--format-out", "aiff"])
+        result = CliRunner().invoke(
+            convert_command, ["--format-out", "aiff", "--title", "x"]
+        )
 
         assert result.exit_code == 0
         warnings = " ".join(str(c) for c in mock_logger.warning.call_args_list)
@@ -458,7 +485,8 @@ class TestThreadsFlag:
         mock_convert.return_value = _response()
 
         result = CliRunner().invoke(
-            convert_command, ["--format-out", "aiff", "--threads", "3", "--yes"]
+            convert_command,
+            ["--format-out", "aiff", "--threads", "3", "--yes", "--title", "x"],
         )
 
         assert result.exit_code == 0
@@ -473,13 +501,16 @@ class TestThreadsFlag:
         mock_db_class.return_value = Mock(session=Mock())
         mock_convert.return_value = _response()
 
-        CliRunner().invoke(convert_command, ["--format-out", "aiff", "--yes"])
+        CliRunner().invoke(
+            convert_command, ["--format-out", "aiff", "--yes", "--title", "x"]
+        )
 
         assert mock_convert.call_args.args[1].threads == DEFAULT_THREADS
 
     def test_zero_threads_is_a_usage_error(self):
         result = CliRunner().invoke(
-            convert_command, ["--format-out", "aiff", "--threads", "0", "--yes"]
+            convert_command,
+            ["--format-out", "aiff", "--threads", "0", "--yes", "--title", "x"],
         )
 
         assert result.exit_code != 0
@@ -503,7 +534,9 @@ class TestConvertOverwriteGate:
         )
         mock_confirm.side_effect = [True, True]  # overwrite, then apply
 
-        result = CliRunner().invoke(convert_command, ["--format-out", "aiff"])
+        result = CliRunner().invoke(
+            convert_command, ["--format-out", "aiff", "--title", "x"]
+        )
 
         assert result.exit_code == 0
         # preview, re-preview with overwrite on, real run
@@ -527,7 +560,9 @@ class TestConvertOverwriteGate:
         )
         mock_confirm.side_effect = [False, True]  # keep them, then apply
 
-        result = CliRunner().invoke(convert_command, ["--format-out", "aiff"])
+        result = CliRunner().invoke(
+            convert_command, ["--format-out", "aiff", "--title", "x"]
+        )
 
         assert result.exit_code == 0
         assert mock_convert.call_count == 2  # preview + real run
@@ -548,7 +583,7 @@ class TestConvertOverwriteGate:
         mock_confirm.side_effect = [True]  # only the apply prompt
 
         result = CliRunner().invoke(
-            convert_command, ["--format-out", "aiff", "--overwrite"]
+            convert_command, ["--format-out", "aiff", "--overwrite", "--title", "x"]
         )
 
         assert result.exit_code == 0
@@ -568,7 +603,9 @@ class TestConvertOverwriteGate:
             skipped=[SkippedTrack(reason="output_file_exists")]
         )
 
-        result = CliRunner().invoke(convert_command, ["--format-out", "aiff"])
+        result = CliRunner().invoke(
+            convert_command, ["--format-out", "aiff", "--title", "x"]
+        )
 
         assert result.exit_code == 0
         mock_convert.assert_called_once()  # preview only
@@ -586,7 +623,9 @@ class TestConvertOverwriteGate:
             skipped=[SkippedTrack(reason="output_file_exists")]
         )
 
-        result = CliRunner().invoke(convert_command, ["--format-out", "aiff", "--yes"])
+        result = CliRunner().invoke(
+            convert_command, ["--format-out", "aiff", "--yes", "--title", "x"]
+        )
 
         assert result.exit_code == 0
         mock_convert.assert_called_once()

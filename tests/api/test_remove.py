@@ -400,7 +400,13 @@ def test_usn_counter_advances_past_every_deleted_child_row(db):
 
 def test_a_vanished_row_is_skipped_not_crashed(db, make_track):
     ghost = RemoveOp(id="99999999", track=make_track(ID="99999999"))
-    response = remove(db, RemoveRequest(), ops=[ghost])
+    response = remove(
+        db,
+        RemoveRequest(
+            title=["x"],
+        ),
+        ops=[ghost],
+    )
     assert response.result.removed == []
     assert [s.reason for s in response.result.skipped] == ["db_or_fs_changed"]
 
@@ -410,7 +416,13 @@ def test_duplicate_ops_are_removed_once(db, make_track):
     track = make_track(ID=track_id)
     dup = [RemoveOp(id=track_id, track=track), RemoveOp(id=track_id, track=track)]
 
-    response = remove(db, RemoveRequest(), ops=dup)
+    response = remove(
+        db,
+        RemoveRequest(
+            title=["x"],
+        ),
+        ops=dup,
+    )
 
     assert [op.id for op in response.result.removed] == [track_id]
     assert response.result.removed[0].source_deleted is False

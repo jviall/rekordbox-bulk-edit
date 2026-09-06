@@ -25,7 +25,7 @@ Removing a track from the library does not touch the audio file it points to. Pa
 
 - Without flags, `remove` shows every planned removal and asks once before applying. See [Confirmations](../filtering.md#confirmations) for how `--dry-run`, `--interactive`, and `--yes` change that.
 - `remove` deletes exactly the tracks the preview showed. A track whose row vanished between the preview and your confirmation is skipped rather than removed; a track whose row changed is still removed as planned.
-- Running `remove` with no filters at all matches every track in the library, the same as `edit` and `convert`. Run with `--dry-run` first to see what an unfiltered removal would do.
+- `remove` requires at least one filter, the same as `edit` and `convert`, so an unfiltered invocation cannot match the whole library. `--first` and `--last` bound how many tracks a filter returns rather than selecting any, so neither counts on its own.
 - **Rekordbox running:** writing while Rekordbox is open risks losing your changes, so `remove` will refuse to perform any writes. `--dry-run` is unaffected.
 
 ## Examples
