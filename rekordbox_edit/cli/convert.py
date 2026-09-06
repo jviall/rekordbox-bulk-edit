@@ -66,9 +66,9 @@ def convert_command(db, **kwargs):
     dry_run = kwargs.pop("dry_run", False)
     yes = kwargs.pop("yes", False)
     interactive = kwargs.pop("interactive", False)
-    args = _build_args(ConvertRequest, kwargs)
     set_level(print_opt)
-    piped_stdin = _handle_stdin(args)
+    piped_stdin = _handle_stdin(kwargs)
+    args = _build_args(ConvertRequest, kwargs)
     _validate_scripting_preconditions(
         print_opt,
         piped_stdin=piped_stdin,

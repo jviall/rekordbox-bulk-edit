@@ -25,24 +25,28 @@ class TestStringField:
 
     def test_compute_plain_replace(self):
         handler = StringField("Title", "Title")
-        args = EditRequest(field="Title", replace_value="New")
+        args = EditRequest(title=["x"], field="Title", replace_value="New")
         assert handler.compute_new_value("Old", args) == "New"
 
     def test_compute_match_replace(self):
         handler = StringField("Title", "Title")
-        args = EditRequest(field="Title", replace_value="Earth", match_pattern="World")
+        args = EditRequest(
+            title=["x"], field="Title", replace_value="Earth", match_pattern="World"
+        )
         assert handler.compute_new_value("Hello World", args) == "Hello Earth"
 
     def test_compute_plain_replace_sets_from_none(self):
         # Plain --replace assigns a value even to an empty field.
         handler = StringField("Title", "Title")
-        args = EditRequest(field="Title", replace_value="New")
+        args = EditRequest(title=["x"], field="Title", replace_value="New")
         assert handler.compute_new_value(None, args) == "New"
 
     def test_compute_match_skips_none(self):
         # --match has no text to search when the field is empty.
         handler = StringField("Title", "Title")
-        args = EditRequest(field="Title", replace_value="b", match_pattern="a")
+        args = EditRequest(
+            title=["x"], field="Title", replace_value="b", match_pattern="a"
+        )
         assert handler.compute_new_value(None, args) is None
 
     def test_apply_sets_column(self, make_djmd_content_item):
@@ -83,7 +87,7 @@ class TestRelationalArtist:
         assert _artist_handler().current_value(content) == "Gamma"
 
     def test_compute_plain_replace(self):
-        args = EditRequest(field="ArtistName", replace_value="Alpha")
+        args = EditRequest(title=["x"], field="ArtistName", replace_value="Alpha")
         assert _artist_handler().compute_new_value("Gamma", args) == "Alpha"
 
     def test_apply_reuses_existing_artist_and_deletes_orphan(
@@ -179,12 +183,14 @@ class TestRatingField:
         assert FIELD_HANDLERS["Rating"].supports_match is False
 
     def test_validate_rejects_out_of_range(self):
-        args = EditRequest(field="Rating", replace_value="9")
+        args = EditRequest(title=["x"], field="Rating", replace_value="9")
         with pytest.raises(ValueError):
             FIELD_HANDLERS["Rating"].validate_request(args)
 
     def test_validate_warns_and_ignores_match(self):
-        args = EditRequest(field="Rating", replace_value="3", match_pattern="x")
+        args = EditRequest(
+            title=["x"], field="Rating", replace_value="3", match_pattern="x"
+        )
         # Must not raise; --match is ignored for Rating.
         FIELD_HANDLERS["Rating"].validate_request(args)
 
@@ -197,7 +203,7 @@ class TestRatingField:
         content = make_djmd_content_item(ID="1")
         content.Rating = 0
         handler = FIELD_HANDLERS["Rating"]
-        args = EditRequest(field="Rating", replace_value="4")
+        args = EditRequest(title=["x"], field="Rating", replace_value="4")
         new_value = handler.compute_new_value(handler.current_value(content), args)
         assert new_value == "4"
         handler.apply(db=MagicMock(), content=content, new_value=new_value)
@@ -319,7 +325,7 @@ class TestFolderPathField:
         handler._probes[("1", "/new/song.wav")] = _probe()
 
         handler.validate_request(
-            EditRequest(field="FolderPath", replace_value="/new/song.wav")
+            EditRequest(title=["x"], field="FolderPath", replace_value="/new/song.wav")
         )
 
         assert handler._probes == {}
@@ -329,7 +335,9 @@ class TestFolderPathField:
         assert _folder_handler().current_value(content) == "/old/song.wav"
 
     def test_compute_normalizes_backslashes(self):
-        args = EditRequest(field="FolderPath", replace_value=r"C:\Music\song.wav")
+        args = EditRequest(
+            title=["x"], field="FolderPath", replace_value=r"C:\Music\song.wav"
+        )
         assert (
             _folder_handler().compute_new_value("/old/song.wav", args)
             == "C:/Music/song.wav"
@@ -338,14 +346,19 @@ class TestFolderPathField:
     def test_compute_match_skips_none(self):
         # --match has no text to search when the field is empty.
         args = EditRequest(
-            field="FolderPath", replace_value="/new/song.wav", match_pattern="/old"
+            title=["x"],
+            field="FolderPath",
+            replace_value="/new/song.wav",
+            match_pattern="/old",
         )
         assert _folder_handler().compute_new_value(None, args) is None
 
     @patch("rekordbox_edit.api.field_handlers.os.path.exists", return_value=False)
     def test_validate_missing_file_skips(self, _exists, make_djmd_content_item):
         content = make_djmd_content_item(ID="1")
-        args = EditRequest(field="FolderPath", replace_value="/new/song.wav")
+        args = EditRequest(
+            title=["x"], field="FolderPath", replace_value="/new/song.wav"
+        )
 
         reason = _folder_handler().validate_track(
             MagicMock(), content, "/new/song.wav", args
@@ -359,7 +372,10 @@ class TestFolderPathField:
     ):
         content = make_djmd_content_item(ID="1")
         args = EditRequest(
-            field="FolderPath", replace_value="/new/song.wav", allow_missing=True
+            title=["x"],
+            field="FolderPath",
+            replace_value="/new/song.wav",
+            allow_missing=True,
         )
 
         reason = _folder_handler().validate_track(
@@ -376,7 +392,9 @@ class TestFolderPathField:
     ):
         content = make_djmd_content_item(ID="1", FileSize=1000)
         content.FileSize = 1000
-        args = EditRequest(field="FolderPath", replace_value="/new/song.wav")
+        args = EditRequest(
+            title=["x"], field="FolderPath", replace_value="/new/song.wav"
+        )
 
         reason = _folder_handler().validate_track(
             MagicMock(), content, "/new/song.wav", args
@@ -396,7 +414,9 @@ class TestFolderPathField:
     ):
         content = make_djmd_content_item(ID="1")
         content.FileSize = 1000
-        args = EditRequest(field="FolderPath", replace_value="/new/song.wav")
+        args = EditRequest(
+            title=["x"], field="FolderPath", replace_value="/new/song.wav"
+        )
 
         reason = _folder_handler().validate_track(
             MagicMock(), content, "/new/song.wav", args
@@ -417,7 +437,9 @@ class TestFolderPathField:
         # rather than naming the missing install.
         content = make_djmd_content_item(ID="1")
         content.FileSize = 1000
-        args = EditRequest(field="FolderPath", replace_value="/new/song.wav")
+        args = EditRequest(
+            title=["x"], field="FolderPath", replace_value="/new/song.wav"
+        )
 
         with pytest.raises(DependencyMissingError):
             _folder_handler().validate_track(
@@ -436,6 +458,7 @@ class TestFolderPathField:
         content = make_djmd_content_item(ID="1")
         content.FileSize = 1000
         args = EditRequest(
+            title=["x"],
             field="FolderPath",
             replace_value="/new/song.ogg",
             allow_missing=True,
@@ -461,7 +484,9 @@ class TestFolderPathField:
         content.FileSize = 1000
         content.Length = 214
         content.AnalysisDataPath = "/PIONEER/USBANLZ/x/ANLZ0000.DAT"
-        args = EditRequest(field="FolderPath", replace_value="/new/song.wav")
+        args = EditRequest(
+            title=["x"], field="FolderPath", replace_value="/new/song.wav"
+        )
 
         reason = _folder_handler().validate_track(
             MagicMock(), content, "/new/song.wav", args
@@ -486,7 +511,9 @@ class TestFolderPathField:
         db.session.query.return_value.filter_by.return_value.first.return_value = (
             MagicMock()  # a cue row exists
         )
-        args = EditRequest(field="FolderPath", replace_value="/new/song.wav")
+        args = EditRequest(
+            title=["x"], field="FolderPath", replace_value="/new/song.wav"
+        )
 
         reason = _folder_handler().validate_track(db, content, "/new/song.wav", args)
 
@@ -507,7 +534,9 @@ class TestFolderPathField:
         content.AnalysisDataPath = None
         db = MagicMock()
         _no_cues(db)
-        args = EditRequest(field="FolderPath", replace_value="/new/song.wav")
+        args = EditRequest(
+            title=["x"], field="FolderPath", replace_value="/new/song.wav"
+        )
 
         reason = _folder_handler().validate_track(db, content, "/new/song.wav", args)
 
@@ -527,7 +556,10 @@ class TestFolderPathField:
         content.Length = 214
         content.AnalysisDataPath = "/PIONEER/USBANLZ/x/ANLZ0000.DAT"
         args = EditRequest(
-            field="FolderPath", replace_value="/new/song.wav", allow_mismatch=True
+            title=["x"],
+            field="FolderPath",
+            replace_value="/new/song.wav",
+            allow_mismatch=True,
         )
 
         reason = _folder_handler().validate_track(
@@ -552,7 +584,9 @@ class TestFolderPathField:
         content.BitRate = 1411
         content.FileType = 11
         db = MagicMock()
-        args = EditRequest(field="FolderPath", replace_value="/new/dir/song.wav")
+        args = EditRequest(
+            title=["x"], field="FolderPath", replace_value="/new/dir/song.wav"
+        )
         assert handler.validate_track(db, content, "/new/dir/song.wav", args) is None
 
         handler.apply(db, content, "/new/dir/song.wav")
@@ -589,7 +623,9 @@ class TestFolderPathField:
         content.OrgFolderPath = "/elsewhere/song.wav"
         db = MagicMock()
         _no_cues(db)
-        args = EditRequest(field="FolderPath", replace_value="/new/dir/song.flac")
+        args = EditRequest(
+            title=["x"], field="FolderPath", replace_value="/new/dir/song.flac"
+        )
         assert handler.validate_track(db, content, "/new/dir/song.flac", args) is None
 
         handler.apply(db, content, "/new/dir/song.flac")
@@ -667,7 +703,10 @@ class TestFolderPathField:
         content.FileSize = 1000
         db = MagicMock()
         args = EditRequest(
-            field="FolderPath", replace_value="/gone/dir/song.wav", allow_missing=True
+            title=["x"],
+            field="FolderPath",
+            replace_value="/gone/dir/song.wav",
+            allow_missing=True,
         )
         assert handler.validate_track(db, content, "/gone/dir/song.wav", args) is None
 

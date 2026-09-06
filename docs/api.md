@@ -47,9 +47,11 @@ Most errors these functions raise descend from
 
 ## Models
 
-The models form three layers: the [`FilterArgs`][rekordbox_edit.models.FilterArgs] base that every command shares, the per-command requests and responses, and the lower-level domain types those req/resp models are built from.
+The models form three layers: the [`FilterArgs`][rekordbox_edit.models.FilterArgs] base that every command shares, the per-command requests and responses, and the lower-level domain types those req/resp models are built from. The write commands extend [`WriteFilterArgs`][rekordbox_edit.models.WriteFilterArgs] instead, which adds the requirement that at least one filter be set.
 
 ::: rekordbox_edit.models.FilterArgs
+
+::: rekordbox_edit.models.WriteFilterArgs
 
 ### Search
 

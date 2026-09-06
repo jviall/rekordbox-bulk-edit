@@ -33,9 +33,9 @@ logger = logging.getLogger(__name__)
 def search_command(db, **kwargs):
     """Search the RekordBox database."""
     print_opt = kwargs.pop("print_opt", None)
-    args = _build_args(SearchRequest, kwargs)
     set_level(print_opt)
-    _handle_stdin(args)
+    _handle_stdin(kwargs)
+    args = _build_args(SearchRequest, kwargs)
 
     response = search(db, args)
 

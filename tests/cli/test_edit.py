@@ -51,7 +51,7 @@ class TestEditCommand:
         mock_edit.return_value = _response()
 
         result = CliRunner().invoke(
-            edit_command, ["Title", "--replace", "New", "--yes"]
+            edit_command, ["Title", "--replace", "New", "--yes", "--title", "x"]
         )
 
         assert result.exit_code == 0
@@ -66,7 +66,7 @@ class TestEditCommand:
         mock_edit.return_value = _response()
 
         result = CliRunner().invoke(
-            edit_command, ["Title", "--replace", "New", "--dry-run"]
+            edit_command, ["Title", "--replace", "New", "--dry-run", "--title", "x"]
         )
 
         assert result.exit_code == 0
@@ -80,7 +80,7 @@ class TestEditCommand:
         mock_edit.return_value = _response(tracks=[], edits=[])
 
         result = CliRunner().invoke(
-            edit_command, ["Title", "--replace", "New", "--yes"]
+            edit_command, ["Title", "--replace", "New", "--yes", "--title", "x"]
         )
 
         assert result.exit_code == 0
@@ -92,7 +92,7 @@ class TestEditCommand:
         mock_edit.side_effect = InputError("Found 2 tracks that would be edited")
 
         result = CliRunner().invoke(
-            edit_command, ["Title", "--replace", "New", "--yes"]
+            edit_command, ["Title", "--replace", "New", "--yes", "--title", "x"]
         )
 
         assert result.exit_code != 0
@@ -106,7 +106,9 @@ class TestEditCommand:
         mock_db_class.return_value = Mock(session=Mock())
         mock_edit.side_effect = InputError("Found 2 tracks that would be edited")
 
-        result = CliRunner().invoke(edit_command, ["Title", "--replace", "New"])
+        result = CliRunner().invoke(
+            edit_command, ["Title", "--replace", "New", "--title", "x"]
+        )
 
         assert result.exit_code != 0
         assert "Error" in result.output
@@ -125,7 +127,9 @@ class TestEditCommand:
             InputError("Found 2 tracks that would be edited"),
         ]
 
-        result = CliRunner().invoke(edit_command, ["Title", "--replace", "New"])
+        result = CliRunner().invoke(
+            edit_command, ["Title", "--replace", "New", "--title", "x"]
+        )
 
         assert result.exit_code != 0
         assert "Error" in result.output
@@ -144,7 +148,7 @@ class TestEditCommand:
         ]
 
         result = CliRunner().invoke(
-            edit_command, ["Title", "--replace", "New", "--interactive"]
+            edit_command, ["Title", "--replace", "New", "--interactive", "--title", "x"]
         )
 
         assert result.exit_code != 0
@@ -161,7 +165,8 @@ class TestEditCommand:
         )
 
         result = CliRunner().invoke(
-            edit_command, ["Title", "--replace", "New", "--yes", "--print", "ids"]
+            edit_command,
+            ["Title", "--replace", "New", "--yes", "--print", "ids", "--title", "x"],
         )
 
         assert result.exit_code == 0
@@ -180,7 +185,8 @@ class TestEditCommand:
         )
 
         result = CliRunner().invoke(
-            edit_command, ["Title", "--replace", "New", "--yes", "--print", "json"]
+            edit_command,
+            ["Title", "--replace", "New", "--yes", "--print", "json", "--title", "x"],
         )
 
         assert result.exit_code == 0
@@ -199,7 +205,9 @@ class TestEditCommand:
         mock_db_class.return_value = Mock(session=Mock())
         mock_edit.return_value = _response()
 
-        result = CliRunner().invoke(edit_command, ["Title", "--replace", "New"])
+        result = CliRunner().invoke(
+            edit_command, ["Title", "--replace", "New", "--title", "x"]
+        )
 
         assert result.exit_code == 0
         assert mock_edit.call_count == 2  # dry-run preview + real run
@@ -216,7 +224,9 @@ class TestEditCommand:
         mock_db_class.return_value = Mock(session=Mock())
         mock_edit.return_value = _response()
 
-        result = CliRunner().invoke(edit_command, ["Title", "--replace", "New"])
+        result = CliRunner().invoke(
+            edit_command, ["Title", "--replace", "New", "--title", "x"]
+        )
 
         assert result.exit_code == 0
         mock_edit.assert_called_once()  # only the dry-run preview
@@ -232,7 +242,9 @@ class TestEditCommand:
         mock_db_class.return_value = Mock(session=Mock())
         mock_edit.return_value = _response()
 
-        result = CliRunner().invoke(edit_command, ["Title", "--replace", "New"])
+        result = CliRunner().invoke(
+            edit_command, ["Title", "--replace", "New", "--title", "x"]
+        )
 
         assert result.exit_code == 0
         mock_edit.assert_called_once()  # preview only
@@ -248,7 +260,9 @@ class TestEditCommand:
             result=EditResult(field="Title", dry_run=True, edits=[], skipped=[]),
         )
 
-        result = CliRunner().invoke(edit_command, ["Title", "--replace", "New"])
+        result = CliRunner().invoke(
+            edit_command, ["Title", "--replace", "New", "--title", "x"]
+        )
 
         assert result.exit_code == 0
         mock_edit.assert_called_once()
@@ -274,7 +288,8 @@ class TestEditCommand:
         mock_confirm.side_effect = [True, False]
 
         result = CliRunner().invoke(
-            edit_command, ["Title", "--replace", "NewA", "--interactive"]
+            edit_command,
+            ["Title", "--replace", "NewA", "--interactive", "--title", "x"],
         )
 
         assert result.exit_code == 0
@@ -296,7 +311,7 @@ class TestEditCommand:
         )
 
         result = CliRunner().invoke(
-            edit_command, ["Title", "--replace", "N", "--interactive"]
+            edit_command, ["Title", "--replace", "N", "--interactive", "--title", "x"]
         )
 
         assert result.exit_code == 0
@@ -337,7 +352,7 @@ class TestEditGateFlow:
 
         result = CliRunner().invoke(
             edit_command,
-            ["Title", "--replace", "New", "--yes", "--allow-missing"],
+            ["Title", "--replace", "New", "--yes", "--allow-missing", "--title", "x"],
         )
 
         assert result.exit_code == 0
@@ -357,7 +372,7 @@ class TestEditGateFlow:
         mock_confirm.side_effect = [True, True]
 
         result = CliRunner().invoke(
-            edit_command, ["FolderPath", "--replace", "/new/x.wav"]
+            edit_command, ["FolderPath", "--replace", "/new/x.wav", "--title", "x"]
         )
 
         assert result.exit_code == 0
@@ -389,7 +404,7 @@ class TestEditGateFlow:
         mock_confirm.side_effect = [True, False, True]
 
         result = CliRunner().invoke(
-            edit_command, ["FolderPath", "--replace", "/new/x.wav"]
+            edit_command, ["FolderPath", "--replace", "/new/x.wav", "--title", "x"]
         )
 
         assert result.exit_code == 0
@@ -411,7 +426,7 @@ class TestEditGateFlow:
         mock_confirm.side_effect = [False, True]
 
         result = CliRunner().invoke(
-            edit_command, ["FolderPath", "--replace", "/new/x.wav"]
+            edit_command, ["FolderPath", "--replace", "/new/x.wav", "--title", "x"]
         )
 
         assert result.exit_code == 0
@@ -431,7 +446,14 @@ class TestEditGateFlow:
 
         result = CliRunner().invoke(
             edit_command,
-            ["FolderPath", "--replace", "/new/x.wav", "--allow-missing"],
+            [
+                "FolderPath",
+                "--replace",
+                "/new/x.wav",
+                "--allow-missing",
+                "--title",
+                "x",
+            ],
         )
 
         assert result.exit_code == 0
@@ -449,7 +471,7 @@ class TestEditGateFlow:
         mock_edit.return_value = _gated_response()
 
         result = CliRunner().invoke(
-            edit_command, ["FolderPath", "--replace", "/new/x.wav"]
+            edit_command, ["FolderPath", "--replace", "/new/x.wav", "--title", "x"]
         )
 
         assert result.exit_code == 0
@@ -464,7 +486,8 @@ class TestEditGateFlow:
         mock_edit.return_value = _gated_response()
 
         result = CliRunner().invoke(
-            edit_command, ["FolderPath", "--replace", "/new/x.wav", "--yes"]
+            edit_command,
+            ["FolderPath", "--replace", "/new/x.wav", "--yes", "--title", "x"],
         )
 
         assert result.exit_code == 0
@@ -500,7 +523,7 @@ class TestEditSkipReporting:
         )
 
         result = CliRunner().invoke(
-            edit_command, ["Title", "--replace", "New", "--yes"]
+            edit_command, ["Title", "--replace", "New", "--yes", "--title", "x"]
         )
 
         assert result.exit_code == 0
@@ -520,7 +543,9 @@ class TestEditSkipReporting:
         mock_db_class.return_value = Mock(session=Mock())
         mock_edit.return_value = _response(skipped=[SkippedTrack(reason="no_change")])
 
-        CliRunner().invoke(edit_command, ["Title", "--replace", "New", "--dry-run"])
+        CliRunner().invoke(
+            edit_command, ["Title", "--replace", "New", "--dry-run", "--title", "x"]
+        )
 
         assert "existing value already matches" in _warnings(mock_logger)
 
@@ -537,7 +562,9 @@ class TestEditSkipReporting:
         mock_edit.side_effect = [_gated_response(), _gated_response()]
         mock_confirm.side_effect = [False, True]
 
-        CliRunner().invoke(edit_command, ["FolderPath", "--replace", "/new/x.wav"])
+        CliRunner().invoke(
+            edit_command, ["FolderPath", "--replace", "/new/x.wav", "--title", "x"]
+        )
 
         assert "track(s) held back" in _infos(mock_logger)
         assert "file does not exist" not in _warnings(mock_logger)
@@ -553,7 +580,7 @@ class TestEditSkipReporting:
         applied = _response(skipped=[SkippedTrack(reason="db_or_fs_changed")])
         mock_edit.side_effect = [_response(), applied]
 
-        CliRunner().invoke(edit_command, ["Title", "--replace", "New"])
+        CliRunner().invoke(edit_command, ["Title", "--replace", "New", "--title", "x"])
 
         assert "Skipping 1 track(s): changed since the preview" in _warnings(
             mock_logger
@@ -574,7 +601,9 @@ class TestEditSkipReporting:
         mock_db_class.return_value = Mock(session=Mock())
         mock_edit.return_value = _response(skipped=[SkippedTrack(reason=reason)])
 
-        CliRunner().invoke(edit_command, ["Title", "--replace", "New", "--yes"])
+        CliRunner().invoke(
+            edit_command, ["Title", "--replace", "New", "--yes", "--title", "x"]
+        )
 
         assert f"Skipping 1 track(s): {_SKIP_MESSAGES[reason]}" in _warnings(
             mock_logger

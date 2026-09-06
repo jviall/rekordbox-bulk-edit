@@ -33,7 +33,7 @@ class TestClassifyEdit:
         self, mock_db, make_djmd_content_item
     ):
         content = make_djmd_content_item(ID="1", Title="Old")
-        args = EditRequest(field="Title", replace_value="New")
+        args = EditRequest(title=["x"], field="Title", replace_value="New")
 
         result = _classify_edit(mock_db, content, args)
 
@@ -45,7 +45,7 @@ class TestClassifyEdit:
         self, mock_db, make_djmd_content_item
     ):
         content = make_djmd_content_item(ID="1", Title="Same")
-        args = EditRequest(field="Title", replace_value="Same")
+        args = EditRequest(title=["x"], field="Title", replace_value="Same")
 
         result = _classify_edit(mock_db, content, args)
 
@@ -58,7 +58,7 @@ class TestClassifyEdit:
         self, mock_db, make_djmd_content_item
     ):
         content = make_djmd_content_item(ID="1", Title=None)
-        args = EditRequest(field="Title", replace_value="New")
+        args = EditRequest(title=["x"], field="Title", replace_value="New")
 
         result = _classify_edit(mock_db, content, args)
 
@@ -67,7 +67,9 @@ class TestClassifyEdit:
 
     def test_match_skips_when_current_is_none(self, mock_db, make_djmd_content_item):
         content = make_djmd_content_item(ID="1", Title=None)
-        args = EditRequest(field="Title", replace_value="b", match_pattern="a")
+        args = EditRequest(
+            title=["x"], field="Title", replace_value="b", match_pattern="a"
+        )
 
         result = _classify_edit(mock_db, content, args)
 
@@ -76,7 +78,9 @@ class TestClassifyEdit:
 
     def test_match_pattern_applied(self, mock_db, make_djmd_content_item):
         content = make_djmd_content_item(ID="1", Title="Hello World")
-        args = EditRequest(field="Title", replace_value="Earth", match_pattern="World")
+        args = EditRequest(
+            title=["x"], field="Title", replace_value="Earth", match_pattern="World"
+        )
 
         result = _classify_edit(mock_db, content, args)
 
@@ -93,7 +97,9 @@ class TestEditDryRun:
         mock_gfc.return_value.scalars.return_value.all.return_value = [content]
 
         response = edit(
-            mock_db, EditRequest(field="Title", replace_value="New"), dry_run=True
+            mock_db,
+            EditRequest(title=["x"], field="Title", replace_value="New"),
+            dry_run=True,
         )
 
         assert isinstance(response, EditResponse)
@@ -111,7 +117,9 @@ class TestEditDryRun:
         mock_gfc.return_value.scalars.return_value.all.return_value = [content]
 
         response = edit(
-            mock_db, EditRequest(field="Title", replace_value="Same"), dry_run=True
+            mock_db,
+            EditRequest(title=["x"], field="Title", replace_value="Same"),
+            dry_run=True,
         )
 
         assert response.result.edits == []
@@ -129,7 +137,7 @@ class TestEditDryRun:
 
         response = edit(
             mock_db,
-            EditRequest(field="Title", replace_value="New"),
+            EditRequest(title=["x"], field="Title", replace_value="New"),
             dry_run=True,
         )
 
@@ -149,7 +157,9 @@ class TestEditResponseTracksDryRunRule:
         mock_gfc.return_value.scalars.return_value.all.return_value = [content]
 
         response = edit(
-            mock_db, EditRequest(field="Title", replace_value="New"), dry_run=True
+            mock_db,
+            EditRequest(title=["x"], field="Title", replace_value="New"),
+            dry_run=True,
         )
 
         assert response.tracks == []
@@ -162,7 +172,9 @@ class TestEditResponseTracksDryRunRule:
         content = make_djmd_content_item(ID="1", Title="Old")
         mock_gfc.return_value.scalars.return_value.all.return_value = [content]
 
-        response = edit(mock_db, EditRequest(field="Title", replace_value="New"))
+        response = edit(
+            mock_db, EditRequest(title=["x"], field="Title", replace_value="New")
+        )
 
         assert response.result.dry_run is False
         assert response.tracks[0].ID == "1"
@@ -177,7 +189,9 @@ class TestEditRealRun:
         content = make_djmd_content_item(ID="1", Title="Old")
         mock_gfc.return_value.scalars.return_value.all.return_value = [content]
 
-        response = edit(mock_db, EditRequest(field="Title", replace_value="New"))
+        response = edit(
+            mock_db, EditRequest(title=["x"], field="Title", replace_value="New")
+        )
 
         assert content.Title == "New"
         mock_db.session.commit.assert_called_once()
@@ -194,7 +208,9 @@ class TestEditRealRun:
         content = make_djmd_content_item(ID="1", Title="Old")
         mock_gfc.return_value.scalars.return_value.all.return_value = [content]
 
-        response = edit(mock_db, EditRequest(field="Title", replace_value="New"))
+        response = edit(
+            mock_db, EditRequest(title=["x"], field="Title", replace_value="New")
+        )
 
         assert response.result.edits[0].track.Title == "New"
         assert response.tracks[0].Title == "New"
@@ -205,7 +221,9 @@ class TestEditRealRun:
     ):
         mock_gfc.return_value.scalars.return_value.all.return_value = []
 
-        response = edit(mock_db, EditRequest(field="Title", replace_value="New"))
+        response = edit(
+            mock_db, EditRequest(title=["x"], field="Title", replace_value="New")
+        )
 
         assert response.result.edits == []
         assert response.tracks == []
@@ -221,7 +239,9 @@ class TestEditRealRun:
         ]
         mock_gfc.return_value.scalars.return_value.all.return_value = contents
 
-        response = edit(mock_db, EditRequest(field="Title", replace_value="New"))
+        response = edit(
+            mock_db, EditRequest(title=["x"], field="Title", replace_value="New")
+        )
 
         assert len(response.result.edits) == 2
 
@@ -238,7 +258,9 @@ class TestEditRealRun:
         ]
         mock_gfc.return_value.scalars.return_value.all.return_value = contents
 
-        response = edit(mock_db, EditRequest(field="Title", replace_value="x"))
+        response = edit(
+            mock_db, EditRequest(title=["x"], field="Title", replace_value="x")
+        )
 
         # The order of result.edits follows the classifier (i.e. the order
         # of contents). tracks aligns to edits.
@@ -260,7 +282,9 @@ class TestEditRealRun:
 
         edit(
             mock_db,
-            EditRequest(field="Title", replace_value="Earth", match_pattern="World"),
+            EditRequest(
+                title=["x"], field="Title", replace_value="Earth", match_pattern="World"
+            ),
         )
 
         assert changed.Title == "Hello Earth"
@@ -270,7 +294,7 @@ class TestEditRealRun:
     def test_unknown_field_raises(self, mock_gfc, mock_db):
         mock_gfc.return_value.scalars.return_value.all.return_value = []
         with pytest.raises(ValueError, match="Unknown field"):
-            edit(mock_db, EditRequest(field="Nope", replace_value="x"))
+            edit(mock_db, EditRequest(title=["x"], field="Nope", replace_value="x"))
 
 
 class TestEditFromApprovedOps:
@@ -287,7 +311,7 @@ class TestEditFromApprovedOps:
 
         response = edit(
             mock_db,
-            EditRequest(field="Title", replace_value="New"),
+            EditRequest(title=["x"], field="Title", replace_value="New"),
             ops=[EditOp(id="1", new_value="New", track=track_from_content(approved))],
         )
 
@@ -305,7 +329,7 @@ class TestEditFromApprovedOps:
 
         response = edit(
             mock_db,
-            EditRequest(field="Stub", replace_value="New"),
+            EditRequest(title=["x"], field="Stub", replace_value="New"),
             ops=[EditOp(id="1", new_value="New", track=track_from_content(content))],
         )
 
@@ -324,7 +348,7 @@ class TestEditFromApprovedOps:
 
         response = edit(
             mock_db,
-            EditRequest(field="Title", replace_value="New"),
+            EditRequest(title=["x"], field="Title", replace_value="New"),
             ops=[EditOp(id="1", new_value="New", track=track)],
         )
 
@@ -345,7 +369,7 @@ class TestEditFromApprovedOps:
 
         response = edit(
             mock_db,
-            EditRequest(field="Title", replace_value="New"),
+            EditRequest(title=["x"], field="Title", replace_value="New"),
             ops=[
                 EditOp(id="1", new_value="New", track=track_from_content(rows["1"])),
                 EditOp(id="2", new_value="New", track=track_from_content(rows["2"])),
@@ -361,7 +385,7 @@ class TestValidateTrackHook:
     ):
         stub_handler.validate_track.return_value = "file_not_found"
         content = make_djmd_content_item(ID="1")
-        args = EditRequest(field="Stub", replace_value="New")
+        args = EditRequest(title=["x"], field="Stub", replace_value="New")
 
         result = _classify_edit(mock_db, content, args)
 
@@ -375,7 +399,9 @@ class TestValidateTrackHook:
         content = make_djmd_content_item(ID="1")
 
         result = _classify_edit(
-            mock_db, content, EditRequest(field="Stub", replace_value="New")
+            mock_db,
+            content,
+            EditRequest(title=["x"], field="Stub", replace_value="New"),
         )
 
         assert isinstance(result, EditOp)
@@ -392,7 +418,7 @@ class TestPostCommitHook:
         order.attach_mock(mock_db.session.commit, "commit")
         order.attach_mock(stub_handler.post_commit, "post_commit")
 
-        edit(mock_db, EditRequest(field="Stub", replace_value="New"))
+        edit(mock_db, EditRequest(title=["x"], field="Stub", replace_value="New"))
 
         stub_handler.post_commit.assert_called_once_with(mock_db, content, "Old")
         assert order.mock_calls.index(call.commit()) < order.mock_calls.index(
@@ -406,7 +432,11 @@ class TestPostCommitHook:
         content = make_djmd_content_item(ID="1")
         mock_gfc.return_value.scalars.return_value.all.return_value = [content]
 
-        edit(mock_db, EditRequest(field="Stub", replace_value="New"), dry_run=True)
+        edit(
+            mock_db,
+            EditRequest(title=["x"], field="Stub", replace_value="New"),
+            dry_run=True,
+        )
 
         stub_handler.post_commit.assert_not_called()
 
@@ -475,7 +505,10 @@ class TestEditRefusesWhileRekordboxRuns:
 
         with patch("rekordbox_edit.api._utils.get_rekordbox_pid", return_value=9):
             with pytest.raises(RekordboxRunningError):
-                edit(mock_db, EditRequest(field="Title", replace_value="New"))
+                edit(
+                    mock_db,
+                    EditRequest(title=["x"], field="Title", replace_value="New"),
+                )
 
         mock_db.session.commit.assert_not_called()
 
@@ -488,7 +521,7 @@ class TestEditRefusesWhileRekordboxRuns:
         with patch("rekordbox_edit.api._utils.get_rekordbox_pid", return_value=9):
             response = edit(
                 mock_db,
-                EditRequest(field="Title", replace_value="New"),
+                EditRequest(title=["x"], field="Title", replace_value="New"),
                 dry_run=True,
             )
 

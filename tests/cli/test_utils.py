@@ -6,7 +6,9 @@ import pytest
 from click.testing import CliRunner
 
 from rekordbox_edit.logger import PrintChoice
+from rekordbox_edit.cli.convert import convert_command
 from rekordbox_edit.cli.edit import edit_command
+from rekordbox_edit.cli.remove import remove_command
 from rekordbox_edit.errors import (
     DatabaseBusyError,
     DependencyMissingError,
@@ -28,52 +30,54 @@ from rekordbox_edit.models import (
     EditOp,
     EditResponse,
     EditResult,
+    RemoveResponse,
+    RemoveResult,
     Track,
 )
 
 
 class TestHandleStdin:
     def test_returns_false_when_tty(self):
-        args = Mock()
+        kwargs = {"track_ids": ()}
         with patch("sys.stdin") as mock_stdin:
             mock_stdin.isatty.return_value = True
-            assert _handle_stdin(args) is False
+            assert _handle_stdin(kwargs) is False
 
     def test_appends_ids_from_piped_stdin(self):
-        args = Mock(track_ids=["existing"])
+        kwargs = {"track_ids": ("existing",)}
         with patch("sys.stdin") as mock_stdin:
             mock_stdin.isatty.return_value = False
             mock_stdin.buffer.read.return_value = b"AAA BBB"
-            result = _handle_stdin(args)
+            result = _handle_stdin(kwargs)
         assert result is True
-        assert args.track_ids == ["existing", "AAA", "BBB"]
+        assert kwargs["track_ids"] == ["existing", "AAA", "BBB"]
 
     def test_strips_bom_from_piped_stdin(self):
-        args = Mock(track_ids=[])
+        kwargs = {"track_ids": ()}
         with patch("sys.stdin") as mock_stdin:
             mock_stdin.isatty.return_value = False
             mock_stdin.buffer.read.return_value = bytes([0xEF, 0xBB, 0xBF]) + b"AAA BBB"
-            result = _handle_stdin(args)
+            result = _handle_stdin(kwargs)
         assert result is True
-        assert args.track_ids == ["AAA", "BBB"]
+        assert kwargs["track_ids"] == ["AAA", "BBB"]
 
     def test_empty_piped_stdin_returns_false(self):
-        args = Mock(track_ids=[])
+        kwargs = {"track_ids": ()}
         with patch("sys.stdin") as mock_stdin:
             mock_stdin.isatty.return_value = False
             mock_stdin.buffer.read.return_value = b"  "
-            result = _handle_stdin(args)
+            result = _handle_stdin(kwargs)
         assert result is False
-        assert args.track_ids == []
+        assert kwargs["track_ids"] == ()
 
     def test_bom_only_piped_stdin_returns_false(self):
-        args = Mock(track_ids=[])
+        kwargs = {"track_ids": ()}
         with patch("sys.stdin") as mock_stdin:
             mock_stdin.isatty.return_value = False
             mock_stdin.buffer.read.return_value = bytes([0xEF, 0xBB, 0xBF])
-            result = _handle_stdin(args)
+            result = _handle_stdin(kwargs)
         assert result is False
-        assert args.track_ids == []
+        assert kwargs["track_ids"] == ()
 
 
 class TestValidateScriptingPreconditions:
@@ -244,7 +248,9 @@ class TestWithDatabaseErrorTranslation:
     def _invoke(self, mock_db_class, mock_edit, error):
         mock_db_class.return_value = Mock(session=Mock())
         mock_edit.side_effect = error
-        return CliRunner().invoke(edit_command, ["Title", "--replace", "New", "--yes"])
+        return CliRunner().invoke(
+            edit_command, ["Title", "--replace", "New", "--yes", "--title", "x"]
+        )
 
     @patch("rekordbox_edit.cli.edit.edit")
     @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
@@ -280,6 +286,74 @@ class TestWithDatabaseErrorTranslation:
         result = self._invoke(mock_db_class, mock_edit, RuntimeError("boom"))
 
         assert isinstance(result.exception, RuntimeError)
+
+
+#: Each write command, the arguments it needs beyond a filter, the api
+#: function its module calls, and an empty response for that function.
+WRITE_COMMANDS = [
+    pytest.param(
+        edit_command,
+        ["Title", "--replace", "New"],
+        "rekordbox_edit.cli.edit.edit",
+        EditResponse(
+            result=EditResult(field="Title", dry_run=False, edits=[], skipped=[])
+        ),
+        id="edit",
+    ),
+    pytest.param(
+        convert_command,
+        ["--format-out", "mp3"],
+        "rekordbox_edit.cli.convert.convert",
+        ConvertResponse(
+            result=ConvertResult(
+                format_out="mp3", dry_run=False, converted=[], deleted=0, skipped=[]
+            )
+        ),
+        id="convert",
+    ),
+    pytest.param(
+        remove_command,
+        [],
+        "rekordbox_edit.cli.remove.remove",
+        RemoveResponse(
+            result=RemoveResult(
+                dry_run=False, removed=[], skipped=[], deleted_relatives=0
+            )
+        ),
+        id="remove",
+    ),
+]
+
+
+class TestWriteCommandsRequireAFilter:
+    """`rbe remove --yes` used to match the whole library without a prompt."""
+
+    @pytest.fixture(autouse=True)
+    def _stub_db(self):
+        with patch("rekordbox_edit.cli._utils.Rekordbox6Database") as db_class:
+            db_class.return_value = Mock(session=Mock())
+            yield
+
+    @pytest.mark.parametrize("command,args,api_target,response", WRITE_COMMANDS)
+    def test_no_filter_is_a_usage_error(self, command, args, api_target, response):
+        with patch(api_target) as api:
+            result = CliRunner().invoke(command, [*args, "--yes"])
+
+        assert result.exit_code == 2
+        assert "at least one filter" in result.output
+        api.assert_not_called()
+
+    @pytest.mark.parametrize("command,args,api_target,response", WRITE_COMMANDS)
+    def test_piped_track_ids_satisfy_it(self, command, args, api_target, response):
+        """Piped IDs arrive after the flags are parsed, so they have to be
+        merged in before the request is built."""
+        with patch(api_target, return_value=response) as api:
+            result = CliRunner().invoke(
+                command, [*args, "--yes", "--print", "ids"], input="AAA"
+            )
+
+        assert result.exit_code == 0, result.output
+        assert api.call_args.args[1].track_ids == ["AAA"]
 
 
 class TestInteractiveExclusivity:
