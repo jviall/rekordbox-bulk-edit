@@ -9,7 +9,7 @@ from rekordbox_edit.api._utils import (
     track_from_content,
     writing,
 )
-from rekordbox_edit.api.field_handlers import FIELD_HANDLERS
+from rekordbox_edit.api._field_handlers import FIELD_HANDLERS
 from rekordbox_edit.errors import InputError
 from rekordbox_edit.models import (
     EditOp,

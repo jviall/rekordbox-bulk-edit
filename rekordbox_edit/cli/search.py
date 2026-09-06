@@ -10,7 +10,7 @@ from rekordbox_edit.cli._click import (
     print_option,
     track_ids_argument,
 )
-from rekordbox_edit.api.search import search
+from rekordbox_edit.api._search import search
 from rekordbox_edit.cli._utils import (
     _build_args,
     _handle_stdin,

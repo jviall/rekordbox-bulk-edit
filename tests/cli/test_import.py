@@ -6,7 +6,7 @@ import click
 import pytest
 from click.testing import CliRunner
 
-from rekordbox_edit.api.import_ import (
+from rekordbox_edit.api._import import (
     DirectoryConfirmationRequired,
     ImportInputError,
 )

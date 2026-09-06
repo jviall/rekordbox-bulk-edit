@@ -5,7 +5,7 @@ import logging
 import click
 
 from rekordbox_edit.api._edit import edit
-from rekordbox_edit.api.field_handlers import FIELD_HANDLERS
+from rekordbox_edit.api._field_handlers import FIELD_HANDLERS
 from rekordbox_edit.cli._click import (
     add_click_options,
     edit_click_options,

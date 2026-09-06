@@ -20,7 +20,9 @@ def test_every_public_name_is_a_function(name):
     assert callable(getattr(api, name))
 
 
-@pytest.mark.parametrize("module", ["_edit", "_convert", "_remove"])
+@pytest.mark.parametrize(
+    "module", ["_search", "_edit", "_convert", "_import", "_remove"]
+)
 def test_each_implementation_module_stays_reachable(module):
     """monkeypatch and other dotted-string lookups resolve by attribute chain,
     so a shadowed submodule cannot be patched by name."""
