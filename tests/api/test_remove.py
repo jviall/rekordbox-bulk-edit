@@ -1,7 +1,6 @@
 """Tests for the remove API."""
 
 import logging
-import sys
 from pathlib import Path
 from unittest.mock import Mock
 
@@ -9,7 +8,7 @@ import pytest
 from pyrekordbox.db6 import tables as tb
 from sqlalchemy import text
 
-from rekordbox_edit.api.remove import (
+from rekordbox_edit.api._remove import (
     _content_child_tables,
     _remove_on_disk_artifacts,
     _sweep_orphans,
@@ -137,12 +136,12 @@ def test_empty_analysis_path_never_touches_the_share_root(share_db, share, caplo
     distinguishes the emptiness guard firing from containment (or anything
     else downstream) happening to save the fixture instead.
     """
-    with caplog.at_level(logging.DEBUG, logger="rekordbox_edit.api.remove"):
+    with caplog.at_level(logging.DEBUG, logger="rekordbox_edit.api._remove"):
         remove_analysis_files(share_db, "")
     assert "no analysis to remove" in caplog.text
     caplog.clear()
 
-    with caplog.at_level(logging.DEBUG, logger="rekordbox_edit.api.remove"):
+    with caplog.at_level(logging.DEBUG, logger="rekordbox_edit.api._remove"):
         remove_analysis_files(share_db, None)
     assert "no analysis to remove" in caplog.text
 
@@ -158,12 +157,12 @@ def test_shallow_analysis_path_is_refused(share_db, share, caplog):
     Corrupt, truncated, or foreign-tool-written data could produce this; real
     rekordbox never does. Either way the depth check must refuse it rather
     than rmtree an ancestor tier."""
-    with caplog.at_level(logging.WARNING, logger="rekordbox_edit.api.remove"):
+    with caplog.at_level(logging.WARNING, logger="rekordbox_edit.api._remove"):
         remove_analysis_files(share_db, "/PIONEER/USBANLZ/x.DAT")
     assert "did not have the expected" in caplog.text
     caplog.clear()
 
-    with caplog.at_level(logging.WARNING, logger="rekordbox_edit.api.remove"):
+    with caplog.at_level(logging.WARNING, logger="rekordbox_edit.api._remove"):
         remove_analysis_files(share_db, "/PIONEER/x.DAT")
     assert "did not have the expected" in caplog.text
 
@@ -183,12 +182,12 @@ def test_empty_image_path_never_touches_the_share_root(share_db, share, caplog):
     would resolve an empty ImagePath to db_directory, not the share root)
     happening to save the fixture instead.
     """
-    with caplog.at_level(logging.DEBUG, logger="rekordbox_edit.api.remove"):
+    with caplog.at_level(logging.DEBUG, logger="rekordbox_edit.api._remove"):
         remove_artwork_files(share_db, "")
     assert "no artwork to remove" in caplog.text
     caplog.clear()
 
-    with caplog.at_level(logging.DEBUG, logger="rekordbox_edit.api.remove"):
+    with caplog.at_level(logging.DEBUG, logger="rekordbox_edit.api._remove"):
         remove_artwork_files(share_db, None)
     assert "no artwork to remove" in caplog.text
 
@@ -207,7 +206,7 @@ def test_shallow_artwork_path_is_refused(share_db, share, caplog):
     playlist_file = share / "PIONEER/masterPlaylists6.xml"
     playlist_file.write_bytes(b"<playlists/>")
 
-    with caplog.at_level(logging.WARNING, logger="rekordbox_edit.api.remove"):
+    with caplog.at_level(logging.WARNING, logger="rekordbox_edit.api._remove"):
         remove_artwork_files(share_db, "/PIONEER/masterPlaylists6.xml")
     assert "did not have the expected" in caplog.text
 
@@ -234,7 +233,7 @@ def test_analysis_outside_the_share_tree_is_skipped(share_db, tmp_path, caplog):
     outside.mkdir(parents=True)
     (outside / "ANLZ0000.DAT").write_bytes(b"dat")
 
-    with caplog.at_level(logging.WARNING, logger="rekordbox_edit.api.remove"):
+    with caplog.at_level(logging.WARNING, logger="rekordbox_edit.api._remove"):
         remove_analysis_files(share_db, "/../music/Some Album/anlz/ANLZ0000.DAT")
 
     assert "Refusing to delete outside the share tree" in caplog.text
@@ -247,15 +246,12 @@ def test_file_work_warns_rather_than_raising(share_db, failing, caplog, monkeypa
     escaping exception would report a failed write for one that landed. A
     malformed stored path raises ValueError from Path.resolve() rather than
     OSError, which is why both handlers catch Exception."""
-    # Patched through sys.modules rather than by dotted string: api/__init__.py
-    # re-exports the remove() function, so "rekordbox_edit.api.remove" resolves
-    # to the function and not to this module (issue #212).
-    module = sys.modules["rekordbox_edit.api.remove"]
     monkeypatch.setattr(
-        module, f"remove_{failing}_files", Mock(side_effect=ValueError("embedded NUL"))
+        f"rekordbox_edit.api._remove.remove_{failing}_files",
+        Mock(side_effect=ValueError("embedded NUL")),
     )
 
-    with caplog.at_level(logging.WARNING, logger="rekordbox_edit.api.remove"):
+    with caplog.at_level(logging.WARNING, logger="rekordbox_edit.api._remove"):
         deleted = _remove_on_disk_artifacts(
             [
                 {
@@ -430,19 +426,9 @@ def test_duplicate_ops_are_removed_once(db, make_track):
 
 
 def test_missing_source_file_still_removes_the_row(db, monkeypatch):
-    # api/__init__.py's `from rekordbox_edit.api.remove import remove` shadows
-    # the `remove` submodule attribute on the `api` package with the function
-    # itself, which breaks any attribute-chain lookup of
-    # "rekordbox_edit.api.remove" (monkeypatch's dotted-string resolution
-    # included, and even `import rekordbox_edit.api.remove as x`, since that
-    # also resolves through the same shadowed attribute). Reading straight
-    # out of sys.modules sidesteps the shadowing entirely.
-    remove_module = sys.modules["rekordbox_edit.api.remove"]
-
     track_id = _any_track_id(db)
     monkeypatch.setattr(
-        remove_module.os,
-        "remove",
+        "rekordbox_edit.api._remove.os.remove",
         lambda path: (_ for _ in ()).throw(FileNotFoundError(path)),
     )
     response = remove(db, RemoveRequest(track_id=[track_id], delete_source=True))
