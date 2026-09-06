@@ -14,7 +14,7 @@ from rekordbox_edit.cli.remove import remove_command
 from rekordbox_edit.cli.search import search_command
 from rekordbox_edit.logger import get_debug_file_path, setup_logging
 
-logger = logging.getLogger(__name__)
+_logger = logging.getLogger(__name__)
 
 
 @click.group(
@@ -43,13 +43,13 @@ def main():
             stream.reconfigure(encoding="utf-8")
     try:
         setup_logging()
-        logger.debug(f"Running with input: {' '.join(sys.argv)}")
+        _logger.debug(f"Running with input: {' '.join(sys.argv)}")
         cli()
     except KeyboardInterrupt:
-        logger.debug("User killed the process.")
+        _logger.debug("User killed the process.")
     except Exception as e:
-        logger.critical("Unhandled exception occured:", exc_info=e)
-        logger.info(
+        _logger.critical("Unhandled exception occured:", exc_info=e)
+        _logger.info(
             f"Please report this issue to https://github.com/jviall/rekordbox-edit/issues "
             f"with the debug file for this run: {get_debug_file_path().absolute().as_uri()}",
         )

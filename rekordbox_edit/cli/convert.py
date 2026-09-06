@@ -30,7 +30,7 @@ from rekordbox_edit.display import PrintableField, print_track_info
 from rekordbox_edit.logger import PrintChoice, get_debug_file_path, set_level
 from rekordbox_edit.models import ConvertRequest
 
-logger = logging.getLogger(__name__)
+_logger = logging.getLogger(__name__)
 
 # Skips a dry run cannot predict: it neither probes a source nor re-stats one,
 # so these surface only from the live pass.
@@ -99,10 +99,10 @@ def convert_command(db, **kwargs):
     _report_skips(preview.result.skipped, exclude=named)
 
     if not preview.result.converted:
-        logger.info("No files need conversion.")
+        _logger.info("No files need conversion.")
         return
 
-    logger.info(
+    _logger.info(
         f"Found {len(preview.result.converted)} files to convert to "
         f"{preview.result.format_out.upper()}"
     )
@@ -123,7 +123,7 @@ def convert_command(db, **kwargs):
             except UserQuit:
                 break
         if not selected_ids:
-            logger.info("Cancelled.")
+            _logger.info("Cancelled.")
             return
         chosen = set(selected_ids)
         selected = [op for op in preview.result.converted if op.id in chosen]
@@ -138,7 +138,7 @@ def convert_command(db, **kwargs):
                 f"{preview.result.format_out.upper()}?",
                 default=True,
             ):
-                logger.info("Cancelled.")
+                _logger.info("Cancelled.")
                 return
         except UserQuit:
             return
@@ -159,8 +159,8 @@ def _convert_reporting_partials(
     try:
         return convert(db, args, dry_run=dry_run, progress=progress, ops=ops)
     except ConvertAborted as e:
-        logger.error(f"Conversion stopped at {e.failed_path}: {e}")
-        logger.error(
+        _logger.error(f"Conversion stopped at {e.failed_path}: {e}")
+        _logger.error(
             f"{e.converted} file(s) converted and kept, 1 failed, "
             f"{e.not_attempted} not attempted."
         )
@@ -181,7 +181,7 @@ def _prompt_overwrite(db, args, preview):
     if not conflicts:
         return args, preview, frozenset()
 
-    logger.info(
+    _logger.info(
         f"{len(conflicts)} file(s) already have a {args.format_out.upper()} file "
         "at the path this would write."
     )
@@ -214,19 +214,19 @@ def _report_skips(skipped, *, exclude: frozenset[str] = frozenset()) -> None:
             continue
         count = sum(1 for s in skipped if s.reason == reason)
         if count:
-            logger.warning(f"Skipping {count} file(s): {message}")
+            _logger.warning(f"Skipping {count} file(s): {message}")
 
 
 def _print_convert_result(
     response, print_opt, scripting_mode, *, dry_run: bool
 ) -> None:
     if not dry_run:
-        logger.info(
+        _logger.info(
             f"\nConverted {len(response.result.converted)} files to "
             f"{response.result.format_out.upper()}"
         )
         if response.result.deleted:
-            logger.info(f"Deleted {response.result.deleted} original file(s)")
+            _logger.info(f"Deleted {response.result.deleted} original file(s)")
     if print_opt == PrintChoice.IDS:
         _print_response_ids([op.id for op in response.result.converted])
     elif print_opt == PrintChoice.JSON:

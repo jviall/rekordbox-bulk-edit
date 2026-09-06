@@ -69,7 +69,7 @@ Full directive text, BAD/GOOD example pairs, and rationale per rule: see `.agent
 
 ### Logging and Exceptions
 
-Every module should get and use its own `logger` for all logging purposes and follow semantic best practices of log levels:
+Every module should get and use its own module-private `_logger` for all logging purposes and follow semantic best practices of log levels:
 
 - `debug` logs should be used to record relevant application state at significant logic branches and points of execution. These are not printed to the user unless the `--print debug` option is provided.
 - `info` logs are the primary means of showing output to the user, and should be used sparingly/as necessary.

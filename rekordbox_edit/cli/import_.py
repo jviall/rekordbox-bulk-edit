@@ -29,7 +29,7 @@ from rekordbox_edit.display import print_track_info
 from rekordbox_edit.logger import PrintChoice, get_debug_file_path, set_level
 from rekordbox_edit.models import ImportOp, ImportRequest
 
-logger = logging.getLogger(__name__)
+_logger = logging.getLogger(__name__)
 
 
 @click.command(
@@ -79,7 +79,7 @@ def import_command(db, **kwargs):
         except DirectoryConfirmationRequired as e:
             if not interactive_ok:
                 raise click.UsageError(f"{e} Pass --yes to confirm.") from e
-            logger.info(str(e))
+            _logger.info(str(e))
             try:
                 if not confirm(
                     "Walk the directory and add these files?", default=False
@@ -102,7 +102,7 @@ def import_command(db, **kwargs):
             and not response.result.added
             and not response.result.skipped
         ):
-            logger.info("Nothing to add.")
+            _logger.info("Nothing to add.")
             return
         _print_import_result(response, print_opt, dry_run=dry_run)
         return
@@ -111,7 +111,7 @@ def import_command(db, **kwargs):
     if preview is None:
         return
     if not preview.result.added:
-        logger.info("Nothing to add.")
+        _logger.info("Nothing to add.")
         _report_skipped(preview)
         return
 
@@ -123,13 +123,13 @@ def import_command(db, **kwargs):
     if interactive:
         chosen = _select_ops(preview)
         if not chosen:
-            logger.info("Cancelled.")
+            _logger.info("Cancelled.")
             return
     else:
         created, linked = _count_added(preview.result.added)
         try:
             if not confirm(f"{_add_summary(created, linked)}?", default=True):
-                logger.info("Cancelled.")
+                _logger.info("Cancelled.")
                 return
         except UserQuit:
             return
@@ -194,14 +194,14 @@ def _add_summary(created: int, linked: int) -> str:
 
 def _report_added(created: int, linked: int) -> None:
     if created:
-        logger.info(f"Added {created} track(s).")
+        _logger.info(f"Added {created} track(s).")
     if linked:
-        logger.info(f"Placed {linked} existing track(s) in the playlist.")
+        _logger.info(f"Placed {linked} existing track(s) in the playlist.")
 
 
 def _report_skipped(response) -> None:
     if response.result.skipped:
-        logger.info(f"{len(response.result.skipped)} file(s) skipped.")
+        _logger.info(f"{len(response.result.skipped)} file(s) skipped.")
 
 
 def _print_import_result(response, print_opt, *, dry_run: bool) -> None:

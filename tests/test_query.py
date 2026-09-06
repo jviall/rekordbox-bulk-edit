@@ -386,7 +386,7 @@ class TestCollectionQuery:
 
     def test_by_format_empty_string(self, mocker):
         """Empty format string logs a warning and returns self unchanged."""
-        mock_warn = mocker.patch("rekordbox_edit.query.logger")
+        mock_warn = mocker.patch("rekordbox_edit.query._logger")
         query = CollectionQuery()
         result = query.by_format("")
 
@@ -400,7 +400,7 @@ class TestCollectionQuery:
             "rekordbox_edit.utils.get_file_type_codes_for_format",
             side_effect=ValueError("unknown format"),
         )
-        mock_warn = mocker.patch("rekordbox_edit.query.logger")
+        mock_warn = mocker.patch("rekordbox_edit.query._logger")
         query = CollectionQuery()
         new_query = query.by_format("xyz")
 

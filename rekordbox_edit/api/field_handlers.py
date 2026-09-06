@@ -25,7 +25,7 @@ from rekordbox_edit.utils import (
     stored_to_star_rating,
 )
 
-logger = logging.getLogger(__name__)
+_logger = logging.getLogger(__name__)
 
 
 class FieldHandler:
@@ -109,7 +109,7 @@ class RatingField(FieldHandler):
 
     def validate_request(self, args):
         if args.match_pattern is not None:
-            logger.warning(
+            _logger.warning(
                 "--match does not apply to Rating; setting the value directly"
             )
         parse_star_rating(args.replace_value)  # raises ValueError on bad input
@@ -256,7 +256,7 @@ class FolderPathField(FieldHandler):
     def validate_track(self, db, content, new_value, args):
         if not os.path.exists(new_value):
             if args.allow_missing:
-                logger.warning(
+                _logger.warning(
                     f"{new_value} does not exist; writing the path without "
                     "syncing audio metadata"
                 )
@@ -273,7 +273,7 @@ class FolderPathField(FieldHandler):
         except Exception:
             return "unknown_file_type"
         if get_file_type_for_probe(probe["codec"], probe["container"]) is None:
-            logger.debug(
+            _logger.debug(
                 f"skip candidate id={content.ID}: probe of {new_value} "
                 f"(codec={probe['codec']!r}, container={probe['container']!r}) "
                 "matches no Rekordbox file type"
@@ -291,11 +291,11 @@ class FolderPathField(FieldHandler):
                 f"length is {content.Length}s"
             )
             if args.allow_mismatch:
-                logger.warning(f"{mismatch}; cues and beat grid may be misaligned")
+                _logger.warning(f"{mismatch}; cues and beat grid may be misaligned")
             elif self._has_time_indexed_analysis(db, content):
                 return "length_mismatch"
             else:
-                logger.warning(mismatch)
+                _logger.warning(mismatch)
         return None
 
     def apply(self, db, content, new_value):
@@ -326,7 +326,7 @@ class FolderPathField(FieldHandler):
         try:
             _update_anlz_paths(db, content, content.FileNameL)
         except Exception as e:
-            logger.warning(
+            _logger.warning(
                 f"Failed to update ANLZ path tags for {content.FileNameL}: {e}"
             )
 

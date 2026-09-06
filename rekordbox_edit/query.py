@@ -18,7 +18,7 @@ from sqlalchemy.orm import Session, aliased
 from rekordbox_edit.errors import DatabaseNotConnectedError
 from rekordbox_edit.models import FilterArgs
 
-logger = logging.getLogger(__name__)
+_logger = logging.getLogger(__name__)
 
 MatchMode = Literal["grouped", "all", "any"]
 
@@ -159,7 +159,7 @@ class CollectionQuery:
         from rekordbox_edit.utils import get_file_type_codes_for_format
 
         if not format_name:
-            logger.warning("Empty format filter has no effect")
+            _logger.warning("Empty format filter has no effect")
             return self
 
         new_inst = self._copy()
@@ -169,7 +169,7 @@ class CollectionQuery:
             condition = DjmdContent.FileType.in_(file_type_codes)
             new_inst._append_condition("format", condition)
         except ValueError:
-            logger.warning(f"Invalid format: {format_name}")
+            _logger.warning(f"Invalid format: {format_name}")
         return new_inst
 
     def by_path(self, path_str: str, resolved: bool = False) -> "CollectionQuery":
@@ -226,7 +226,7 @@ class CollectionQuery:
         """Execute the query on the given database instance and return results."""
         session = require_session(db)
         stmt = self._get_full_statement()
-        logger.debug(f"Executing Query:\n{str(stmt)}")
+        _logger.debug(f"Executing Query:\n{str(stmt)}")
         return session.execute(stmt)
 
     def _get_full_statement(self):
@@ -235,17 +235,17 @@ class CollectionQuery:
 
         if self._conditions:
             if self._mode == "all":
-                logger.debug(
+                _logger.debug(
                     f"Building query with {len(self._flat_conditions)} condition(s) using flat AND logic"
                 )
                 combined_condition = and_(*self._flat_conditions)
             elif self._mode == "any":
-                logger.debug(
+                _logger.debug(
                     f"Building query with {len(self._flat_conditions)} condition(s) using flat OR logic"
                 )
                 combined_condition = or_(*self._flat_conditions)
             else:
-                logger.debug(
+                _logger.debug(
                     f"Building query with {len(self._conditions)} filter group(s) using grouped AND-of-OR logic"
                 )
                 group_conditions = [
@@ -255,7 +255,7 @@ class CollectionQuery:
             stmt = stmt.where(combined_condition)
 
         if self._last_count is not None:
-            logger.debug(f"Query last: {self._last_count}")
+            _logger.debug(f"Query last: {self._last_count}")
             tail = (
                 stmt.order_by(DjmdContent.FolderPath.desc(), DjmdContent.ID.desc())
                 .limit(self._last_count)
@@ -269,7 +269,7 @@ class CollectionQuery:
         stmt = stmt.order_by(DjmdContent.FolderPath.asc(), DjmdContent.ID.asc())
 
         if self._limit_count is not None:
-            logger.debug(f"Query limit: {self._limit_count}")
+            _logger.debug(f"Query limit: {self._limit_count}")
             stmt = stmt.limit(self._limit_count)
 
         return stmt
@@ -286,7 +286,7 @@ def get_filtered_content(
     query = CollectionQuery()
 
     if filters.track_ids:
-        logger.debug(f"Filtering by {len(filters.track_ids)} track ID argument(s)")
+        _logger.debug(f"Filtering by {len(filters.track_ids)} track ID argument(s)")
         query = query.by_track_ids(track_ids=filters.track_ids)
 
     for tid in filters.track_id:
@@ -366,7 +366,7 @@ def find_content_by_key(
         key = (content.FolderPath or "").replace("\\", "/").casefold()
         if key in wanted:
             found[key] = content
-    logger.debug(f"path lookup matched {len(found)} of {len(wanted)} candidate(s)")
+    _logger.debug(f"path lookup matched {len(found)} of {len(wanted)} candidate(s)")
     return found
 
 
@@ -381,7 +381,7 @@ def find_content_by_ids(
         select(DjmdContent).where(DjmdContent.ID.in_(list(ids)))
     ).scalars()
     found = {str(row.ID): row for row in rows}
-    logger.debug(f"id lookup matched {len(found)} of {len(set(ids))} requested row(s)")
+    _logger.debug(f"id lookup matched {len(found)} of {len(set(ids))} requested row(s)")
     return found
 
 

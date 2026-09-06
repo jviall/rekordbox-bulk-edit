@@ -18,7 +18,7 @@ from rich.text import Text
 
 from rekordbox_edit.logger import console
 
-logger = logging.getLogger(__name__)
+_logger = logging.getLogger(__name__)
 
 
 #: Marks the one task that counts files, so the count column can tell it from

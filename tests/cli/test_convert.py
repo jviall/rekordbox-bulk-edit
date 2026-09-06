@@ -20,7 +20,7 @@ from rekordbox_edit.cli._utils import UserQuit
 
 @pytest.fixture(autouse=True)
 def mock_logger():
-    with patch("rekordbox_edit.cli.convert.logger") as mock_log:
+    with patch("rekordbox_edit.cli.convert._logger") as mock_log:
         yield mock_log
 
 

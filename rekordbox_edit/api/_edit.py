@@ -20,7 +20,7 @@ from rekordbox_edit.models import (
 )
 from rekordbox_edit.query import find_content_by_ids, get_filtered_content
 
-logger = logging.getLogger(__name__)
+_logger = logging.getLogger(__name__)
 
 
 def _classify_edit(
@@ -33,14 +33,14 @@ def _classify_edit(
     new_value = handler.compute_new_value(current, args)
     track = track_from_content(content)
     if new_value is None or new_value == current:
-        logger.debug(
+        _logger.debug(
             f"skip edit id={content.ID} reason=no_change "
             f"field={args.field} current={current!r}"
         )
         return SkippedTrack(reason="no_change", track=track)
     skip_reason = handler.validate_track(db, content, str(new_value), args)
     if skip_reason is not None:
-        logger.debug(
+        _logger.debug(
             f"skip edit id={content.ID} reason={skip_reason} field={args.field}"
         )
         return SkippedTrack(reason=skip_reason, track=track)
@@ -58,7 +58,7 @@ def _recheck_edit(
     handler = FIELD_HANDLERS[args.field]
     reason = handler.validate_track(db, content, op.new_value, args)
     if reason is not None:
-        logger.debug(f"skip edit id={op.id} reason=db_or_fs_changed was={reason}")
+        _logger.debug(f"skip edit id={op.id} reason=db_or_fs_changed was={reason}")
         return SkippedTrack(
             reason="db_or_fs_changed", track=track_from_content(content)
         )
@@ -82,7 +82,7 @@ def edit(
     op is re-checked against the filesystem and reported as
     `db_or_fs_changed` if it no longer holds.
     """
-    logger.debug(f"edit start field={args.field} dry_run={dry_run}")
+    _logger.debug(f"edit start field={args.field} dry_run={dry_run}")
     handler = FIELD_HANDLERS.get(args.field)
     if handler is None:
         raise InputError(f"Unknown field: {args.field!r}")
@@ -93,21 +93,21 @@ def edit(
 
     if ops is None:
         contents = get_filtered_content(db, args).scalars().all()
-        logger.debug(f"edit fetched {len(contents)} candidate(s) from filter")
+        _logger.debug(f"edit fetched {len(contents)} candidate(s) from filter")
         for c in contents:
             result = _classify_edit(db, c, args)
             if isinstance(result, EditOp):
                 planned.append(result)
             else:
                 skipped.append(result)
-        logger.debug(f"edit classified ops={len(planned)} skipped={len(skipped)}")
+        _logger.debug(f"edit classified ops={len(planned)} skipped={len(skipped)}")
     else:
         rows = find_content_by_ids(db, [op.id for op in ops])
         contents = []
         for op in ops:
             content = rows.get(op.id)
             if content is None:
-                logger.debug(f"skip edit id={op.id} reason=db_or_fs_changed row_gone")
+                _logger.debug(f"skip edit id={op.id} reason=db_or_fs_changed row_gone")
                 skipped.append(SkippedTrack(reason="db_or_fs_changed", track=op.track))
                 continue
             result = _recheck_edit(db, content, op, args)
@@ -116,12 +116,12 @@ def edit(
                 contents.append(content)
             else:
                 skipped.append(result)
-        logger.debug(f"edit re-checked ops={len(planned)} skipped={len(skipped)}")
+        _logger.debug(f"edit re-checked ops={len(planned)} skipped={len(skipped)}")
 
     ops = planned
 
     if dry_run:
-        logger.debug(f"edit dry-run return with {len(ops)} planned edit(s)")
+        _logger.debug(f"edit dry-run return with {len(ops)} planned edit(s)")
         return EditResponse(
             result=EditResult(
                 field=args.field, dry_run=True, edits=ops, skipped=skipped
@@ -148,7 +148,7 @@ def edit(
                 edited.append(content)
         stamp_usns(db, edited)
         db.session.commit()
-        logger.debug(f"edit committed {len(ops)} change(s) on field={args.field}")
+        _logger.debug(f"edit committed {len(ops)} change(s) on field={args.field}")
 
         for content in contents:
             if str(content.ID) in new_values:

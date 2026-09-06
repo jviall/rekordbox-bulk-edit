@@ -14,7 +14,7 @@ class TestMain:
         mock_setup.assert_called_once()
         mock_cli.assert_called_once()
 
-    @patch("rekordbox_edit.cli.main.logger")
+    @patch("rekordbox_edit.cli.main._logger")
     @patch("rekordbox_edit.cli.main.cli", side_effect=KeyboardInterrupt)
     @patch("rekordbox_edit.cli.main.setup_logging")
     def test_keyboard_interrupt_logs_and_exits_cleanly(
@@ -24,7 +24,7 @@ class TestMain:
 
         mock_logger.debug.assert_called_with("User killed the process.")
 
-    @patch("rekordbox_edit.cli.main.logger")
+    @patch("rekordbox_edit.cli.main._logger")
     @patch("rekordbox_edit.cli.main.cli", side_effect=RuntimeError("boom"))
     @patch("rekordbox_edit.cli.main.setup_logging")
     def test_unhandled_exception_logs_critical_and_exits_1(

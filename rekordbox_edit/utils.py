@@ -11,7 +11,7 @@ import ffmpeg
 
 from rekordbox_edit.errors import DependencyMissingError, InputError
 
-logger = logging.getLogger(__name__)
+_logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -289,21 +289,23 @@ def get_audio_info(file_path) -> AudioInfo:
                 bit_depth = 32
 
         if bit_depth is None:
-            logger.debug(f"Could not determine bit depth for {file_path}")
+            _logger.debug(f"Could not determine bit depth for {file_path}")
 
         # Get bitrate from stream, or calculate from audio properties if available
         bitrate = None
         if "bit_rate" in audio_stream and audio_stream["bit_rate"]:
             bitrate = int(audio_stream["bit_rate"]) // 1000  # Convert to kbps
         elif bit_depth is not None:
-            logger.debug("Calculating bit rate from sample_rate * bit_depth * channels")
+            _logger.debug(
+                "Calculating bit rate from sample_rate * bit_depth * channels"
+            )
             sample_rate = int(audio_stream.get("sample_rate", 0))
             channels = int(audio_stream.get("channels", 1))
             if sample_rate > 0:
                 bitrate = (sample_rate * bit_depth * channels) // 1000
 
         if bitrate is None:
-            logger.debug(f"Could not determine bitrate for {file_path}")
+            _logger.debug(f"Could not determine bitrate for {file_path}")
 
         duration = None
         raw_duration = probe.get("format", {}).get("duration") or audio_stream.get(
@@ -312,7 +314,7 @@ def get_audio_info(file_path) -> AudioInfo:
         if raw_duration is not None:
             duration = float(raw_duration)
         else:
-            logger.debug(f"Could not determine duration for {file_path}")
+            _logger.debug(f"Could not determine duration for {file_path}")
 
         return {
             "bit_depth": bit_depth,
@@ -324,8 +326,8 @@ def get_audio_info(file_path) -> AudioInfo:
             "duration": duration,
         }
     except Exception as e:
-        logger.error(f"Failed to get audio info for {file_path}: {e}")
-        logger.debug("Full traceback:", exc_info=True)
+        _logger.error(f"Failed to get audio info for {file_path}: {e}")
+        _logger.debug("Full traceback:", exc_info=True)
         raise e
 
 

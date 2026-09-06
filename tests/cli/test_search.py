@@ -11,7 +11,7 @@ from rekordbox_edit.models import SearchResponse
 
 @pytest.fixture(autouse=True)
 def mock_logger():
-    with patch("rekordbox_edit.cli.search.logger") as mock_log:
+    with patch("rekordbox_edit.cli.search._logger") as mock_log:
         yield mock_log
 
 
