@@ -9,7 +9,7 @@ from typing import NamedTuple, cast
 from pyrekordbox import Rekordbox6Database
 from pyrekordbox.db6 import tables as tb
 
-from rekordbox_edit.api._utils import _track_from_content, stamp_usns, writing
+from rekordbox_edit.api._utils import stamp_usns, track_from_content, writing
 from rekordbox_edit.errors import InputError
 from rekordbox_edit.models import (
     ImportOp,
@@ -304,23 +304,26 @@ def _classify_import(
     path = candidate.path
     if existing is not None:
         content_id = str(existing.ID)
+        track = track_from_content(existing)
         if playlist is not None and content_id not in playlist_member_ids:
             logger.debug(f"playlist_add id={content_id} path={path}")
-            return ImportOp(id=content_id, path=path, action="playlist_add")
+            return ImportOp(
+                id=content_id, path=path, action="playlist_add", track=track
+            )
         logger.debug(f"skip import id={content_id} reason=already_exists path={path}")
-        return SkippedTrack(id=content_id, reason="already_exists")
+        return SkippedTrack(reason="already_exists", track=track)
 
     if os.path.splitext(path)[1].lower() in UNMAPPED_EXTENSIONS:
         logger.warning(f"Skipping {path}: unsupported file type")
-        return SkippedTrack(id="", reason="unsupported_file_type")
+        return SkippedTrack(reason="unsupported_file_type")
 
     try:
         candidate.tags = read_tags(path)
     except UnreadableFile as e:
         logger.warning(f"Skipping {path}: {e}")
-        return SkippedTrack(id="", reason="unreadable_file")
+        return SkippedTrack(reason="unreadable_file")
 
-    return ImportOp(id="", path=path, action="create")
+    return ImportOp(id="", path=path, action="create", track=_planned_track(candidate))
 
 
 def _resolve_playlist(db: Rekordbox6Database, name: str) -> tb.DjmdPlaylist:
@@ -353,14 +356,16 @@ def _planned_track(candidate: _ImportCandidate) -> Track:
 
 
 def _response(
-    tracks: list[Track],
     playlist_name: str | None,
     ops: list[ImportOp],
     skipped: list[SkippedTrack],
+    *,
+    dry_run: bool,
 ) -> ImportResponse:
     return ImportResponse(
-        tracks=tracks,
-        result=ImportResult(playlist=playlist_name, added=ops, skipped=skipped),
+        result=ImportResult(
+            playlist=playlist_name, dry_run=dry_run, added=ops, skipped=skipped
+        ),
     )
 
 
@@ -389,13 +394,13 @@ def import_tracks(
             raise DirectoryConfirmationRequired(len(directories), len(candidates))
         for path in rejected:
             logger.warning(f"Skipping {path}: not an audio file RBE recognizes")
-            skipped.append(SkippedTrack(id="", reason="unsupported_file_type"))
+            skipped.append(SkippedTrack(reason="unsupported_file_type"))
     else:
         candidates = []
         for op in ops:
             if not os.path.exists(op.path):
                 logger.debug(f"skip import reason=db_or_fs_changed path={op.path}")
-                skipped.append(SkippedTrack(id=op.id, reason="db_or_fs_changed"))
+                skipped.append(SkippedTrack(reason="db_or_fs_changed", track=op.track))
                 continue
             candidates.append(_ImportCandidate.of(op.path))
 
@@ -428,13 +433,7 @@ def import_tracks(
     logger.debug(f"import classified ops={len(ops)} skipped={len(skipped)}")
 
     if dry_run:
-        tracks = [
-            _planned_track(candidate)
-            if op.action == "create"
-            else _track_from_content(existing[candidate.key])
-            for op, candidate in planned
-        ]
-        return _response(tracks, args.playlist, ops, skipped)
+        return _response(args.playlist, ops, skipped, dry_run=True)
 
     applied: list[ImportOp] = []
     written: list[tb.DjmdContent] = []
@@ -463,5 +462,11 @@ def import_tracks(
             session.rollback()
             raise
 
-    tracks = [_track_from_content(content) for content in written]
-    return _response(tracks, args.playlist, applied, skipped)
+    # Refreshed post-commit: a create op's track up to now is _planned_track's
+    # synthetic, ID-less stand-in, and the row's ID and stamped USN are only
+    # settled once the transaction above commits.
+    applied = [
+        op.model_copy(update={"track": track_from_content(content)})
+        for op, content in zip(applied, written)
+    ]
+    return _response(args.playlist, applied, skipped, dry_run=False)

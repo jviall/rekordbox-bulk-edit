@@ -118,7 +118,7 @@ def import_command(db, **kwargs):
     # Reaching here means neither --yes nor --dry-run, which
     # _validate_scripting_preconditions has already established rules out a
     # scripting --print mode, so the preview always prints.
-    print_track_info(preview.tracks)
+    print_track_info([op.track for op in preview.result.added])
 
     if interactive:
         chosen = _select_ops(preview)
@@ -142,13 +142,13 @@ def import_command(db, **kwargs):
     _print_import_result(response, print_opt, dry_run=False)
 
 
-def _op_prompt(op: ImportOp, track, playlist: str | None) -> str:
+def _op_prompt(op: ImportOp, playlist: str | None) -> str:
     """The question for one pending op, phrased for what it will actually do.
 
     A create places the track in the playlist too when one was named, so it
     reads as one action rather than two.
     """
-    name = track.FileNameL or op.path
+    name = op.track.FileNameL or op.path
     if op.action == "playlist_add":
         return f"  Place {name} in {playlist}?"
     if playlist:
@@ -160,9 +160,9 @@ def _select_ops(preview) -> list[ImportOp]:
     """Walk the previewed ops, keeping the ones the user confirms."""
     playlist = preview.result.playlist
     chosen: list[ImportOp] = []
-    for track, op in zip(preview.tracks, preview.result.added):
+    for op in preview.result.added:
         try:
-            if confirm(_op_prompt(op, track, playlist), default=True):
+            if confirm(_op_prompt(op, playlist), default=True):
                 chosen.append(op)
         except UserQuit:
             break
@@ -210,8 +210,8 @@ def _print_import_result(response, print_opt, *, dry_run: bool) -> None:
         _report_added(created, linked)
     _report_skipped(response)
     if print_opt == PrintChoice.IDS:
-        _print_response_ids(response)
+        _print_response_ids([op.id for op in response.result.added])
     elif print_opt == PrintChoice.JSON:
         _print_response_json(response)
     elif print_opt not in SCRIPTING_MODES and dry_run:
-        print_track_info(response.tracks)
+        print_track_info([op.track for op in response.result.added])

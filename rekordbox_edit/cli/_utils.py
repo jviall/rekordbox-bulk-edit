@@ -79,9 +79,9 @@ def _validate_scripting_preconditions(
         raise click.UsageError("Piping track IDs requires --dry-run or --yes")
 
 
-def _print_response_ids(response) -> None:
-    """Print space-separated IDs from response.tracks."""
-    print(" ".join(t.ID for t in response.tracks))
+def _print_response_ids(ids) -> None:
+    """Print space-separated ids."""
+    print(" ".join(ids))
 
 
 def _print_response_json(response: BaseModel) -> None:

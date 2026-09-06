@@ -107,17 +107,18 @@ def convert_command(db, **kwargs):
         f"{preview.result.format_out.upper()}"
     )
     if not scripting_mode:
+        preview_tracks = [op.track for op in preview.result.converted]
         print_track_info(
-            preview.tracks,
+            preview_tracks,
             changed_field=PrintableField.FileType,
-            new_values=[preview.result.format_out.upper()] * len(preview.tracks),
+            new_values=[preview.result.format_out.upper()] * len(preview_tracks),
         )
 
     if interactive:
         selected_ids = []
-        for track, op in zip(preview.tracks, preview.result.converted):
+        for op in preview.result.converted:
             try:
-                if confirm(f"  Convert {track.FileNameL}?", default=True):
+                if confirm(f"  Convert {op.track.FileNameL}?", default=True):
                     selected_ids.append(op.id)
             except UserQuit:
                 break
@@ -227,12 +228,13 @@ def _print_convert_result(
         if response.result.deleted:
             logger.info(f"Deleted {response.result.deleted} original file(s)")
     if print_opt == PrintChoice.IDS:
-        _print_response_ids(response)
+        _print_response_ids([op.id for op in response.result.converted])
     elif print_opt == PrintChoice.JSON:
         _print_response_json(response)
     elif not scripting_mode and dry_run:
+        tracks = [op.track for op in response.result.converted]
         print_track_info(
-            response.tracks,
+            tracks,
             changed_field=PrintableField.FileType,
-            new_values=[response.result.format_out.upper()] * len(response.tracks),
+            new_values=[response.result.format_out.upper()] * len(tracks),
         )

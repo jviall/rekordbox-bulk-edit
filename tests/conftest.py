@@ -41,7 +41,7 @@ def make_djmd_content_item():
         id = id or str(ID)
 
         item_mock = MagicMock()
-        # Default every real column to None so bulk-copy in _track_from_content
+        # Default every real column to None so bulk-copy in track_from_content
         # sees a clean row instead of MagicMock placeholders.
         for col in DjmdContent.__table__.columns:
             setattr(item_mock, col.key, None)

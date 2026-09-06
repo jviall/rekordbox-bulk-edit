@@ -38,14 +38,18 @@ def runner():
     return CliRunner()
 
 
-def _response(tracks=None, added=None, skipped=None, playlist=None):
+def _response(tracks=None, added=None, skipped=None, playlist=None, dry_run=False):
     if tracks is None:
         tracks = [Track(ID="1", FileNameL="a.flac", FolderPath="/m/a.flac")]
     if added is None:
-        added = [ImportOp(id=t.ID, path=t.FolderPath, action="create") for t in tracks]
+        added = [
+            ImportOp(id=t.ID, path=t.FolderPath, action="create", track=t)
+            for t in tracks
+        ]
     return ImportResponse(
-        tracks=tracks,
-        result=ImportResult(playlist=playlist, added=added, skipped=skipped or []),
+        result=ImportResult(
+            playlist=playlist, dry_run=dry_run, added=added, skipped=skipped or []
+        ),
     )
 
 
@@ -126,7 +130,7 @@ class TestImportCommand:
     ):
         mock_db_class.return_value = Mock(session=Mock())
         mock_import.return_value = ImportResponse(
-            tracks=[], result=ImportResult(playlist=None, added=[], skipped=[])
+            result=ImportResult(playlist=None, dry_run=False, added=[], skipped=[])
         )
 
         with patch("rekordbox_edit.cli.import_.logger") as mock_log:
@@ -144,7 +148,7 @@ class TestImportCommand:
         # Scripting output must stay valid JSON even when nothing happened.
         mock_db_class.return_value = Mock(session=Mock())
         mock_import.return_value = ImportResponse(
-            tracks=[], result=ImportResult(playlist=None, added=[], skipped=[])
+            result=ImportResult(playlist=None, dry_run=False, added=[], skipped=[])
         )
 
         result = CliRunner().invoke(
@@ -384,7 +388,7 @@ class TestImportCommand:
         track = Track(ID="AAA", FileNameL="a.flac", FolderPath="/m/a.flac")
         mock_import.return_value = _response(
             tracks=[track],
-            added=[ImportOp(id="AAA", path="/m/a.flac", action="create")],
+            added=[ImportOp(id="AAA", path="/m/a.flac", action="create", track=track)],
         )
 
         result = CliRunner().invoke(
@@ -403,7 +407,7 @@ class TestImportCommand:
         track = Track(ID="AAA", FileNameL="a.flac", FolderPath="/m/a.flac")
         mock_import.return_value = _response(
             tracks=[track],
-            added=[ImportOp(id="AAA", path="/m/a.flac", action="create")],
+            added=[ImportOp(id="AAA", path="/m/a.flac", action="create", track=track)],
         )
 
         result = CliRunner().invoke(
@@ -412,9 +416,11 @@ class TestImportCommand:
 
         assert result.exit_code == 0
         payload = json.loads(result.output.splitlines()[-1])
-        assert payload["result"]["added"] == [
-            {"id": "AAA", "path": "/m/a.flac", "action": "create"}
-        ]
+        assert [
+            {k: v for k, v in op.items() if k != "track"}
+            for op in payload["result"]["added"]
+        ] == [{"id": "AAA", "path": "/m/a.flac", "action": "create"}]
+        assert payload["result"]["added"][0]["track"]["ID"] == "AAA"
 
     @patch("rekordbox_edit.cli.import_.print_track_info")
     @patch("rekordbox_edit.cli.import_.confirm", return_value=True)
@@ -470,11 +476,11 @@ class TestImportCommand:
     ):
         mock_db_class.return_value = Mock(session=Mock())
         mock_import.return_value = ImportResponse(
-            tracks=[],
             result=ImportResult(
                 playlist=None,
+                dry_run=True,
                 added=[],
-                skipped=[SkippedTrack(id="1", reason="already_exists")],
+                skipped=[SkippedTrack(reason="already_exists")],
             ),
         )
 
@@ -506,7 +512,9 @@ class TestImportCommand:
         track = Track(ID="1", FileNameL="a.flac", FolderPath="/m/a.flac")
         mock_import.return_value = _response(
             tracks=[track],
-            added=[ImportOp(id="1", path="/m/a.flac", action="playlist_add")],
+            added=[
+                ImportOp(id="1", path="/m/a.flac", action="playlist_add", track=track)
+            ],
         )
 
         result = CliRunner().invoke(
@@ -529,7 +537,9 @@ class TestImportCommand:
         track = Track(ID="1", FileNameL="a.flac", FolderPath="/m/a.flac")
         mock_import.return_value = _response(
             tracks=[track],
-            added=[ImportOp(id="1", path="/m/a.flac", action="playlist_add")],
+            added=[
+                ImportOp(id="1", path="/m/a.flac", action="playlist_add", track=track)
+            ],
         )
 
         result = CliRunner().invoke(
@@ -555,8 +565,10 @@ class TestImportCommand:
         mock_import.return_value = _response(
             tracks=tracks,
             added=[
-                ImportOp(id="1", path="/m/a.flac", action="create"),
-                ImportOp(id="2", path="/m/b.flac", action="playlist_add"),
+                ImportOp(id="1", path="/m/a.flac", action="create", track=tracks[0]),
+                ImportOp(
+                    id="2", path="/m/b.flac", action="playlist_add", track=tracks[1]
+                ),
             ],
         )
 

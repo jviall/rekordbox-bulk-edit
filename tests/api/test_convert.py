@@ -39,8 +39,9 @@ from rekordbox_edit.models import (
     ConvertRequest,
     ConvertResponse,
     SkippedTrack,
+    Track,
 )
-from rekordbox_edit.utils import AudioInfo, OutputFormats
+from rekordbox_edit.utils import AudioInfo, OutputFormats, get_file_type_for_format
 
 _PROBE_WAV_16_44 = {
     "bit_depth": 16,
@@ -336,7 +337,9 @@ class TestConvertDryRun:
         assert response.result.format_out == "aiff"
         assert len(response.result.converted) == 1
         assert response.result.deleted == 0
-        assert response.tracks[0].ID == "1"
+        assert response.result.dry_run is True
+        assert response.tracks == []
+        assert response.result.converted[0].track.ID == "1"
         mock_db.session.commit.assert_not_called()
 
     @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=True)
@@ -362,6 +365,77 @@ class TestConvertDryRun:
         assert response.tracks == []
         assert len(response.result.skipped) == 1
         assert response.result.skipped[0].reason == "already_target_format"
+
+
+class TestConvertResponseTracksDryRunRule:
+    """`tracks` is empty for a dry run, since a dry run changes nothing; the
+    ops still carry their tracks, and a real run populates both."""
+
+    @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=True)
+    @patch("rekordbox_edit.api.convert.os.path.exists", return_value=False)
+    @patch("rekordbox_edit.api.convert._get_output_path")
+    @patch("rekordbox_edit.api.convert.get_file_type_for_format")
+    @patch("rekordbox_edit.api.convert.get_filtered_content")
+    def test_dry_run_has_empty_tracks_but_ops_carry_theirs(
+        self,
+        mock_gfc,
+        mock_get_type,
+        mock_get_output,
+        mock_exists,
+        _ffmpeg,
+        mock_db,
+        make_djmd_content_item,
+    ):
+        mock_get_type.side_effect = lambda fmt: {"AIFF": 1}.get(fmt.upper(), 99)
+        mock_get_output.return_value = ("/out.aif", "out.aif", "/")
+        content = make_djmd_content_item(ID="1", FileType=11, FolderPath="/in.wav")
+        _seed_filter(mock_gfc, content)
+
+        response = convert(mock_db, ConvertRequest(format_out="aiff"), dry_run=True)
+
+        assert response.tracks == []
+        assert response.result.converted[0].track.ID == "1"
+
+    @patch("rekordbox_edit.api.convert.get_audio_info", return_value=_PROBE_WAV_16_44)
+    @patch("rekordbox_edit.api.convert._apply_converted_record")
+    @patch("rekordbox_edit.api.convert._run_ffmpeg", return_value=True)
+    @patch("rekordbox_edit.api.convert.find_content_by_ids")
+    @patch("rekordbox_edit.api.convert.get_filtered_content")
+    @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=True)
+    def test_real_run_has_both_tracks_and_ops(
+        self,
+        _ffmpeg,
+        mock_gfc,
+        mock_by_ids,
+        mock_run,
+        mock_apply,
+        _get_audio_info,
+        mock_db,
+        make_djmd_content_item,
+    ):
+        content = make_djmd_content_item(ID="1", FileType=11, FolderPath="/A.wav")
+        mock_by_ids.return_value = {"1": content}
+        _seed_db(mock_db, content)
+        op = _op(id="1", source="/A.wav", output="/A.aif")
+
+        with (
+            patch("rekordbox_edit.api.convert.os.replace"),
+            patch("rekordbox_edit.api.convert.os.listdir", return_value=[]),
+            patch("rekordbox_edit.api.convert._probe_converted_file"),
+            patch(
+                "rekordbox_edit.api.convert.os.path.exists",
+                side_effect=lambda path: path != op.output_path,
+            ),
+        ):
+            response = convert(
+                mock_db,
+                ConvertRequest(format_out="aiff", delete_originals="none"),
+                ops=[op],
+            )
+
+        assert response.result.dry_run is False
+        assert response.tracks[0].ID == "1"
+        assert response.result.converted[0].track.ID == "1"
 
 
 class TestTempOutputPath:
@@ -396,6 +470,7 @@ def _op(id="A", source="/A.wav", output="/A.aif"):
         output_path=output,
         source_file_type="WAV",
         output_file_type="AIFF",
+        track=Track(ID=id, FileNameL=os.path.basename(source), FolderPath=source),
     )
 
 
@@ -412,17 +487,19 @@ class TestRecheckConvert:
 
     @patch("rekordbox_edit.api.convert.os.path.exists", return_value=False)
     def test_a_vanished_source_is_db_or_fs_changed(self, _exists):
-        result = _recheck_convert(_op(), ConvertRequest(format_out="aiff"))
+        op = _op()
+        result = _recheck_convert(op, ConvertRequest(format_out="aiff"))
 
-        assert result == SkippedTrack(id="A", reason="db_or_fs_changed")
+        assert result == SkippedTrack(reason="db_or_fs_changed", track=op.track)
 
     @patch("rekordbox_edit.api.convert.os.path.exists")
     def test_an_output_that_appeared_is_db_or_fs_changed(self, mock_exists):
         mock_exists.side_effect = lambda path: True  # source and output both there
 
-        result = _recheck_convert(_op(), ConvertRequest(format_out="aiff"))
+        op = _op()
+        result = _recheck_convert(op, ConvertRequest(format_out="aiff"))
 
-        assert result == SkippedTrack(id="A", reason="db_or_fs_changed")
+        assert result == SkippedTrack(reason="db_or_fs_changed", track=op.track)
 
     @patch("rekordbox_edit.api.convert.os.path.exists", return_value=True)
     def test_overwrite_tolerates_an_output_that_appeared(self, _exists):
@@ -442,13 +519,14 @@ class TestConvertFromApprovedOps:
         self, _ffmpeg, _exists, mock_gfc, mock_by_ids, mock_db, make_djmd_content_item
     ):
         mock_by_ids.return_value = {"A": make_djmd_content_item(ID="A")}
+        op = _op()
 
-        response = convert(mock_db, ConvertRequest(format_out="aiff"), ops=[_op()])
+        response = convert(mock_db, ConvertRequest(format_out="aiff"), ops=[op])
 
         mock_gfc.assert_not_called()
         assert response.result.converted == []
         assert response.result.skipped == [
-            SkippedTrack(id="A", reason="db_or_fs_changed")
+            SkippedTrack(reason="db_or_fs_changed", track=op.track)
         ]
         mock_db.session.commit.assert_not_called()
 
@@ -506,10 +584,11 @@ class TestConvertFromApprovedOps:
     def test_a_row_deleted_since_the_preview_is_db_or_fs_changed(
         self, _ffmpeg, _by_ids, mock_db
     ):
-        response = convert(mock_db, ConvertRequest(format_out="aiff"), ops=[_op()])
+        op = _op()
+        response = convert(mock_db, ConvertRequest(format_out="aiff"), ops=[op])
 
         assert response.result.skipped == [
-            SkippedTrack(id="A", reason="db_or_fs_changed")
+            SkippedTrack(reason="db_or_fs_changed", track=op.track)
         ]
 
 
@@ -585,12 +664,68 @@ class TestConvertRealRun:
 
         assert [op.id for op in response.result.converted] == ["B"]
         assert [t.ID for t in response.tracks] == ["B"]
-        assert {(s.id, s.reason) for s in response.result.skipped} == {
+        assert {(s.track.ID, s.reason) for s in response.result.skipped if s.track} == {
             ("A", "codec_mismatch")
         }
         mock_run.assert_called_once()
         mock_update.assert_called_once()
         mock_db.session.commit.assert_called_once()
+
+    @patch("rekordbox_edit.api.convert.get_audio_info", return_value=_PROBE_WAV_16_44)
+    @patch("rekordbox_edit.api.convert._run_ffmpeg", return_value=True)
+    @patch("rekordbox_edit.api.convert.os.path.exists", return_value=True)
+    @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=True)
+    @patch("rekordbox_edit.api.convert._get_output_path")
+    @patch("rekordbox_edit.api.convert.get_filtered_content")
+    def test_the_committed_track_reflects_the_post_conversion_row(
+        self,
+        mock_gfc,
+        mock_get_output,
+        _ffmpeg,
+        _exists,
+        mock_run,
+        _get_audio_info,
+        mock_db,
+        make_djmd_content_item,
+    ):
+        # A stale pre-write snapshot would still report the source WAV's
+        # FileType and FolderPath: op.track is captured during
+        # classification, before _apply_converted_record() ever touches the
+        # row. Unlike the other TestConvertRealRun cases, this one lets
+        # _apply_converted_record run for real so the row is actually
+        # mutated, instead of mocking it away.
+        mock_get_output.return_value = ("/A.aif", "A.aif", "/")
+        content = make_djmd_content_item(ID="A", FileType=11, FolderPath="/A.wav")
+        _seed_filter(mock_gfc, content)
+        _seed_db(mock_db, content)
+
+        with patch(
+            "rekordbox_edit.api.convert._probe_converted_file",
+            return_value=ConvertedFileProbe(
+                audio_info=AudioInfo(
+                    bit_depth=16,
+                    sample_rate=44100,
+                    channels=2,
+                    bitrate=1411,
+                    codec="pcm_s16le",
+                    container="wav",
+                    duration=180.0,
+                ),
+                file_size=123,
+            ),
+        ):
+            response = convert(
+                mock_db,
+                ConvertRequest(
+                    format_out="aiff", delete_originals="none", overwrite=True
+                ),
+            )
+
+        aiff_file_type = get_file_type_for_format("aiff")
+        assert response.result.converted[0].track.FileType == aiff_file_type
+        assert response.result.converted[0].track.FolderPath == "/A.aif"
+        assert response.tracks[0].FileType == aiff_file_type
+        assert response.tracks[0].FolderPath == "/A.aif"
 
     @patch("rekordbox_edit.api.convert.get_audio_info", return_value=_PROBE_AAC_M4A)
     @patch("rekordbox_edit.api.convert.os.remove")
@@ -1377,11 +1512,16 @@ class TestEncodeJob:
         content = make_djmd_content_item(
             ID="7", FileType=11, FolderPath="/in.wav", FileNameL="in.wav"
         )
-        op = ConvertOp(id="7", source_path="/in.wav", output_path="/out.aif")
+        op = ConvertOp(
+            id="7",
+            source_path="/in.wav",
+            output_path="/out.aif",
+            track=Track(ID="7", FileNameL="in.wav", FolderPath="/in.wav"),
+        )
 
         job = _encode_job_for(content, op, "AIFF")
 
-        assert (job.op_id, job.source_path, job.file_type) == ("7", "/in.wav", 11)
+        assert (job.source_path, job.file_type) == ("/in.wav", 11)
         assert job.temp_path == _temp_output_path("/out.aif")
         assert not any(isinstance(v, type(content)) for v in job.__dict__.values())
 
@@ -1390,7 +1530,6 @@ class TestEncodeOne:
     """The worker half. Every case here must reach its answer without a session."""
 
     _BASE = _EncodeJob(
-        op_id="1",
         source_path="/in.wav",
         file_name="in.wav",
         file_type=11,
@@ -1568,7 +1707,7 @@ class TestConvertPerFileCommits:
         response = convert(mock_db, ConvertRequest(format_out="aiff", overwrite=True))
 
         assert [op.id for op in response.result.converted] == ["1", "3"]
-        assert [(s.id, s.reason) for s in response.result.skipped] == [
+        assert [(s.track.ID, s.reason) for s in response.result.skipped if s.track] == [
             ("2", "file_not_found")
         ]
         assert mock_db.session.commit.call_count == 2

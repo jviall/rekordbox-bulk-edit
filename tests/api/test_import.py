@@ -469,14 +469,15 @@ class TestClassifyImport:
             result = _classify_import(_candidate("/music/a.flac"), None, set(), None)
         assert isinstance(result, SkippedTrack)
         assert result.reason == "unreadable_file"
-        assert result.id == ""
+        assert result.track is None
 
     def test_existing_file_without_a_playlist_is_skipped(self, make_djmd_content_item):
         existing = make_djmd_content_item(ID="7")
         result = _classify_import(_candidate("/music/a.flac"), existing, set(), None)
         assert isinstance(result, SkippedTrack)
         assert result.reason == "already_exists"
-        assert result.id == "7"
+        assert result.track is not None
+        assert result.track.ID == "7"
 
     def test_existing_file_missing_from_the_playlist_is_added_to_it(
         self, make_djmd_content_item, a_playlist
@@ -540,23 +541,25 @@ class TestImport:
         assert response.result.added[0].action == "create"
         mock_db.session.commit.assert_not_called()
 
-    def test_dry_run_returns_synthetic_tracks_aligned_with_ops(
+    def test_dry_run_ops_carry_synthetic_planned_tracks(
         self, mock_db, one_flac, stub_tags
     ):
-        # New rows have no ID before insert, so a dry run describes the plan.
+        # New rows have no ID before insert, so the plan's op carries a
+        # synthetic stand-in describing what would be created. `tracks`
+        # itself stays empty: a dry run changes nothing.
         with patch("rekordbox_edit.api.import_.find_content_by_key", return_value={}):
             response = import_tracks(
                 mock_db, ImportRequest(paths=[one_flac]), dry_run=True
             )
 
-        assert len(response.tracks) == len(response.result.added)
-        assert response.tracks[0].ID == ""
-        assert response.tracks[0].Title == "A"
+        assert response.tracks == []
+        assert response.result.added[0].track.ID == ""
+        assert response.result.added[0].track.Title == "A"
 
     def test_commits_once_for_the_whole_batch(
         self, mock_db, one_flac, stub_tags, make_djmd_content_item
     ):
-        # _build_content's return goes through _track_from_content, which
+        # _build_content's return goes through track_from_content, which
         # reads every DjmdContent column, so the stub needs a fully-shaped
         # row rather than a bare MagicMock(ID=...).
         with (
@@ -567,6 +570,47 @@ class TestImport:
             import_tracks(mock_db, ImportRequest(paths=[one_flac]))
 
         mock_db.session.commit.assert_called_once()
+
+    def test_a_created_tracks_id_is_refreshed_after_commit(
+        self, mock_db, one_flac, stub_tags, make_djmd_content_item
+    ):
+        # Before insert, a create op's track is _planned_track's synthetic,
+        # ID-less stand-in. `--print ids` (and any caller chaining off the
+        # response) needs the real post-insert ID, not that placeholder.
+        with (
+            patch("rekordbox_edit.api.import_.find_content_by_key", return_value={}),
+            patch("rekordbox_edit.api.import_._build_content") as builder,
+        ):
+            builder.return_value = make_djmd_content_item(ID="99")
+            response = import_tracks(mock_db, ImportRequest(paths=[one_flac]))
+
+        assert response.result.added[0].track.ID == "99"
+        assert response.tracks[0].ID == "99"
+
+    def test_dry_run_has_empty_tracks_but_ops_carry_theirs(
+        self, mock_db, one_flac, stub_tags
+    ):
+        with patch("rekordbox_edit.api.import_.find_content_by_key", return_value={}):
+            response = import_tracks(
+                mock_db, ImportRequest(paths=[one_flac]), dry_run=True
+            )
+
+        assert response.tracks == []
+        assert response.result.added[0].track.Title == "A"
+
+    def test_real_run_has_both_tracks_and_ops(
+        self, mock_db, one_flac, stub_tags, make_djmd_content_item
+    ):
+        with (
+            patch("rekordbox_edit.api.import_.find_content_by_key", return_value={}),
+            patch("rekordbox_edit.api.import_._build_content") as builder,
+        ):
+            builder.return_value = make_djmd_content_item(ID="99")
+            response = import_tracks(mock_db, ImportRequest(paths=[one_flac]))
+
+        assert response.result.dry_run is False
+        assert response.tracks[0].ID == "99"
+        assert response.result.added[0].track.ID == "99"
 
     def test_unreadable_file_is_skipped_without_aborting(
         self, mock_db, tmp_path, one_flac
@@ -600,9 +644,7 @@ class TestImport:
             )
 
         assert response.result.added == []
-        assert response.result.skipped == [
-            SkippedTrack(id="", reason="unsupported_file_type")
-        ]
+        assert response.result.skipped == [SkippedTrack(reason="unsupported_file_type")]
 
     def test_raises_without_a_session(self, mock_db, tmp_path):
         track = tmp_path / "a.flac"
@@ -623,9 +665,7 @@ class TestImport:
             )
 
         assert response.result.added == []
-        assert response.result.skipped == [
-            SkippedTrack(id="", reason="unsupported_file_type")
-        ]
+        assert response.result.skipped == [SkippedTrack(reason="unsupported_file_type")]
 
     def test_batch_with_one_unsupported_file_still_imports_the_good_one(
         self, mock_db, tmp_path, stub_tags, make_djmd_content_item
@@ -651,9 +691,7 @@ class TestImport:
         builder.assert_called_once()
         assert len(response.result.added) == 1
         assert response.result.added[0].action == "create"
-        assert response.result.skipped == [
-            SkippedTrack(id="", reason="unsupported_file_type")
-        ]
+        assert response.result.skipped == [SkippedTrack(reason="unsupported_file_type")]
         mock_db.session.commit.assert_called_once()
 
     def test_raises_when_the_playlist_is_missing(self, mock_db, one_flac, stub_tags):
@@ -712,7 +750,7 @@ class TestImport:
             )
 
         assert len(response.result.added) == 1
-        assert len(response.tracks) == 1
+        assert response.tracks == []
 
     @pytest.mark.skipif(
         platform.system() == "Windows",
@@ -734,7 +772,7 @@ class TestImport:
             )
 
         assert len(response.result.added) == 1
-        assert len(response.tracks) == 1
+        assert response.tracks == []
 
     def test_new_file_with_playlist_creates_and_adds_to_playlist(
         self, mock_db, one_flac, stub_tags, make_djmd_content_item
@@ -886,7 +924,7 @@ class TestImportFromApprovedOps:
     """The write pass walks no directories, so nothing joins the batch late."""
 
     def test_a_file_created_during_the_prompt_is_not_imported(
-        self, mock_db, tmp_path, stub_tags
+        self, mock_db, tmp_path, stub_tags, make_track
     ):
         crate = tmp_path / "crate"
         crate.mkdir()
@@ -894,7 +932,11 @@ class TestImportFromApprovedOps:
         previewed.write_bytes(b"")
         latecomer = crate / "b.flac"
         latecomer.write_bytes(b"")
-        approved = [ImportOp(id="", path=str(previewed), action="create")]
+        approved = [
+            ImportOp(
+                id="", path=str(previewed), action="create", track=make_track(ID="")
+            )
+        ]
 
         with patch("rekordbox_edit.api.import_.find_content_by_key", return_value={}):
             response = import_tracks(
@@ -906,9 +948,12 @@ class TestImportFromApprovedOps:
 
         assert [op.path for op in response.result.added] == [str(previewed)]
 
-    def test_a_vanished_file_is_db_or_fs_changed(self, mock_db, tmp_path, stub_tags):
+    def test_a_vanished_file_is_db_or_fs_changed(
+        self, mock_db, tmp_path, stub_tags, make_track
+    ):
         gone = str(tmp_path / "gone.flac")
-        approved = [ImportOp(id="", path=gone, action="create")]
+        op_track = make_track(ID="")
+        approved = [ImportOp(id="", path=gone, action="create", track=op_track)]
 
         with patch("rekordbox_edit.api.import_.find_content_by_key", return_value={}):
             response = import_tracks(
@@ -917,16 +962,22 @@ class TestImportFromApprovedOps:
 
         assert response.result.added == []
         assert response.result.skipped == [
-            SkippedTrack(id="", reason="db_or_fs_changed")
+            SkippedTrack(reason="db_or_fs_changed", track=op_track)
         ]
 
-    def test_ops_skip_the_directory_gate(self, mock_db, tmp_path, stub_tags):
+    def test_ops_skip_the_directory_gate(
+        self, mock_db, tmp_path, stub_tags, make_track
+    ):
         # _expand_paths never runs, so an unconfirmed directory cannot raise.
         crate = tmp_path / "crate"
         crate.mkdir()
-        track = crate / "a.flac"
-        track.write_bytes(b"")
-        approved = [ImportOp(id="", path=str(track), action="create")]
+        track_file = crate / "a.flac"
+        track_file.write_bytes(b"")
+        approved = [
+            ImportOp(
+                id="", path=str(track_file), action="create", track=make_track(ID="")
+            )
+        ]
 
         with patch("rekordbox_edit.api.import_.find_content_by_key", return_value={}):
             response = import_tracks(

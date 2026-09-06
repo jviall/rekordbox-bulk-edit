@@ -4,7 +4,11 @@ import logging
 
 from pyrekordbox import Rekordbox6Database
 
-from rekordbox_edit.api._utils import _order_tracks_by_op, stamp_usns, writing
+from rekordbox_edit.api._utils import (
+    stamp_usns,
+    track_from_content,
+    writing,
+)
 from rekordbox_edit.api.field_handlers import FIELD_HANDLERS
 from rekordbox_edit.errors import InputError
 from rekordbox_edit.models import (
@@ -27,19 +31,20 @@ def _classify_edit(
     handler = FIELD_HANDLERS[args.field]
     current = handler.current_value(content)
     new_value = handler.compute_new_value(current, args)
+    track = track_from_content(content)
     if new_value is None or new_value == current:
         logger.debug(
             f"skip edit id={content.ID} reason=no_change "
             f"field={args.field} current={current!r}"
         )
-        return SkippedTrack(id=str(content.ID), reason="no_change")
+        return SkippedTrack(reason="no_change", track=track)
     skip_reason = handler.validate_track(db, content, str(new_value), args)
     if skip_reason is not None:
         logger.debug(
             f"skip edit id={content.ID} reason={skip_reason} field={args.field}"
         )
-        return SkippedTrack(id=str(content.ID), reason=skip_reason)
-    return EditOp(id=str(content.ID), new_value=str(new_value))
+        return SkippedTrack(reason=skip_reason, track=track)
+    return EditOp(id=str(content.ID), new_value=str(new_value), track=track)
 
 
 def _recheck_edit(
@@ -54,8 +59,10 @@ def _recheck_edit(
     reason = handler.validate_track(db, content, op.new_value, args)
     if reason is not None:
         logger.debug(f"skip edit id={op.id} reason=db_or_fs_changed was={reason}")
-        return SkippedTrack(id=op.id, reason="db_or_fs_changed")
-    return op
+        return SkippedTrack(
+            reason="db_or_fs_changed", track=track_from_content(content)
+        )
+    return op.model_copy(update={"track": track_from_content(content)})
 
 
 def edit(
@@ -101,7 +108,7 @@ def edit(
             content = rows.get(op.id)
             if content is None:
                 logger.debug(f"skip edit id={op.id} reason=db_or_fs_changed row_gone")
-                skipped.append(SkippedTrack(id=op.id, reason="db_or_fs_changed"))
+                skipped.append(SkippedTrack(reason="db_or_fs_changed", track=op.track))
                 continue
             result = _recheck_edit(db, content, op, args)
             if isinstance(result, EditOp):
@@ -116,14 +123,16 @@ def edit(
     if dry_run:
         logger.debug(f"edit dry-run return with {len(ops)} planned edit(s)")
         return EditResponse(
-            tracks=_order_tracks_by_op(contents, ops),
-            result=EditResult(field=args.field, edits=ops, skipped=skipped),
+            result=EditResult(
+                field=args.field, dry_run=True, edits=ops, skipped=skipped
+            ),
         )
 
     if not ops:
         return EditResponse(
-            tracks=[],
-            result=EditResult(field=args.field, edits=[], skipped=skipped),
+            result=EditResult(
+                field=args.field, dry_run=dry_run, edits=[], skipped=skipped
+            ),
         )
 
     assert db.session is not None
@@ -145,7 +154,17 @@ def edit(
             if str(content.ID) in new_values:
                 handler.post_commit(db, content, old_values[str(content.ID)])
 
+    # Refreshed post-commit: an op's track up to now is the pre-write
+    # classification snapshot, and handler.apply() mutated the row in place
+    # after that snapshot was taken.
+    edited_by_id = {str(content.ID): content for content in edited}
+    ops = [
+        op.model_copy(update={"track": track_from_content(edited_by_id[op.id])})
+        for op in ops
+    ]
+
     return EditResponse(
-        tracks=_order_tracks_by_op(contents, ops),
-        result=EditResult(field=args.field, edits=ops, skipped=skipped),
+        result=EditResult(
+            field=args.field, dry_run=dry_run, edits=ops, skipped=skipped
+        ),
     )

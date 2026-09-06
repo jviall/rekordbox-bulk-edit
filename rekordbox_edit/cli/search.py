@@ -42,7 +42,7 @@ def search_command(db, **kwargs):
     if print_opt is PrintChoice.SILENT:
         return
     if print_opt is PrintChoice.IDS:
-        _print_response_ids(response)
+        _print_response_ids([t.ID for t in response.tracks])
         return
     if print_opt is PrintChoice.JSON:
         _print_response_json(response)

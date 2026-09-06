@@ -31,14 +31,15 @@ def mock_rekordbox_not_running():
         yield
 
 
-def _response(tracks=None, edits=None, skipped=None):
+def _response(tracks=None, edits=None, skipped=None, dry_run=False):
     if tracks is None:
         tracks = [Track(ID="1", Title="New", FileNameL="x.wav", FolderPath="/x.wav")]
     if edits is None:
-        edits = [EditOp(id=t.ID, new_value="New") for t in tracks]
+        edits = [EditOp(id=t.ID, new_value="New", track=t) for t in tracks]
     return EditResponse(
-        tracks=tracks,
-        result=EditResult(field="Title", edits=edits, skipped=skipped or []),
+        result=EditResult(
+            field="Title", dry_run=dry_run, edits=edits, skipped=skipped or []
+        ),
     )
 
 
@@ -155,7 +156,8 @@ class TestEditCommand:
         mock_db_class.return_value = Mock(session=Mock())
         track = Track(ID="AAA", FileNameL="x.wav", FolderPath="/x.wav")
         mock_edit.return_value = _response(
-            tracks=[track], edits=[EditOp(id="AAA", new_value="New")]
+            tracks=[track],
+            edits=[EditOp(id="AAA", new_value="New", track=track)],
         )
 
         result = CliRunner().invoke(
@@ -173,7 +175,8 @@ class TestEditCommand:
         mock_db_class.return_value = Mock(session=Mock())
         track = Track(ID="AAA", FileNameL="x.wav", FolderPath="/x.wav")
         mock_edit.return_value = _response(
-            tracks=[track], edits=[EditOp(id="AAA", new_value="New")]
+            tracks=[track],
+            edits=[EditOp(id="AAA", new_value="New", track=track)],
         )
 
         result = CliRunner().invoke(
@@ -183,7 +186,8 @@ class TestEditCommand:
         assert result.exit_code == 0
         payload = json.loads(result.output.splitlines()[-1])
         assert payload["result"]["field"] == "Title"
-        assert payload["result"]["edits"] == [{"id": "AAA", "new_value": "New"}]
+        assert [e["id"] for e in payload["result"]["edits"]] == ["AAA"]
+        assert payload["result"]["edits"][0]["track"]["ID"] == "AAA"
 
     @patch("rekordbox_edit.cli.edit.print_track_info")
     @patch("rekordbox_edit.cli.edit.confirm", return_value=True)
@@ -241,8 +245,7 @@ class TestEditCommand:
     ):
         mock_db_class.return_value = Mock(session=Mock())
         mock_edit.return_value = EditResponse(
-            tracks=[],
-            result=EditResult(field="Title", edits=[], skipped=[]),
+            result=EditResult(field="Title", dry_run=True, edits=[], skipped=[]),
         )
 
         result = CliRunner().invoke(edit_command, ["Title", "--replace", "New"])
@@ -263,8 +266,8 @@ class TestEditCommand:
             Track(ID="B", Title="OldB", FileNameL="b.wav", FolderPath="/b.wav"),
         ]
         edits = [
-            EditOp(id="A", new_value="NewA"),
-            EditOp(id="B", new_value="NewB"),
+            EditOp(id="A", new_value="NewA", track=tracks[0]),
+            EditOp(id="B", new_value="NewB", track=tracks[1]),
         ]
         mock_edit.return_value = _response(tracks=tracks, edits=edits)
         # Confirm A, decline B.
@@ -289,7 +292,7 @@ class TestEditCommand:
         mock_db_class.return_value = Mock(session=Mock())
         tracks = [Track(ID="A", Title="O", FileNameL="a.wav", FolderPath="/a.wav")]
         mock_edit.return_value = _response(
-            tracks=tracks, edits=[EditOp(id="A", new_value="N")]
+            tracks=tracks, edits=[EditOp(id="A", new_value="N", track=tracks[0])]
         )
 
         result = CliRunner().invoke(
@@ -300,7 +303,7 @@ class TestEditCommand:
         mock_edit.assert_called_once()  # preview only — UserQuit on first track
 
 
-def _gated_response(tracks=None, edits=None, skipped=None):
+def _gated_response(tracks=None, edits=None, skipped=None, dry_run=False):
     tracks = (
         tracks
         if tracks is not None
@@ -309,17 +312,17 @@ def _gated_response(tracks=None, edits=None, skipped=None):
     edits = (
         edits
         if edits is not None
-        else [EditOp(id=t.ID, new_value="/new/x.wav") for t in tracks]
+        else [EditOp(id=t.ID, new_value="/new/x.wav", track=t) for t in tracks]
     )
     return EditResponse(
-        tracks=tracks,
         result=EditResult(
             field="FolderPath",
+            dry_run=dry_run,
             edits=edits,
             skipped=(
                 skipped
                 if skipped is not None
-                else [SkippedTrack(id="9", reason="file_not_found")]
+                else [SkippedTrack(reason="file_not_found")]
             ),
         ),
     )
@@ -378,8 +381,8 @@ class TestEditGateFlow:
         mock_db_class.return_value = Mock(session=Mock())
         mock_edit.return_value = _gated_response(
             skipped=[
-                SkippedTrack(id="9", reason="file_not_found"),
-                SkippedTrack(id="8", reason="length_mismatch"),
+                SkippedTrack(reason="file_not_found"),
+                SkippedTrack(reason="length_mismatch"),
             ]
         )
         # Missing: yes. Mismatch: no. Then apply.
@@ -490,9 +493,9 @@ class TestEditSkipReporting:
         mock_db_class.return_value = Mock(session=Mock())
         mock_edit.return_value = _response(
             skipped=[
-                SkippedTrack(id="2", reason="no_change"),
-                SkippedTrack(id="3", reason="no_change"),
-                SkippedTrack(id="4", reason="unknown_file_type"),
+                SkippedTrack(reason="no_change"),
+                SkippedTrack(reason="no_change"),
+                SkippedTrack(reason="unknown_file_type"),
             ]
         )
 
@@ -515,9 +518,7 @@ class TestEditSkipReporting:
         self, mock_db_class, mock_edit, _print, mock_logger
     ):
         mock_db_class.return_value = Mock(session=Mock())
-        mock_edit.return_value = _response(
-            skipped=[SkippedTrack(id="2", reason="no_change")]
-        )
+        mock_edit.return_value = _response(skipped=[SkippedTrack(reason="no_change")])
 
         CliRunner().invoke(edit_command, ["Title", "--replace", "New", "--dry-run"])
 
@@ -549,7 +550,7 @@ class TestEditSkipReporting:
         self, mock_db_class, mock_edit, _confirm, _print, mock_logger
     ):
         mock_db_class.return_value = Mock(session=Mock())
-        applied = _response(skipped=[SkippedTrack(id="2", reason="db_or_fs_changed")])
+        applied = _response(skipped=[SkippedTrack(reason="db_or_fs_changed")])
         mock_edit.side_effect = [_response(), applied]
 
         CliRunner().invoke(edit_command, ["Title", "--replace", "New"])
@@ -571,9 +572,7 @@ class TestEditSkipReporting:
         self, mock_db_class, mock_edit, _print, reason, mock_logger
     ):
         mock_db_class.return_value = Mock(session=Mock())
-        mock_edit.return_value = _response(
-            skipped=[SkippedTrack(id="2", reason=reason)]
-        )
+        mock_edit.return_value = _response(skipped=[SkippedTrack(reason=reason)])
 
         CliRunner().invoke(edit_command, ["Title", "--replace", "New", "--yes"])
 
