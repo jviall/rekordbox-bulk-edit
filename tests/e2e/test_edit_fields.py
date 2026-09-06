@@ -12,7 +12,7 @@ import pytest
 from pyrekordbox import Rekordbox6Database
 from pyrekordbox.db6 import tables as tb
 
-from rekordbox_edit.api.edit import edit
+from rekordbox_edit.api._edit import edit
 from rekordbox_edit.models import EditRequest
 
 pytestmark = pytest.mark.e2e

@@ -2,7 +2,7 @@ import pytest
 from unittest.mock import MagicMock, call, patch
 
 from rekordbox_edit.api._utils import track_from_content
-from rekordbox_edit.api.edit import _classify_edit, edit
+from rekordbox_edit.api._edit import _classify_edit, edit
 from rekordbox_edit.api.field_handlers import FIELD_HANDLERS
 from sqlalchemy import text
 
@@ -89,7 +89,7 @@ class TestClassifyEdit:
 
 
 class TestEditDryRun:
-    @patch("rekordbox_edit.api.edit.get_filtered_content")
+    @patch("rekordbox_edit.api._edit.get_filtered_content")
     def test_returns_response_without_committing(
         self, mock_gfc, mock_db, make_djmd_content_item
     ):
@@ -111,7 +111,7 @@ class TestEditDryRun:
         assert response.tracks == []
         mock_db.session.commit.assert_not_called()
 
-    @patch("rekordbox_edit.api.edit.get_filtered_content")
+    @patch("rekordbox_edit.api._edit.get_filtered_content")
     def test_dry_run_surfaces_skipped(self, mock_gfc, mock_db, make_djmd_content_item):
         content = make_djmd_content_item(ID="1", Title="Same")
         mock_gfc.return_value.scalars.return_value.all.return_value = [content]
@@ -127,7 +127,7 @@ class TestEditDryRun:
         assert len(response.result.skipped) == 1
         assert response.result.skipped[0].reason == "no_change"
 
-    @patch("rekordbox_edit.api.edit.get_filtered_content")
+    @patch("rekordbox_edit.api._edit.get_filtered_content")
     def test_dry_run_plans_a_bulk_edit(self, mock_gfc, mock_db, make_djmd_content_item):
         contents = [
             make_djmd_content_item(ID="1", Title="Old"),
@@ -149,7 +149,7 @@ class TestEditResponseTracksDryRunRule:
     """`tracks` is empty for a dry run, since a dry run changes nothing; the
     ops still carry their tracks, and a real run populates both."""
 
-    @patch("rekordbox_edit.api.edit.get_filtered_content")
+    @patch("rekordbox_edit.api._edit.get_filtered_content")
     def test_dry_run_has_empty_tracks_but_ops_carry_theirs(
         self, mock_gfc, mock_db, make_djmd_content_item
     ):
@@ -165,7 +165,7 @@ class TestEditResponseTracksDryRunRule:
         assert response.tracks == []
         assert response.result.edits[0].track.ID == "1"
 
-    @patch("rekordbox_edit.api.edit.get_filtered_content")
+    @patch("rekordbox_edit.api._edit.get_filtered_content")
     def test_real_run_has_both_tracks_and_ops(
         self, mock_gfc, mock_db, make_djmd_content_item
     ):
@@ -182,7 +182,7 @@ class TestEditResponseTracksDryRunRule:
 
 
 class TestEditRealRun:
-    @patch("rekordbox_edit.api.edit.get_filtered_content")
+    @patch("rekordbox_edit.api._edit.get_filtered_content")
     def test_applies_changes_and_commits(
         self, mock_gfc, mock_db, make_djmd_content_item
     ):
@@ -198,7 +198,7 @@ class TestEditRealRun:
         assert [op.id for op in response.result.edits] == ["1"]
         assert response.tracks[0].ID == "1"
 
-    @patch("rekordbox_edit.api.edit.get_filtered_content")
+    @patch("rekordbox_edit.api._edit.get_filtered_content")
     def test_the_committed_track_reflects_the_new_value(
         self, mock_gfc, mock_db, make_djmd_content_item
     ):
@@ -215,7 +215,7 @@ class TestEditRealRun:
         assert response.result.edits[0].track.Title == "New"
         assert response.tracks[0].Title == "New"
 
-    @patch("rekordbox_edit.api.edit.get_filtered_content")
+    @patch("rekordbox_edit.api._edit.get_filtered_content")
     def test_empty_result_returns_empty_response_without_commit(
         self, mock_gfc, mock_db
     ):
@@ -229,7 +229,7 @@ class TestEditRealRun:
         assert response.tracks == []
         mock_db.session.commit.assert_not_called()
 
-    @patch("rekordbox_edit.api.edit.get_filtered_content")
+    @patch("rekordbox_edit.api._edit.get_filtered_content")
     def test_applies_every_matched_track(
         self, mock_gfc, mock_db, make_djmd_content_item
     ):
@@ -245,7 +245,7 @@ class TestEditRealRun:
 
         assert len(response.result.edits) == 2
 
-    @patch("rekordbox_edit.api.edit.get_filtered_content")
+    @patch("rekordbox_edit.api._edit.get_filtered_content")
     def test_preserves_op_order_in_response_tracks(
         self, mock_gfc, mock_db, make_djmd_content_item
     ):
@@ -267,7 +267,7 @@ class TestEditRealRun:
         ids = [t.ID for t in response.tracks]
         assert ids == [op.id for op in response.result.edits]
 
-    @patch("rekordbox_edit.api.edit.get_filtered_content")
+    @patch("rekordbox_edit.api._edit.get_filtered_content")
     def test_skipped_content_is_not_applied(
         self, mock_gfc, mock_db, make_djmd_content_item
     ):
@@ -290,7 +290,7 @@ class TestEditRealRun:
         assert changed.Title == "Hello Earth"
         assert skipped.Title == "Nothing Here"
 
-    @patch("rekordbox_edit.api.edit.get_filtered_content")
+    @patch("rekordbox_edit.api._edit.get_filtered_content")
     def test_unknown_field_raises(self, mock_gfc, mock_db):
         mock_gfc.return_value.scalars.return_value.all.return_value = []
         with pytest.raises(ValueError, match="Unknown field"):
@@ -300,8 +300,8 @@ class TestEditRealRun:
 class TestEditFromApprovedOps:
     """The apply pass runs no filter, so nothing can join the edit late."""
 
-    @patch("rekordbox_edit.api.edit.find_content_by_ids")
-    @patch("rekordbox_edit.api.edit.get_filtered_content")
+    @patch("rekordbox_edit.api._edit.find_content_by_ids")
+    @patch("rekordbox_edit.api._edit.get_filtered_content")
     def test_a_row_that_starts_matching_does_not_join(
         self, mock_gfc, mock_by_ids, mock_db, make_djmd_content_item
     ):
@@ -319,7 +319,7 @@ class TestEditFromApprovedOps:
         assert [op.id for op in response.result.edits] == ["1"]
         assert latecomer.Title == "Old"
 
-    @patch("rekordbox_edit.api.edit.find_content_by_ids")
+    @patch("rekordbox_edit.api._edit.find_content_by_ids")
     def test_an_op_that_stopped_validating_is_db_or_fs_changed(
         self, mock_by_ids, mock_db, make_djmd_content_item, stub_handler
     ):
@@ -339,7 +339,7 @@ class TestEditFromApprovedOps:
         ]
         stub_handler.apply.assert_not_called()
 
-    @patch("rekordbox_edit.api.edit.find_content_by_ids")
+    @patch("rekordbox_edit.api._edit.find_content_by_ids")
     def test_a_row_deleted_since_the_preview_is_db_or_fs_changed(
         self, mock_by_ids, mock_db, make_track
     ):
@@ -357,7 +357,7 @@ class TestEditFromApprovedOps:
         ]
         mock_db.session.commit.assert_not_called()
 
-    @patch("rekordbox_edit.api.edit.find_content_by_ids")
+    @patch("rekordbox_edit.api._edit.find_content_by_ids")
     def test_ops_apply_without_a_filter_pass(
         self, mock_by_ids, mock_db, make_djmd_content_item
     ):
@@ -408,7 +408,7 @@ class TestValidateTrackHook:
 
 
 class TestPostCommitHook:
-    @patch("rekordbox_edit.api.edit.get_filtered_content")
+    @patch("rekordbox_edit.api._edit.get_filtered_content")
     def test_called_after_commit_with_old_value(
         self, mock_gfc, mock_db, make_djmd_content_item, stub_handler
     ):
@@ -425,7 +425,7 @@ class TestPostCommitHook:
             call.post_commit(mock_db, content, "Old")
         )
 
-    @patch("rekordbox_edit.api.edit.get_filtered_content")
+    @patch("rekordbox_edit.api._edit.get_filtered_content")
     def test_not_called_on_dry_run(
         self, mock_gfc, mock_db, make_djmd_content_item, stub_handler
     ):
@@ -497,7 +497,7 @@ class TestEditStampsUsns:
 
 
 class TestEditRefusesWhileRekordboxRuns:
-    @patch("rekordbox_edit.api.edit.get_filtered_content")
+    @patch("rekordbox_edit.api._edit.get_filtered_content")
     def test_write_is_refused(self, mock_gfc, mock_db, make_djmd_content_item):
         mock_gfc.return_value.scalars.return_value.all.return_value = [
             make_djmd_content_item(ID="1", Title="Old")
@@ -512,7 +512,7 @@ class TestEditRefusesWhileRekordboxRuns:
 
         mock_db.session.commit.assert_not_called()
 
-    @patch("rekordbox_edit.api.edit.get_filtered_content")
+    @patch("rekordbox_edit.api._edit.get_filtered_content")
     def test_dry_run_is_allowed(self, mock_gfc, mock_db, make_djmd_content_item):
         mock_gfc.return_value.scalars.return_value.all.return_value = [
             make_djmd_content_item(ID="1", Title="Old")

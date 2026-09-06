@@ -4,7 +4,7 @@ import logging
 
 import click
 
-from rekordbox_edit.api.remove import remove
+from rekordbox_edit.api._remove import remove
 from rekordbox_edit.cli._click import (
     add_click_options,
     global_click_confirmations,

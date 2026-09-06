@@ -9,7 +9,7 @@ import ffmpeg
 import pytest
 
 from rekordbox_edit.errors import DependencyMissingError
-from rekordbox_edit.api.convert import (
+from rekordbox_edit.api._convert import (
     TEMP_PREFIX,
     ConvertAborted,
     ConvertedFileProbe,
@@ -78,7 +78,7 @@ _PROBE_AAC_M4A = {
 
 
 class TestClassifyConvert:
-    @patch("rekordbox_edit.api.convert.get_file_type_for_format")
+    @patch("rekordbox_edit.api._convert.get_file_type_for_format")
     def test_skips_already_target_format(self, mock_get_type, make_djmd_content_item):
         mock_get_type.side_effect = lambda fmt: {"AIFF": 1, "MP3": 5, "M4A": 6}.get(
             fmt.upper(), 99
@@ -92,7 +92,7 @@ class TestClassifyConvert:
         assert isinstance(result, SkippedTrack)
         assert result.reason == "already_target_format"
 
-    @patch("rekordbox_edit.api.convert.get_file_type_for_format")
+    @patch("rekordbox_edit.api._convert.get_file_type_for_format")
     def test_skips_lossy_source_as_unsupported(
         self, mock_get_type, make_djmd_content_item
     ):
@@ -108,7 +108,7 @@ class TestClassifyConvert:
         assert isinstance(result, SkippedTrack)
         assert result.reason == "unsupported_source_format"
 
-    @patch("rekordbox_edit.api.convert.get_file_type_for_format")
+    @patch("rekordbox_edit.api._convert.get_file_type_for_format")
     def test_skips_unmapped_source_as_unsupported(
         self, mock_get_type, make_djmd_content_item
     ):
@@ -124,9 +124,9 @@ class TestClassifyConvert:
         assert isinstance(result, SkippedTrack)
         assert result.reason == "unsupported_source_format"
 
-    @patch("rekordbox_edit.api.convert.os.path.exists", return_value=False)
-    @patch("rekordbox_edit.api.convert._get_output_path")
-    @patch("rekordbox_edit.api.convert.get_file_type_for_format")
+    @patch("rekordbox_edit.api._convert.os.path.exists", return_value=False)
+    @patch("rekordbox_edit.api._convert._get_output_path")
+    @patch("rekordbox_edit.api._convert.get_file_type_for_format")
     def test_below_target_sample_rate_clamps_to_source(
         self, mock_get_type, mock_get_output, mock_exists, make_djmd_content_item
     ):
@@ -143,9 +143,9 @@ class TestClassifyConvert:
         assert isinstance(result, ConvertOp)
         assert result.output_sample_rate == 22050
 
-    @patch("rekordbox_edit.api.convert.os.path.exists", return_value=False)
-    @patch("rekordbox_edit.api.convert._get_output_path")
-    @patch("rekordbox_edit.api.convert.get_file_type_for_format")
+    @patch("rekordbox_edit.api._convert.os.path.exists", return_value=False)
+    @patch("rekordbox_edit.api._convert._get_output_path")
+    @patch("rekordbox_edit.api._convert.get_file_type_for_format")
     def test_mp3_output_ignores_source_sample_rate(
         self, mock_get_type, mock_get_output, mock_exists, make_djmd_content_item
     ):
@@ -162,9 +162,9 @@ class TestClassifyConvert:
         assert isinstance(result, ConvertOp)
         assert result.output_sample_rate == 44100
 
-    @patch("rekordbox_edit.api.convert.os.path.exists", return_value=False)
-    @patch("rekordbox_edit.api.convert._get_output_path")
-    @patch("rekordbox_edit.api.convert.get_file_type_for_format")
+    @patch("rekordbox_edit.api._convert.os.path.exists", return_value=False)
+    @patch("rekordbox_edit.api._convert._get_output_path")
+    @patch("rekordbox_edit.api._convert.get_file_type_for_format")
     def test_missing_db_fields_default_to_target(
         self, mock_get_type, mock_get_output, mock_exists, make_djmd_content_item
     ):
@@ -184,9 +184,9 @@ class TestClassifyConvert:
         assert result.output_bit_depth == 16
         assert result.output_sample_rate == 44100
 
-    @patch("rekordbox_edit.api.convert.os.path.exists", return_value=True)
-    @patch("rekordbox_edit.api.convert._get_output_path")
-    @patch("rekordbox_edit.api.convert.get_file_type_for_format")
+    @patch("rekordbox_edit.api._convert.os.path.exists", return_value=True)
+    @patch("rekordbox_edit.api._convert._get_output_path")
+    @patch("rekordbox_edit.api._convert.get_file_type_for_format")
     def test_skips_output_conflict_when_no_overwrite(
         self, mock_get_type, mock_get_output, mock_exists, make_djmd_content_item
     ):
@@ -203,9 +203,9 @@ class TestClassifyConvert:
         assert isinstance(result, SkippedTrack)
         assert result.reason == "output_file_exists"
 
-    @patch("rekordbox_edit.api.convert.os.path.exists", return_value=True)
-    @patch("rekordbox_edit.api.convert._get_output_path")
-    @patch("rekordbox_edit.api.convert.get_file_type_for_format")
+    @patch("rekordbox_edit.api._convert.os.path.exists", return_value=True)
+    @patch("rekordbox_edit.api._convert._get_output_path")
+    @patch("rekordbox_edit.api._convert.get_file_type_for_format")
     def test_overwrite_allows_conflict(
         self, mock_get_type, mock_get_output, mock_exists, make_djmd_content_item
     ):
@@ -223,9 +223,9 @@ class TestClassifyConvert:
         assert result.source_path == "/in.wav"
         assert result.output_path == "/out.aif"
 
-    @patch("rekordbox_edit.api.convert.os.path.exists", return_value=False)
-    @patch("rekordbox_edit.api.convert._get_output_path")
-    @patch("rekordbox_edit.api.convert.get_file_type_for_format")
+    @patch("rekordbox_edit.api._convert.os.path.exists", return_value=False)
+    @patch("rekordbox_edit.api._convert._get_output_path")
+    @patch("rekordbox_edit.api._convert.get_file_type_for_format")
     def test_returns_convert_op_with_paths(
         self, mock_get_type, mock_get_output, mock_exists, make_djmd_content_item
     ):
@@ -246,9 +246,9 @@ class TestClassifyConvert:
         assert result.source_path == "/music/song.wav"
         assert result.output_path == "/music/song.aif"
 
-    @patch("rekordbox_edit.api.convert.os.path.exists", return_value=False)
-    @patch("rekordbox_edit.api.convert._get_output_path")
-    @patch("rekordbox_edit.api.convert.get_file_type_for_format")
+    @patch("rekordbox_edit.api._convert.os.path.exists", return_value=False)
+    @patch("rekordbox_edit.api._convert._get_output_path")
+    @patch("rekordbox_edit.api._convert.get_file_type_for_format")
     def test_populates_audio_fields(
         self, mock_get_type, mock_get_output, mock_exists, make_djmd_content_item
     ):
@@ -272,9 +272,9 @@ class TestClassifyConvert:
         assert result.output_bit_depth == 16
         assert result.output_sample_rate == 44100
 
-    @patch("rekordbox_edit.api.convert.os.path.exists", return_value=False)
-    @patch("rekordbox_edit.api.convert._get_output_path")
-    @patch("rekordbox_edit.api.convert.get_file_type_for_format")
+    @patch("rekordbox_edit.api._convert.os.path.exists", return_value=False)
+    @patch("rekordbox_edit.api._convert._get_output_path")
+    @patch("rekordbox_edit.api._convert.get_file_type_for_format")
     def test_mp3_output_targets_conversion_default(
         self, mock_get_type, mock_get_output, mock_exists, make_djmd_content_item
     ):
@@ -293,8 +293,8 @@ class TestClassifyConvert:
         assert result.output_bit_depth == 16
         assert result.output_sample_rate == 44100
 
-    @patch("rekordbox_edit.api.convert.os.path.exists", return_value=False)
-    @patch("rekordbox_edit.api.convert._get_output_path")
+    @patch("rekordbox_edit.api._convert.os.path.exists", return_value=False)
+    @patch("rekordbox_edit.api._convert._get_output_path")
     def test_alac_source_is_convertible(
         self, mock_get_output, mock_exists, make_djmd_content_item
     ):
@@ -332,10 +332,10 @@ def _seed_filter(mock_gfc, *contents):
 
 class TestConvertDryRun:
     @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=True)
-    @patch("rekordbox_edit.api.convert.os.path.exists", return_value=False)
-    @patch("rekordbox_edit.api.convert._get_output_path")
-    @patch("rekordbox_edit.api.convert.get_file_type_for_format")
-    @patch("rekordbox_edit.api.convert.get_filtered_content")
+    @patch("rekordbox_edit.api._convert.os.path.exists", return_value=False)
+    @patch("rekordbox_edit.api._convert._get_output_path")
+    @patch("rekordbox_edit.api._convert.get_file_type_for_format")
+    @patch("rekordbox_edit.api._convert.get_filtered_content")
     def test_returns_response_without_commit(
         self,
         mock_gfc,
@@ -367,8 +367,8 @@ class TestConvertDryRun:
         mock_db.session.commit.assert_not_called()
 
     @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=True)
-    @patch("rekordbox_edit.api.convert.get_file_type_for_format")
-    @patch("rekordbox_edit.api.convert.get_filtered_content")
+    @patch("rekordbox_edit.api._convert.get_file_type_for_format")
+    @patch("rekordbox_edit.api._convert.get_filtered_content")
     def test_dry_run_surfaces_skipped(
         self,
         mock_gfc,
@@ -398,10 +398,10 @@ class TestConvertResponseTracksDryRunRule:
     ops still carry their tracks, and a real run populates both."""
 
     @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=True)
-    @patch("rekordbox_edit.api.convert.os.path.exists", return_value=False)
-    @patch("rekordbox_edit.api.convert._get_output_path")
-    @patch("rekordbox_edit.api.convert.get_file_type_for_format")
-    @patch("rekordbox_edit.api.convert.get_filtered_content")
+    @patch("rekordbox_edit.api._convert.os.path.exists", return_value=False)
+    @patch("rekordbox_edit.api._convert._get_output_path")
+    @patch("rekordbox_edit.api._convert.get_file_type_for_format")
+    @patch("rekordbox_edit.api._convert.get_filtered_content")
     def test_dry_run_has_empty_tracks_but_ops_carry_theirs(
         self,
         mock_gfc,
@@ -424,11 +424,11 @@ class TestConvertResponseTracksDryRunRule:
         assert response.tracks == []
         assert response.result.converted[0].track.ID == "1"
 
-    @patch("rekordbox_edit.api.convert.get_audio_info", return_value=_PROBE_WAV_16_44)
-    @patch("rekordbox_edit.api.convert._apply_converted_record")
-    @patch("rekordbox_edit.api.convert._run_ffmpeg", return_value=True)
-    @patch("rekordbox_edit.api.convert.find_content_by_ids")
-    @patch("rekordbox_edit.api.convert.get_filtered_content")
+    @patch("rekordbox_edit.api._convert.get_audio_info", return_value=_PROBE_WAV_16_44)
+    @patch("rekordbox_edit.api._convert._apply_converted_record")
+    @patch("rekordbox_edit.api._convert._run_ffmpeg", return_value=True)
+    @patch("rekordbox_edit.api._convert.find_content_by_ids")
+    @patch("rekordbox_edit.api._convert.get_filtered_content")
     @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=True)
     def test_real_run_has_both_tracks_and_ops(
         self,
@@ -447,11 +447,11 @@ class TestConvertResponseTracksDryRunRule:
         op = _op(id="1", source="/A.wav", output="/A.aif")
 
         with (
-            patch("rekordbox_edit.api.convert.os.replace"),
-            patch("rekordbox_edit.api.convert.os.listdir", return_value=[]),
-            patch("rekordbox_edit.api.convert._probe_converted_file"),
+            patch("rekordbox_edit.api._convert.os.replace"),
+            patch("rekordbox_edit.api._convert.os.listdir", return_value=[]),
+            patch("rekordbox_edit.api._convert._probe_converted_file"),
             patch(
-                "rekordbox_edit.api.convert.os.path.exists",
+                "rekordbox_edit.api._convert.os.path.exists",
                 side_effect=lambda path: path != op.output_path,
             ),
         ):
@@ -506,7 +506,7 @@ class TestRecheckConvert:
     """Every op here passed classification during the preview, so a path that
     reads differently now changed while the user was deciding."""
 
-    @patch("rekordbox_edit.api.convert.os.path.exists")
+    @patch("rekordbox_edit.api._convert.os.path.exists")
     def test_unchanged_paths_keep_the_op(self, mock_exists):
         op = _op()
         mock_exists.side_effect = lambda path: path == op.source_path
@@ -515,14 +515,14 @@ class TestRecheckConvert:
             _recheck_convert(op, ConvertRequest(title=["x"], format_out="aiff")) is op
         )
 
-    @patch("rekordbox_edit.api.convert.os.path.exists", return_value=False)
+    @patch("rekordbox_edit.api._convert.os.path.exists", return_value=False)
     def test_a_vanished_source_is_db_or_fs_changed(self, _exists):
         op = _op()
         result = _recheck_convert(op, ConvertRequest(title=["x"], format_out="aiff"))
 
         assert result == SkippedTrack(reason="db_or_fs_changed", track=op.track)
 
-    @patch("rekordbox_edit.api.convert.os.path.exists")
+    @patch("rekordbox_edit.api._convert.os.path.exists")
     def test_an_output_that_appeared_is_db_or_fs_changed(self, mock_exists):
         mock_exists.side_effect = lambda path: True  # source and output both there
 
@@ -531,7 +531,7 @@ class TestRecheckConvert:
 
         assert result == SkippedTrack(reason="db_or_fs_changed", track=op.track)
 
-    @patch("rekordbox_edit.api.convert.os.path.exists", return_value=True)
+    @patch("rekordbox_edit.api._convert.os.path.exists", return_value=True)
     def test_overwrite_tolerates_an_output_that_appeared(self, _exists):
         op = _op()
         assert (
@@ -543,9 +543,9 @@ class TestRecheckConvert:
 
 
 class TestConvertFromApprovedOps:
-    @patch("rekordbox_edit.api.convert.find_content_by_ids")
-    @patch("rekordbox_edit.api.convert.get_filtered_content")
-    @patch("rekordbox_edit.api.convert.os.path.exists", return_value=False)
+    @patch("rekordbox_edit.api._convert.find_content_by_ids")
+    @patch("rekordbox_edit.api._convert.get_filtered_content")
+    @patch("rekordbox_edit.api._convert.os.path.exists", return_value=False)
     @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=True)
     def test_a_vanished_source_never_reaches_ffmpeg(
         self, _ffmpeg, _exists, mock_gfc, mock_by_ids, mock_db, make_djmd_content_item
@@ -567,17 +567,17 @@ class TestConvertFromApprovedOps:
     @pytest.fixture(autouse=True)
     def _stub_temp_file_moves(self):
         with (
-            patch("rekordbox_edit.api.convert.os.replace"),
-            patch("rekordbox_edit.api.convert.os.listdir", return_value=[]),
-            patch("rekordbox_edit.api.convert._probe_converted_file"),
+            patch("rekordbox_edit.api._convert.os.replace"),
+            patch("rekordbox_edit.api._convert.os.listdir", return_value=[]),
+            patch("rekordbox_edit.api._convert._probe_converted_file"),
         ):
             yield
 
-    @patch("rekordbox_edit.api.convert.get_audio_info", return_value=_PROBE_WAV_16_44)
-    @patch("rekordbox_edit.api.convert._apply_converted_record")
-    @patch("rekordbox_edit.api.convert._run_ffmpeg", return_value=True)
-    @patch("rekordbox_edit.api.convert.find_content_by_ids")
-    @patch("rekordbox_edit.api.convert.get_filtered_content")
+    @patch("rekordbox_edit.api._convert.get_audio_info", return_value=_PROBE_WAV_16_44)
+    @patch("rekordbox_edit.api._convert._apply_converted_record")
+    @patch("rekordbox_edit.api._convert._run_ffmpeg", return_value=True)
+    @patch("rekordbox_edit.api._convert.find_content_by_ids")
+    @patch("rekordbox_edit.api._convert.get_filtered_content")
     @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=True)
     def test_an_op_that_still_holds_is_converted_and_committed(
         self,
@@ -596,7 +596,7 @@ class TestConvertFromApprovedOps:
         op = _op(source="/A.wav", output="/A.aif")
 
         with patch(
-            "rekordbox_edit.api.convert.os.path.exists",
+            "rekordbox_edit.api._convert.os.path.exists",
             side_effect=lambda path: path != op.output_path,
         ):
             response = convert(
@@ -613,7 +613,7 @@ class TestConvertFromApprovedOps:
         mock_apply.assert_called_once()
         mock_db.session.commit.assert_called_once()
 
-    @patch("rekordbox_edit.api.convert.find_content_by_ids", return_value={})
+    @patch("rekordbox_edit.api._convert.find_content_by_ids", return_value={})
     @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=True)
     def test_a_row_deleted_since_the_preview_is_db_or_fs_changed(
         self, _ffmpeg, _by_ids, mock_db
@@ -635,9 +635,9 @@ class TestConvertRealRun:
         # into place, to sweep, or to probe. TestApplyConvertedRecord and
         # TestProbeConvertedFile cover those halves directly.
         with (
-            patch("rekordbox_edit.api.convert.os.replace"),
-            patch("rekordbox_edit.api.convert.os.listdir", return_value=[]),
-            patch("rekordbox_edit.api.convert._probe_converted_file"),
+            patch("rekordbox_edit.api._convert.os.replace"),
+            patch("rekordbox_edit.api._convert.os.listdir", return_value=[]),
+            patch("rekordbox_edit.api._convert._probe_converted_file"),
         ):
             yield
 
@@ -647,7 +647,7 @@ class TestConvertRealRun:
             convert(mock_db, ConvertRequest(title=["x"], format_out="aiff"))
 
     @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=True)
-    @patch("rekordbox_edit.api.convert.get_filtered_content")
+    @patch("rekordbox_edit.api._convert.get_filtered_content")
     def test_no_matching_tracks_returns_empty_response(
         self, mock_gfc, _ffmpeg, mock_db
     ):
@@ -659,13 +659,13 @@ class TestConvertRealRun:
         assert response.tracks == []
         mock_db.session.commit.assert_not_called()
 
-    @patch("rekordbox_edit.api.convert.get_audio_info")
-    @patch("rekordbox_edit.api.convert._apply_converted_record")
-    @patch("rekordbox_edit.api.convert._run_ffmpeg", return_value=True)
-    @patch("rekordbox_edit.api.convert.os.path.exists", return_value=True)
+    @patch("rekordbox_edit.api._convert.get_audio_info")
+    @patch("rekordbox_edit.api._convert._apply_converted_record")
+    @patch("rekordbox_edit.api._convert._run_ffmpeg", return_value=True)
+    @patch("rekordbox_edit.api._convert.os.path.exists", return_value=True)
     @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=True)
-    @patch("rekordbox_edit.api.convert._get_output_path")
-    @patch("rekordbox_edit.api.convert.get_filtered_content")
+    @patch("rekordbox_edit.api._convert._get_output_path")
+    @patch("rekordbox_edit.api._convert.get_filtered_content")
     def test_codec_mismatch_skips_track_and_continues(
         self,
         mock_gfc,
@@ -709,12 +709,12 @@ class TestConvertRealRun:
         mock_update.assert_called_once()
         mock_db.session.commit.assert_called_once()
 
-    @patch("rekordbox_edit.api.convert.get_audio_info", return_value=_PROBE_WAV_16_44)
-    @patch("rekordbox_edit.api.convert._run_ffmpeg", return_value=True)
-    @patch("rekordbox_edit.api.convert.os.path.exists", return_value=True)
+    @patch("rekordbox_edit.api._convert.get_audio_info", return_value=_PROBE_WAV_16_44)
+    @patch("rekordbox_edit.api._convert._run_ffmpeg", return_value=True)
+    @patch("rekordbox_edit.api._convert.os.path.exists", return_value=True)
     @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=True)
-    @patch("rekordbox_edit.api.convert._get_output_path")
-    @patch("rekordbox_edit.api.convert.get_filtered_content")
+    @patch("rekordbox_edit.api._convert._get_output_path")
+    @patch("rekordbox_edit.api._convert.get_filtered_content")
     def test_the_committed_track_reflects_the_post_conversion_row(
         self,
         mock_gfc,
@@ -738,7 +738,7 @@ class TestConvertRealRun:
         _seed_db(mock_db, content)
 
         with patch(
-            "rekordbox_edit.api.convert._probe_converted_file",
+            "rekordbox_edit.api._convert._probe_converted_file",
             return_value=ConvertedFileProbe(
                 audio_info=AudioInfo(
                     bit_depth=16,
@@ -768,13 +768,13 @@ class TestConvertRealRun:
         assert response.tracks[0].FileType == aiff_file_type
         assert response.tracks[0].FolderPath == "/A.aif"
 
-    @patch("rekordbox_edit.api.convert.get_audio_info", return_value=_PROBE_AAC_M4A)
-    @patch("rekordbox_edit.api.convert.os.remove")
-    @patch("rekordbox_edit.api.convert._run_ffmpeg", return_value=True)
-    @patch("rekordbox_edit.api.convert.os.path.exists", return_value=True)
+    @patch("rekordbox_edit.api._convert.get_audio_info", return_value=_PROBE_AAC_M4A)
+    @patch("rekordbox_edit.api._convert.os.remove")
+    @patch("rekordbox_edit.api._convert._run_ffmpeg", return_value=True)
+    @patch("rekordbox_edit.api._convert.os.path.exists", return_value=True)
     @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=True)
-    @patch("rekordbox_edit.api.convert._get_output_path")
-    @patch("rekordbox_edit.api.convert.get_filtered_content")
+    @patch("rekordbox_edit.api._convert._get_output_path")
+    @patch("rekordbox_edit.api._convert.get_filtered_content")
     def test_codec_mismatch_never_touches_files(
         self,
         mock_gfc,
@@ -805,14 +805,14 @@ class TestConvertRealRun:
         assert response.result.converted == []
         assert response.result.skipped[0].reason == "codec_mismatch"
 
-    @patch("rekordbox_edit.api.convert.get_audio_info", return_value=_PROBE_WAV_16_44)
-    @patch("rekordbox_edit.api.convert._apply_converted_record")
-    @patch("rekordbox_edit.api.convert._run_ffmpeg", return_value=True)
-    @patch("rekordbox_edit.api.convert.os.path.exists", return_value=True)
+    @patch("rekordbox_edit.api._convert.get_audio_info", return_value=_PROBE_WAV_16_44)
+    @patch("rekordbox_edit.api._convert._apply_converted_record")
+    @patch("rekordbox_edit.api._convert._run_ffmpeg", return_value=True)
+    @patch("rekordbox_edit.api._convert.os.path.exists", return_value=True)
     @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=True)
-    @patch("rekordbox_edit.api.convert._get_output_path")
-    @patch("rekordbox_edit.api.convert.get_file_type_for_format")
-    @patch("rekordbox_edit.api.convert.get_filtered_content")
+    @patch("rekordbox_edit.api._convert._get_output_path")
+    @patch("rekordbox_edit.api._convert.get_file_type_for_format")
+    @patch("rekordbox_edit.api._convert.get_filtered_content")
     def test_successful_hi_res_commits(
         self,
         mock_gfc,
@@ -860,15 +860,15 @@ class TestConvertRealRun:
         assert response.result.deleted == 0
         assert response.tracks[0].ID == "1"
 
-    @patch("rekordbox_edit.api.convert.get_audio_info", return_value=_PROBE_WAV_16_44)
-    @patch("rekordbox_edit.api.convert.os.remove")
-    @patch("rekordbox_edit.api.convert._apply_converted_record")
-    @patch("rekordbox_edit.api.convert._run_ffmpeg", return_value=True)
-    @patch("rekordbox_edit.api.convert.os.path.exists", return_value=True)
+    @patch("rekordbox_edit.api._convert.get_audio_info", return_value=_PROBE_WAV_16_44)
+    @patch("rekordbox_edit.api._convert.os.remove")
+    @patch("rekordbox_edit.api._convert._apply_converted_record")
+    @patch("rekordbox_edit.api._convert._run_ffmpeg", return_value=True)
+    @patch("rekordbox_edit.api._convert.os.path.exists", return_value=True)
     @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=True)
-    @patch("rekordbox_edit.api.convert._get_output_path")
-    @patch("rekordbox_edit.api.convert.get_file_type_for_format")
-    @patch("rekordbox_edit.api.convert.get_filtered_content")
+    @patch("rekordbox_edit.api._convert._get_output_path")
+    @patch("rekordbox_edit.api._convert.get_file_type_for_format")
+    @patch("rekordbox_edit.api._convert.get_filtered_content")
     def test_deletes_originals_when_mode_all(
         self,
         mock_gfc,
@@ -901,15 +901,15 @@ class TestConvertRealRun:
         mock_remove.assert_called_once_with("/in.wav")
         assert response.result.deleted == 1
 
-    @patch("rekordbox_edit.api.convert.get_audio_info", return_value=_PROBE_WAV_24_96)
-    @patch("rekordbox_edit.api.convert.os.remove")
-    @patch("rekordbox_edit.api.convert._apply_converted_record")
-    @patch("rekordbox_edit.api.convert._run_ffmpeg", return_value=True)
-    @patch("rekordbox_edit.api.convert.os.path.exists", return_value=True)
+    @patch("rekordbox_edit.api._convert.get_audio_info", return_value=_PROBE_WAV_24_96)
+    @patch("rekordbox_edit.api._convert.os.remove")
+    @patch("rekordbox_edit.api._convert._apply_converted_record")
+    @patch("rekordbox_edit.api._convert._run_ffmpeg", return_value=True)
+    @patch("rekordbox_edit.api._convert.os.path.exists", return_value=True)
     @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=True)
-    @patch("rekordbox_edit.api.convert._get_output_path")
-    @patch("rekordbox_edit.api.convert.get_file_type_for_format")
-    @patch("rekordbox_edit.api.convert.get_filtered_content")
+    @patch("rekordbox_edit.api._convert._get_output_path")
+    @patch("rekordbox_edit.api._convert.get_file_type_for_format")
+    @patch("rekordbox_edit.api._convert.get_filtered_content")
     def test_lossless_mode_keeps_originals_from_lossy_conversion(
         self,
         mock_gfc,
@@ -947,15 +947,15 @@ class TestConvertRealRun:
         assert response.result.deleted == 0
         assert len(response.result.converted) == 1
 
-    @patch("rekordbox_edit.api.convert.get_audio_info", return_value=_PROBE_WAV_24_96)
-    @patch("rekordbox_edit.api.convert.os.remove")
-    @patch("rekordbox_edit.api.convert._apply_converted_record")
-    @patch("rekordbox_edit.api.convert._run_ffmpeg", return_value=True)
-    @patch("rekordbox_edit.api.convert.os.path.exists", return_value=True)
+    @patch("rekordbox_edit.api._convert.get_audio_info", return_value=_PROBE_WAV_24_96)
+    @patch("rekordbox_edit.api._convert.os.remove")
+    @patch("rekordbox_edit.api._convert._apply_converted_record")
+    @patch("rekordbox_edit.api._convert._run_ffmpeg", return_value=True)
+    @patch("rekordbox_edit.api._convert.os.path.exists", return_value=True)
     @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=True)
-    @patch("rekordbox_edit.api.convert._get_output_path")
-    @patch("rekordbox_edit.api.convert.get_file_type_for_format")
-    @patch("rekordbox_edit.api.convert.get_filtered_content")
+    @patch("rekordbox_edit.api._convert._get_output_path")
+    @patch("rekordbox_edit.api._convert.get_file_type_for_format")
+    @patch("rekordbox_edit.api._convert.get_filtered_content")
     def test_all_mode_deletes_originals_from_lossy_conversion(
         self,
         mock_gfc,
@@ -988,15 +988,15 @@ class TestConvertRealRun:
         mock_remove.assert_called_once_with("/in.wav")
         assert response.result.deleted == 1
 
-    @patch("rekordbox_edit.api.convert.get_audio_info", return_value=_PROBE_WAV_16_44)
-    @patch("rekordbox_edit.api.convert.os.remove")
-    @patch("rekordbox_edit.api.convert._apply_converted_record")
-    @patch("rekordbox_edit.api.convert._run_ffmpeg", return_value=True)
-    @patch("rekordbox_edit.api.convert.os.path.exists", return_value=True)
+    @patch("rekordbox_edit.api._convert.get_audio_info", return_value=_PROBE_WAV_16_44)
+    @patch("rekordbox_edit.api._convert.os.remove")
+    @patch("rekordbox_edit.api._convert._apply_converted_record")
+    @patch("rekordbox_edit.api._convert._run_ffmpeg", return_value=True)
+    @patch("rekordbox_edit.api._convert.os.path.exists", return_value=True)
     @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=True)
-    @patch("rekordbox_edit.api.convert._get_output_path")
-    @patch("rekordbox_edit.api.convert.get_file_type_for_format")
-    @patch("rekordbox_edit.api.convert.get_filtered_content")
+    @patch("rekordbox_edit.api._convert._get_output_path")
+    @patch("rekordbox_edit.api._convert.get_file_type_for_format")
+    @patch("rekordbox_edit.api._convert.get_filtered_content")
     def test_lossless_mode_deletes_originals_from_lossless_conversion(
         self,
         mock_gfc,
@@ -1032,14 +1032,14 @@ class TestConvertRealRun:
         mock_remove.assert_called_once_with("/in.wav")
         assert response.result.deleted == 1
 
-    @patch("rekordbox_edit.api.convert.get_audio_info", return_value=_PROBE_WAV_16_22)
-    @patch("rekordbox_edit.api.convert._apply_converted_record")
-    @patch("rekordbox_edit.api.convert._run_ffmpeg", return_value=True)
-    @patch("rekordbox_edit.api.convert.os.path.exists", return_value=True)
+    @patch("rekordbox_edit.api._convert.get_audio_info", return_value=_PROBE_WAV_16_22)
+    @patch("rekordbox_edit.api._convert._apply_converted_record")
+    @patch("rekordbox_edit.api._convert._run_ffmpeg", return_value=True)
+    @patch("rekordbox_edit.api._convert.os.path.exists", return_value=True)
     @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=True)
-    @patch("rekordbox_edit.api.convert._get_output_path")
-    @patch("rekordbox_edit.api.convert.get_file_type_for_format")
-    @patch("rekordbox_edit.api.convert.get_filtered_content")
+    @patch("rekordbox_edit.api._convert._get_output_path")
+    @patch("rekordbox_edit.api._convert.get_file_type_for_format")
+    @patch("rekordbox_edit.api._convert.get_filtered_content")
     def test_probed_below_target_source_converts_at_source_rate(
         self,
         mock_gfc,
@@ -1078,15 +1078,15 @@ class TestConvertRealRun:
         assert op.output_sample_rate == 22050
         assert response.result.skipped == []
 
-    @patch("rekordbox_edit.api.convert.get_audio_info", return_value=_PROBE_WAV_16_44)
-    @patch("rekordbox_edit.api.convert.os.remove")
-    @patch("rekordbox_edit.api.convert._apply_converted_record")
-    @patch("rekordbox_edit.api.convert._run_ffmpeg", return_value=True)
-    @patch("rekordbox_edit.api.convert.os.path.exists", return_value=True)
+    @patch("rekordbox_edit.api._convert.get_audio_info", return_value=_PROBE_WAV_16_44)
+    @patch("rekordbox_edit.api._convert.os.remove")
+    @patch("rekordbox_edit.api._convert._apply_converted_record")
+    @patch("rekordbox_edit.api._convert._run_ffmpeg", return_value=True)
+    @patch("rekordbox_edit.api._convert.os.path.exists", return_value=True)
     @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=True)
-    @patch("rekordbox_edit.api.convert._get_output_path")
-    @patch("rekordbox_edit.api.convert.get_file_type_for_format")
-    @patch("rekordbox_edit.api.convert.get_filtered_content")
+    @patch("rekordbox_edit.api._convert._get_output_path")
+    @patch("rekordbox_edit.api._convert.get_file_type_for_format")
+    @patch("rekordbox_edit.api._convert.get_filtered_content")
     def test_lossless_mode_keeps_originals_for_mp3_output(
         self,
         mock_gfc,
@@ -1122,14 +1122,14 @@ class TestConvertRealRun:
         mock_remove.assert_not_called()
         assert response.result.deleted == 0
 
-    @patch("rekordbox_edit.api.convert.get_audio_info", return_value=_PROBE_WAV_16_44)
-    @patch("rekordbox_edit.api.convert._rollback_session")
-    @patch("rekordbox_edit.api.convert._run_ffmpeg", return_value=False)
-    @patch("rekordbox_edit.api.convert.os.path.exists", return_value=True)
+    @patch("rekordbox_edit.api._convert.get_audio_info", return_value=_PROBE_WAV_16_44)
+    @patch("rekordbox_edit.api._convert._rollback_session")
+    @patch("rekordbox_edit.api._convert._run_ffmpeg", return_value=False)
+    @patch("rekordbox_edit.api._convert.os.path.exists", return_value=True)
     @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=True)
-    @patch("rekordbox_edit.api.convert._get_output_path")
-    @patch("rekordbox_edit.api.convert.get_file_type_for_format")
-    @patch("rekordbox_edit.api.convert.get_filtered_content")
+    @patch("rekordbox_edit.api._convert._get_output_path")
+    @patch("rekordbox_edit.api._convert.get_file_type_for_format")
+    @patch("rekordbox_edit.api._convert.get_filtered_content")
     def test_conversion_failure_triggers_rollback_and_raises(
         self,
         mock_gfc,
@@ -1157,16 +1157,16 @@ class TestConvertRealRun:
 
         mock_rollback.assert_called_once()
 
-    @patch("rekordbox_edit.api.convert.get_audio_info", return_value=_PROBE_WAV_16_44)
-    @patch("rekordbox_edit.api.convert._rollback_session")
-    @patch("rekordbox_edit.api.convert.os.remove", side_effect=KeyboardInterrupt)
-    @patch("rekordbox_edit.api.convert._apply_converted_record")
-    @patch("rekordbox_edit.api.convert._run_ffmpeg", return_value=True)
-    @patch("rekordbox_edit.api.convert.os.path.exists", return_value=True)
+    @patch("rekordbox_edit.api._convert.get_audio_info", return_value=_PROBE_WAV_16_44)
+    @patch("rekordbox_edit.api._convert._rollback_session")
+    @patch("rekordbox_edit.api._convert.os.remove", side_effect=KeyboardInterrupt)
+    @patch("rekordbox_edit.api._convert._apply_converted_record")
+    @patch("rekordbox_edit.api._convert._run_ffmpeg", return_value=True)
+    @patch("rekordbox_edit.api._convert.os.path.exists", return_value=True)
     @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=True)
-    @patch("rekordbox_edit.api.convert._get_output_path")
-    @patch("rekordbox_edit.api.convert.get_file_type_for_format")
-    @patch("rekordbox_edit.api.convert.get_filtered_content")
+    @patch("rekordbox_edit.api._convert._get_output_path")
+    @patch("rekordbox_edit.api._convert.get_file_type_for_format")
+    @patch("rekordbox_edit.api._convert.get_filtered_content")
     def test_post_commit_interrupt_does_not_trigger_cleanup(
         self,
         mock_gfc,
@@ -1206,14 +1206,14 @@ class TestConvertRealRun:
         mock_db.session.commit.assert_called_once()
         mock_rollback.assert_not_called()
 
-    @patch("rekordbox_edit.api.convert.get_audio_info", return_value=_PROBE_WAV_16_44)
-    @patch("rekordbox_edit.api.convert._apply_converted_record")
-    @patch("rekordbox_edit.api.convert._run_ffmpeg", return_value=True)
-    @patch("rekordbox_edit.api.convert.os.path.exists", return_value=True)
+    @patch("rekordbox_edit.api._convert.get_audio_info", return_value=_PROBE_WAV_16_44)
+    @patch("rekordbox_edit.api._convert._apply_converted_record")
+    @patch("rekordbox_edit.api._convert._run_ffmpeg", return_value=True)
+    @patch("rekordbox_edit.api._convert.os.path.exists", return_value=True)
     @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=True)
-    @patch("rekordbox_edit.api.convert._get_output_path")
-    @patch("rekordbox_edit.api.convert.get_file_type_for_format")
-    @patch("rekordbox_edit.api.convert.get_filtered_content")
+    @patch("rekordbox_edit.api._convert._get_output_path")
+    @patch("rekordbox_edit.api._convert.get_file_type_for_format")
+    @patch("rekordbox_edit.api._convert.get_filtered_content")
     def test_preserves_op_order_in_response_tracks(
         self,
         mock_gfc,
@@ -1255,14 +1255,14 @@ class TestConvertRealRun:
         assert [op.id for op in response.result.converted] == ["A", "B", "C"]
         assert [t.ID for t in response.tracks] == ["A", "B", "C"]
 
-    @patch("rekordbox_edit.api.convert.get_audio_info", return_value=_PROBE_WAV_16_44)
-    @patch("rekordbox_edit.api.convert._apply_converted_record")
-    @patch("rekordbox_edit.api.convert._run_ffmpeg", return_value=True)
-    @patch("rekordbox_edit.api.convert.os.path.exists", return_value=True)
+    @patch("rekordbox_edit.api._convert.get_audio_info", return_value=_PROBE_WAV_16_44)
+    @patch("rekordbox_edit.api._convert._apply_converted_record")
+    @patch("rekordbox_edit.api._convert._run_ffmpeg", return_value=True)
+    @patch("rekordbox_edit.api._convert.os.path.exists", return_value=True)
     @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=True)
-    @patch("rekordbox_edit.api.convert._get_output_path")
-    @patch("rekordbox_edit.api.convert.get_file_type_for_format")
-    @patch("rekordbox_edit.api.convert.get_filtered_content")
+    @patch("rekordbox_edit.api._convert._get_output_path")
+    @patch("rekordbox_edit.api._convert.get_file_type_for_format")
+    @patch("rekordbox_edit.api._convert.get_filtered_content")
     def test_post_commit_requery_failure_falls_back_to_pre_mutation(
         self,
         mock_gfc,
@@ -1311,10 +1311,10 @@ class TestConvertRealRun:
         assert response.tracks[0].ID == "1"
 
     @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=True)
-    @patch("rekordbox_edit.api.convert.os.path.exists", return_value=True)
-    @patch("rekordbox_edit.api.convert._get_output_path")
-    @patch("rekordbox_edit.api.convert.get_file_type_for_format")
-    @patch("rekordbox_edit.api.convert.get_filtered_content")
+    @patch("rekordbox_edit.api._convert.os.path.exists", return_value=True)
+    @patch("rekordbox_edit.api._convert._get_output_path")
+    @patch("rekordbox_edit.api._convert.get_file_type_for_format")
+    @patch("rekordbox_edit.api._convert.get_filtered_content")
     def test_real_run_skips_when_output_exists_without_overwrite(
         self,
         mock_gfc,
@@ -1340,12 +1340,12 @@ class TestConvertRealRun:
         assert response.result.skipped[0].reason == "output_file_exists"
         mock_db.session.commit.assert_not_called()
 
-    @patch("rekordbox_edit.api.convert._rollback_session")
-    @patch("rekordbox_edit.api.convert.os.path.exists", return_value=False)
+    @patch("rekordbox_edit.api._convert._rollback_session")
+    @patch("rekordbox_edit.api._convert.os.path.exists", return_value=False)
     @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=True)
-    @patch("rekordbox_edit.api.convert._get_output_path")
-    @patch("rekordbox_edit.api.convert.get_file_type_for_format")
-    @patch("rekordbox_edit.api.convert.get_filtered_content")
+    @patch("rekordbox_edit.api._convert._get_output_path")
+    @patch("rekordbox_edit.api._convert.get_file_type_for_format")
+    @patch("rekordbox_edit.api._convert.get_filtered_content")
     def test_missing_source_is_skipped_rather_than_aborting(
         self,
         mock_gfc,
@@ -1373,18 +1373,18 @@ class TestConvertRealRun:
         mock_rollback.assert_not_called()
         mock_db.session.commit.assert_not_called()
 
-    @patch("rekordbox_edit.api.convert.get_audio_info", return_value=_PROBE_WAV_16_44)
-    @patch("rekordbox_edit.api.convert._rollback_session")
+    @patch("rekordbox_edit.api._convert.get_audio_info", return_value=_PROBE_WAV_16_44)
+    @patch("rekordbox_edit.api._convert._rollback_session")
     @patch(
-        "rekordbox_edit.api.convert._apply_converted_record",
+        "rekordbox_edit.api._convert._apply_converted_record",
         side_effect=RuntimeError("DB error"),
     )
-    @patch("rekordbox_edit.api.convert._run_ffmpeg", return_value=True)
-    @patch("rekordbox_edit.api.convert.os.path.exists", return_value=True)
+    @patch("rekordbox_edit.api._convert._run_ffmpeg", return_value=True)
+    @patch("rekordbox_edit.api._convert.os.path.exists", return_value=True)
     @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=True)
-    @patch("rekordbox_edit.api.convert._get_output_path")
-    @patch("rekordbox_edit.api.convert.get_file_type_for_format")
-    @patch("rekordbox_edit.api.convert.get_filtered_content")
+    @patch("rekordbox_edit.api._convert._get_output_path")
+    @patch("rekordbox_edit.api._convert.get_file_type_for_format")
+    @patch("rekordbox_edit.api._convert.get_filtered_content")
     def test_db_update_exception_triggers_rollback_and_reraises(
         self,
         mock_gfc,
@@ -1412,14 +1412,14 @@ class TestConvertRealRun:
             )
         mock_rollback.assert_called_once()
 
-    @patch("rekordbox_edit.api.convert.get_audio_info", return_value=_PROBE_WAV_16_44)
-    @patch("rekordbox_edit.api.convert._apply_converted_record")
-    @patch("rekordbox_edit.api.convert._run_ffmpeg", return_value=True)
-    @patch("rekordbox_edit.api.convert.os.path.exists", return_value=True)
+    @patch("rekordbox_edit.api._convert.get_audio_info", return_value=_PROBE_WAV_16_44)
+    @patch("rekordbox_edit.api._convert._apply_converted_record")
+    @patch("rekordbox_edit.api._convert._run_ffmpeg", return_value=True)
+    @patch("rekordbox_edit.api._convert.os.path.exists", return_value=True)
     @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=True)
-    @patch("rekordbox_edit.api.convert._get_output_path")
-    @patch("rekordbox_edit.api.convert.get_file_type_for_format")
-    @patch("rekordbox_edit.api.convert.get_filtered_content")
+    @patch("rekordbox_edit.api._convert._get_output_path")
+    @patch("rekordbox_edit.api._convert.get_file_type_for_format")
+    @patch("rekordbox_edit.api._convert.get_filtered_content")
     def test_mp3_format_runs_mp3_kwargs(
         self,
         mock_gfc,
@@ -1447,15 +1447,15 @@ class TestConvertRealRun:
             "/in.wav", _temp_output_path("/out.mp3"), _mp3_output_kwargs(44100), "mp3"
         )
 
-    @patch("rekordbox_edit.api.convert.get_audio_info", return_value=_PROBE_WAV_16_44)
-    @patch("rekordbox_edit.api.convert.os.remove")
-    @patch("rekordbox_edit.api.convert._apply_converted_record")
-    @patch("rekordbox_edit.api.convert._run_ffmpeg", return_value=True)
-    @patch("rekordbox_edit.api.convert.os.path.exists", return_value=True)
+    @patch("rekordbox_edit.api._convert.get_audio_info", return_value=_PROBE_WAV_16_44)
+    @patch("rekordbox_edit.api._convert.os.remove")
+    @patch("rekordbox_edit.api._convert._apply_converted_record")
+    @patch("rekordbox_edit.api._convert._run_ffmpeg", return_value=True)
+    @patch("rekordbox_edit.api._convert.os.path.exists", return_value=True)
     @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=True)
-    @patch("rekordbox_edit.api.convert._get_output_path")
-    @patch("rekordbox_edit.api.convert.get_file_type_for_format")
-    @patch("rekordbox_edit.api.convert.get_filtered_content")
+    @patch("rekordbox_edit.api._convert._get_output_path")
+    @patch("rekordbox_edit.api._convert.get_file_type_for_format")
+    @patch("rekordbox_edit.api._convert.get_filtered_content")
     def test_skips_deletion_when_mode_none(
         self,
         mock_gfc,
@@ -1488,15 +1488,15 @@ class TestConvertRealRun:
         mock_remove.assert_not_called()
         assert response.result.deleted == 0
 
-    @patch("rekordbox_edit.api.convert.get_audio_info", return_value=_PROBE_WAV_16_44)
-    @patch("rekordbox_edit.api.convert._update_anlz_paths")
-    @patch("rekordbox_edit.api.convert._apply_converted_record")
-    @patch("rekordbox_edit.api.convert._run_ffmpeg", return_value=True)
-    @patch("rekordbox_edit.api.convert.os.path.exists", return_value=True)
+    @patch("rekordbox_edit.api._convert.get_audio_info", return_value=_PROBE_WAV_16_44)
+    @patch("rekordbox_edit.api._convert._update_anlz_paths")
+    @patch("rekordbox_edit.api._convert._apply_converted_record")
+    @patch("rekordbox_edit.api._convert._run_ffmpeg", return_value=True)
+    @patch("rekordbox_edit.api._convert.os.path.exists", return_value=True)
     @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=True)
-    @patch("rekordbox_edit.api.convert._get_output_path")
-    @patch("rekordbox_edit.api.convert.get_file_type_for_format")
-    @patch("rekordbox_edit.api.convert.get_filtered_content")
+    @patch("rekordbox_edit.api._convert._get_output_path")
+    @patch("rekordbox_edit.api._convert.get_file_type_for_format")
+    @patch("rekordbox_edit.api._convert.get_filtered_content")
     def test_updates_anlz_paths_after_commit(
         self,
         mock_gfc,
@@ -1531,19 +1531,19 @@ class TestConvertRealRun:
         mock_db.session.commit.assert_called_once()
         mock_anlz.assert_called_once_with(mock_db, content, "out.aif")
 
-    @patch("rekordbox_edit.api.convert.get_audio_info", return_value=_PROBE_WAV_16_44)
+    @patch("rekordbox_edit.api._convert.get_audio_info", return_value=_PROBE_WAV_16_44)
     @patch(
-        "rekordbox_edit.api.convert._update_anlz_paths",
+        "rekordbox_edit.api._convert._update_anlz_paths",
         side_effect=RuntimeError("ANLZ write failed"),
     )
-    @patch("rekordbox_edit.api.convert._rollback_session")
-    @patch("rekordbox_edit.api.convert._apply_converted_record")
-    @patch("rekordbox_edit.api.convert._run_ffmpeg", return_value=True)
-    @patch("rekordbox_edit.api.convert.os.path.exists", return_value=True)
+    @patch("rekordbox_edit.api._convert._rollback_session")
+    @patch("rekordbox_edit.api._convert._apply_converted_record")
+    @patch("rekordbox_edit.api._convert._run_ffmpeg", return_value=True)
+    @patch("rekordbox_edit.api._convert.os.path.exists", return_value=True)
     @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=True)
-    @patch("rekordbox_edit.api.convert._get_output_path")
-    @patch("rekordbox_edit.api.convert.get_file_type_for_format")
-    @patch("rekordbox_edit.api.convert.get_filtered_content")
+    @patch("rekordbox_edit.api._convert._get_output_path")
+    @patch("rekordbox_edit.api._convert.get_file_type_for_format")
+    @patch("rekordbox_edit.api._convert.get_filtered_content")
     def test_anlz_update_failure_is_non_fatal(
         self,
         mock_gfc,
@@ -1620,7 +1620,7 @@ class TestEncodeOne:
     def _job(self, **overrides) -> _EncodeJob:
         return replace(self._BASE, **overrides)
 
-    @patch("rekordbox_edit.api.convert.os.path.exists", return_value=False)
+    @patch("rekordbox_edit.api._convert.os.path.exists", return_value=False)
     def test_a_missing_source_is_reported_as_a_skip(self, _exists):
         result = _encode_one(self._job())
 
@@ -1628,18 +1628,18 @@ class TestEncodeOne:
         assert result.skipped.reason == "file_not_found"
         assert result.probe is None
 
-    @patch("rekordbox_edit.api.convert.get_audio_info", return_value=_PROBE_AAC_M4A)
-    @patch("rekordbox_edit.api.convert.os.path.exists", return_value=True)
+    @patch("rekordbox_edit.api._convert.get_audio_info", return_value=_PROBE_AAC_M4A)
+    @patch("rekordbox_edit.api._convert.os.path.exists", return_value=True)
     def test_a_codec_mismatch_is_reported_as_a_skip(self, _exists, _probe):
         result = _encode_one(self._job(file_type=11))  # 11 is WAV, probe says aac
 
         assert result.skipped is not None
         assert result.skipped.reason == "codec_mismatch"
 
-    @patch("rekordbox_edit.api.convert._remove_temp_file")
-    @patch("rekordbox_edit.api.convert._run_ffmpeg", return_value=False)
-    @patch("rekordbox_edit.api.convert.get_audio_info", return_value=_PROBE_WAV_16_44)
-    @patch("rekordbox_edit.api.convert.os.path.exists", return_value=True)
+    @patch("rekordbox_edit.api._convert._remove_temp_file")
+    @patch("rekordbox_edit.api._convert._run_ffmpeg", return_value=False)
+    @patch("rekordbox_edit.api._convert.get_audio_info", return_value=_PROBE_WAV_16_44)
+    @patch("rekordbox_edit.api._convert.os.path.exists", return_value=True)
     def test_a_failed_encode_cleans_up_its_own_temp(
         self, _exists, _probe, _run, mock_remove
     ):
@@ -1648,10 +1648,10 @@ class TestEncodeOne:
 
         mock_remove.assert_called_once_with("/.rbe-convert-1-out.aif")
 
-    @patch("rekordbox_edit.api.convert._probe_converted_file")
-    @patch("rekordbox_edit.api.convert._run_ffmpeg", return_value=True)
-    @patch("rekordbox_edit.api.convert.get_audio_info", return_value=_PROBE_WAV_24_96)
-    @patch("rekordbox_edit.api.convert.os.path.exists", return_value=True)
+    @patch("rekordbox_edit.api._convert._probe_converted_file")
+    @patch("rekordbox_edit.api._convert._run_ffmpeg", return_value=True)
+    @patch("rekordbox_edit.api._convert.get_audio_info", return_value=_PROBE_WAV_24_96)
+    @patch("rekordbox_edit.api._convert.os.path.exists", return_value=True)
     def test_a_hi_res_source_reports_a_lossy_conversion(
         self, _exists, _probe, mock_run, mock_converted
     ):
@@ -1663,19 +1663,19 @@ class TestEncodeOne:
         # The encode targets the temp path, never the final one.
         assert mock_run.call_args.args[1] == "/.rbe-convert-1-out.aif"
 
-    @patch("rekordbox_edit.api.convert._probe_converted_file")
-    @patch("rekordbox_edit.api.convert._run_ffmpeg", return_value=True)
-    @patch("rekordbox_edit.api.convert.get_audio_info", return_value=_PROBE_WAV_16_44)
-    @patch("rekordbox_edit.api.convert.os.path.exists", return_value=True)
+    @patch("rekordbox_edit.api._convert._probe_converted_file")
+    @patch("rekordbox_edit.api._convert._run_ffmpeg", return_value=True)
+    @patch("rekordbox_edit.api._convert.get_audio_info", return_value=_PROBE_WAV_16_44)
+    @patch("rekordbox_edit.api._convert.os.path.exists", return_value=True)
     def test_an_at_target_source_reports_a_lossless_conversion(
         self, _exists, _probe, _run, _converted
     ):
         assert _encode_one(self._job()).is_lossless is True
 
-    @patch("rekordbox_edit.api.convert._probe_converted_file")
-    @patch("rekordbox_edit.api.convert._run_ffmpeg", return_value=True)
-    @patch("rekordbox_edit.api.convert.get_audio_info", return_value=_PROBE_WAV_16_44)
-    @patch("rekordbox_edit.api.convert.os.path.exists", return_value=True)
+    @patch("rekordbox_edit.api._convert._probe_converted_file")
+    @patch("rekordbox_edit.api._convert._run_ffmpeg", return_value=True)
+    @patch("rekordbox_edit.api._convert.get_audio_info", return_value=_PROBE_WAV_16_44)
+    @patch("rekordbox_edit.api._convert.os.path.exists", return_value=True)
     def test_mp3_output_is_never_lossless(self, _exists, _probe, _run, _converted):
         result = _encode_one(self._job(output_format="MP3", output_path="/out.mp3"))
 
@@ -1688,20 +1688,20 @@ class TestConvertPerFileCommits:
     @pytest.fixture(autouse=True)
     def _stub_temp_file_moves(self):
         with (
-            patch("rekordbox_edit.api.convert.os.replace"),
-            patch("rekordbox_edit.api.convert.os.listdir", return_value=[]),
-            patch("rekordbox_edit.api.convert._probe_converted_file"),
+            patch("rekordbox_edit.api._convert.os.replace"),
+            patch("rekordbox_edit.api._convert.os.listdir", return_value=[]),
+            patch("rekordbox_edit.api._convert._probe_converted_file"),
         ):
             yield
 
-    @patch("rekordbox_edit.api.convert.get_audio_info", return_value=_PROBE_WAV_16_44)
-    @patch("rekordbox_edit.api.convert._apply_converted_record")
-    @patch("rekordbox_edit.api.convert._run_ffmpeg")
-    @patch("rekordbox_edit.api.convert.os.path.exists", return_value=True)
+    @patch("rekordbox_edit.api._convert.get_audio_info", return_value=_PROBE_WAV_16_44)
+    @patch("rekordbox_edit.api._convert._apply_converted_record")
+    @patch("rekordbox_edit.api._convert._run_ffmpeg")
+    @patch("rekordbox_edit.api._convert.os.path.exists", return_value=True)
     @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=True)
-    @patch("rekordbox_edit.api.convert._get_output_path")
-    @patch("rekordbox_edit.api.convert.get_file_type_for_format")
-    @patch("rekordbox_edit.api.convert.get_filtered_content")
+    @patch("rekordbox_edit.api._convert._get_output_path")
+    @patch("rekordbox_edit.api._convert.get_file_type_for_format")
+    @patch("rekordbox_edit.api._convert.get_filtered_content")
     def test_a_mid_batch_failure_keeps_the_earlier_commits(
         self,
         mock_gfc,
@@ -1747,14 +1747,14 @@ class TestConvertPerFileCommits:
         # runs ahead of the drain point.
         assert mock_run.call_count == 2
 
-    @patch("rekordbox_edit.api.convert.get_audio_info", return_value=_PROBE_WAV_16_44)
-    @patch("rekordbox_edit.api.convert._apply_converted_record")
-    @patch("rekordbox_edit.api.convert._run_ffmpeg", return_value=True)
-    @patch("rekordbox_edit.api.convert.os.path.exists")
+    @patch("rekordbox_edit.api._convert.get_audio_info", return_value=_PROBE_WAV_16_44)
+    @patch("rekordbox_edit.api._convert._apply_converted_record")
+    @patch("rekordbox_edit.api._convert._run_ffmpeg", return_value=True)
+    @patch("rekordbox_edit.api._convert.os.path.exists")
     @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=True)
-    @patch("rekordbox_edit.api.convert._get_output_path")
-    @patch("rekordbox_edit.api.convert.get_file_type_for_format")
-    @patch("rekordbox_edit.api.convert.get_filtered_content")
+    @patch("rekordbox_edit.api._convert._get_output_path")
+    @patch("rekordbox_edit.api._convert.get_file_type_for_format")
+    @patch("rekordbox_edit.api._convert.get_filtered_content")
     def test_a_source_that_vanished_does_not_stop_the_batch(
         self,
         mock_gfc,
@@ -1796,15 +1796,15 @@ class TestConvertPerFileCommits:
         ]
         assert mock_db.session.commit.call_count == 2
 
-    @patch("rekordbox_edit.api.convert.os.remove")
-    @patch("rekordbox_edit.api.convert.get_audio_info")
-    @patch("rekordbox_edit.api.convert._apply_converted_record")
-    @patch("rekordbox_edit.api.convert._run_ffmpeg", return_value=True)
-    @patch("rekordbox_edit.api.convert.os.path.exists", return_value=True)
+    @patch("rekordbox_edit.api._convert.os.remove")
+    @patch("rekordbox_edit.api._convert.get_audio_info")
+    @patch("rekordbox_edit.api._convert._apply_converted_record")
+    @patch("rekordbox_edit.api._convert._run_ffmpeg", return_value=True)
+    @patch("rekordbox_edit.api._convert.os.path.exists", return_value=True)
     @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=True)
-    @patch("rekordbox_edit.api.convert._get_output_path")
-    @patch("rekordbox_edit.api.convert.get_file_type_for_format")
-    @patch("rekordbox_edit.api.convert.get_filtered_content")
+    @patch("rekordbox_edit.api._convert._get_output_path")
+    @patch("rekordbox_edit.api._convert.get_file_type_for_format")
+    @patch("rekordbox_edit.api._convert.get_filtered_content")
     def test_the_delete_policy_is_decided_per_file(
         self,
         mock_gfc,
@@ -1858,9 +1858,9 @@ class TestConvertParallelEncoding:
     @pytest.fixture(autouse=True)
     def _stub_temp_file_moves(self):
         with (
-            patch("rekordbox_edit.api.convert.os.replace"),
-            patch("rekordbox_edit.api.convert.os.listdir", return_value=[]),
-            patch("rekordbox_edit.api.convert._probe_converted_file"),
+            patch("rekordbox_edit.api._convert.os.replace"),
+            patch("rekordbox_edit.api._convert.os.listdir", return_value=[]),
+            patch("rekordbox_edit.api._convert._probe_converted_file"),
         ):
             yield
 
@@ -1871,14 +1871,14 @@ class TestConvertParallelEncoding:
             for i in range(1, count + 1)
         ]
 
-    @patch("rekordbox_edit.api.convert.get_audio_info", return_value=_PROBE_WAV_16_44)
-    @patch("rekordbox_edit.api.convert._apply_converted_record")
-    @patch("rekordbox_edit.api.convert._run_ffmpeg")
-    @patch("rekordbox_edit.api.convert.os.path.exists", return_value=True)
+    @patch("rekordbox_edit.api._convert.get_audio_info", return_value=_PROBE_WAV_16_44)
+    @patch("rekordbox_edit.api._convert._apply_converted_record")
+    @patch("rekordbox_edit.api._convert._run_ffmpeg")
+    @patch("rekordbox_edit.api._convert.os.path.exists", return_value=True)
     @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=True)
-    @patch("rekordbox_edit.api.convert._get_output_path")
-    @patch("rekordbox_edit.api.convert.get_file_type_for_format")
-    @patch("rekordbox_edit.api.convert.get_filtered_content")
+    @patch("rekordbox_edit.api._convert._get_output_path")
+    @patch("rekordbox_edit.api._convert.get_file_type_for_format")
+    @patch("rekordbox_edit.api._convert.get_filtered_content")
     def test_results_follow_submission_order_not_completion_order(
         self,
         mock_gfc,
@@ -1920,14 +1920,14 @@ class TestConvertParallelEncoding:
 
         assert [op.id for op in response.result.converted] == ["1", "2", "3"]
 
-    @patch("rekordbox_edit.api.convert.get_audio_info", return_value=_PROBE_WAV_16_44)
-    @patch("rekordbox_edit.api.convert._apply_converted_record")
-    @patch("rekordbox_edit.api.convert._run_ffmpeg", return_value=True)
-    @patch("rekordbox_edit.api.convert.os.path.exists", return_value=True)
+    @patch("rekordbox_edit.api._convert.get_audio_info", return_value=_PROBE_WAV_16_44)
+    @patch("rekordbox_edit.api._convert._apply_converted_record")
+    @patch("rekordbox_edit.api._convert._run_ffmpeg", return_value=True)
+    @patch("rekordbox_edit.api._convert.os.path.exists", return_value=True)
     @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=True)
-    @patch("rekordbox_edit.api.convert._get_output_path")
-    @patch("rekordbox_edit.api.convert.get_file_type_for_format")
-    @patch("rekordbox_edit.api.convert.get_filtered_content")
+    @patch("rekordbox_edit.api._convert._get_output_path")
+    @patch("rekordbox_edit.api._convert.get_file_type_for_format")
+    @patch("rekordbox_edit.api._convert.get_filtered_content")
     def test_no_worker_touches_the_session(
         self,
         mock_gfc,
@@ -1967,15 +1967,15 @@ class TestConvertParallelEncoding:
 
         assert callers == [main_thread] * 4
 
-    @patch("rekordbox_edit.api.convert._remove_temp_file")
-    @patch("rekordbox_edit.api.convert.get_audio_info", return_value=_PROBE_WAV_16_44)
-    @patch("rekordbox_edit.api.convert._apply_converted_record")
-    @patch("rekordbox_edit.api.convert._run_ffmpeg")
-    @patch("rekordbox_edit.api.convert.os.path.exists", return_value=True)
+    @patch("rekordbox_edit.api._convert._remove_temp_file")
+    @patch("rekordbox_edit.api._convert.get_audio_info", return_value=_PROBE_WAV_16_44)
+    @patch("rekordbox_edit.api._convert._apply_converted_record")
+    @patch("rekordbox_edit.api._convert._run_ffmpeg")
+    @patch("rekordbox_edit.api._convert.os.path.exists", return_value=True)
     @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=True)
-    @patch("rekordbox_edit.api.convert._get_output_path")
-    @patch("rekordbox_edit.api.convert.get_file_type_for_format")
-    @patch("rekordbox_edit.api.convert.get_filtered_content")
+    @patch("rekordbox_edit.api._convert._get_output_path")
+    @patch("rekordbox_edit.api._convert.get_file_type_for_format")
+    @patch("rekordbox_edit.api._convert.get_filtered_content")
     def test_an_abort_wastes_at_most_the_pool_width(
         self,
         mock_gfc,
@@ -2023,20 +2023,20 @@ class TestConvertProgressReporting:
     @pytest.fixture(autouse=True)
     def _stub_temp_file_moves(self):
         with (
-            patch("rekordbox_edit.api.convert.os.replace"),
-            patch("rekordbox_edit.api.convert.os.listdir", return_value=[]),
-            patch("rekordbox_edit.api.convert._probe_converted_file"),
+            patch("rekordbox_edit.api._convert.os.replace"),
+            patch("rekordbox_edit.api._convert.os.listdir", return_value=[]),
+            patch("rekordbox_edit.api._convert._probe_converted_file"),
         ):
             yield
 
-    @patch("rekordbox_edit.api.convert.get_audio_info", return_value=_PROBE_WAV_16_44)
-    @patch("rekordbox_edit.api.convert._apply_converted_record")
-    @patch("rekordbox_edit.api.convert._run_ffmpeg", return_value=True)
-    @patch("rekordbox_edit.api.convert.os.path.exists", return_value=True)
+    @patch("rekordbox_edit.api._convert.get_audio_info", return_value=_PROBE_WAV_16_44)
+    @patch("rekordbox_edit.api._convert._apply_converted_record")
+    @patch("rekordbox_edit.api._convert._run_ffmpeg", return_value=True)
+    @patch("rekordbox_edit.api._convert.os.path.exists", return_value=True)
     @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=True)
-    @patch("rekordbox_edit.api.convert._get_output_path")
-    @patch("rekordbox_edit.api.convert.get_file_type_for_format")
-    @patch("rekordbox_edit.api.convert.get_filtered_content")
+    @patch("rekordbox_edit.api._convert._get_output_path")
+    @patch("rekordbox_edit.api._convert.get_file_type_for_format")
+    @patch("rekordbox_edit.api._convert.get_filtered_content")
     def test_every_file_is_reported_started_then_finished(
         self,
         mock_gfc,
@@ -2097,14 +2097,14 @@ class TestConvertProgressReporting:
             ("finished", 2, True),
         ]
 
-    @patch("rekordbox_edit.api.convert.get_audio_info", return_value=_PROBE_WAV_16_44)
-    @patch("rekordbox_edit.api.convert._apply_converted_record")
-    @patch("rekordbox_edit.api.convert._run_ffmpeg", return_value=True)
-    @patch("rekordbox_edit.api.convert.os.path.exists")
+    @patch("rekordbox_edit.api._convert.get_audio_info", return_value=_PROBE_WAV_16_44)
+    @patch("rekordbox_edit.api._convert._apply_converted_record")
+    @patch("rekordbox_edit.api._convert._run_ffmpeg", return_value=True)
+    @patch("rekordbox_edit.api._convert.os.path.exists")
     @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=True)
-    @patch("rekordbox_edit.api.convert._get_output_path")
-    @patch("rekordbox_edit.api.convert.get_file_type_for_format")
-    @patch("rekordbox_edit.api.convert.get_filtered_content")
+    @patch("rekordbox_edit.api._convert._get_output_path")
+    @patch("rekordbox_edit.api._convert.get_file_type_for_format")
+    @patch("rekordbox_edit.api._convert.get_filtered_content")
     def test_a_skipped_file_is_reported_as_not_converted(
         self,
         mock_gfc,
@@ -2161,20 +2161,20 @@ class TestConvertLogging:
     @pytest.fixture(autouse=True)
     def _stub_temp_file_moves(self):
         with (
-            patch("rekordbox_edit.api.convert.os.replace"),
-            patch("rekordbox_edit.api.convert.os.listdir", return_value=[]),
-            patch("rekordbox_edit.api.convert._probe_converted_file"),
+            patch("rekordbox_edit.api._convert.os.replace"),
+            patch("rekordbox_edit.api._convert.os.listdir", return_value=[]),
+            patch("rekordbox_edit.api._convert._probe_converted_file"),
         ):
             yield
 
-    @patch("rekordbox_edit.api.convert.get_audio_info", return_value=_PROBE_WAV_16_44)
-    @patch("rekordbox_edit.api.convert._apply_converted_record")
-    @patch("rekordbox_edit.api.convert._run_ffmpeg", return_value=True)
-    @patch("rekordbox_edit.api.convert.os.path.exists", return_value=True)
+    @patch("rekordbox_edit.api._convert.get_audio_info", return_value=_PROBE_WAV_16_44)
+    @patch("rekordbox_edit.api._convert._apply_converted_record")
+    @patch("rekordbox_edit.api._convert._run_ffmpeg", return_value=True)
+    @patch("rekordbox_edit.api._convert.os.path.exists", return_value=True)
     @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=True)
-    @patch("rekordbox_edit.api.convert._get_output_path")
-    @patch("rekordbox_edit.api.convert.get_file_type_for_format")
-    @patch("rekordbox_edit.api.convert.get_filtered_content")
+    @patch("rekordbox_edit.api._convert._get_output_path")
+    @patch("rekordbox_edit.api._convert.get_file_type_for_format")
+    @patch("rekordbox_edit.api._convert.get_filtered_content")
     def test_the_api_leaves_the_batch_summary_to_the_caller(
         self,
         mock_gfc,
@@ -2206,7 +2206,7 @@ class TestConvertLogging:
         _seed_filter(mock_gfc, *contents)
         _seed_db(mock_db, *contents)
 
-        with caplog.at_level(logging.INFO, logger="rekordbox_edit.api.convert"):
+        with caplog.at_level(logging.INFO, logger="rekordbox_edit.api._convert"):
             convert(
                 mock_db, ConvertRequest(title=["x"], format_out="aiff", overwrite=True)
             )
@@ -2218,20 +2218,20 @@ class TestConvertInterrupt:
     @pytest.fixture(autouse=True)
     def _stub_temp_file_moves(self):
         with (
-            patch("rekordbox_edit.api.convert.os.replace"),
-            patch("rekordbox_edit.api.convert.os.listdir", return_value=[]),
-            patch("rekordbox_edit.api.convert._probe_converted_file"),
+            patch("rekordbox_edit.api._convert.os.replace"),
+            patch("rekordbox_edit.api._convert.os.listdir", return_value=[]),
+            patch("rekordbox_edit.api._convert._probe_converted_file"),
         ):
             yield
 
-    @patch("rekordbox_edit.api.convert.get_audio_info", return_value=_PROBE_WAV_16_44)
-    @patch("rekordbox_edit.api.convert._apply_converted_record")
-    @patch("rekordbox_edit.api.convert._run_ffmpeg")
-    @patch("rekordbox_edit.api.convert.os.path.exists", return_value=True)
+    @patch("rekordbox_edit.api._convert.get_audio_info", return_value=_PROBE_WAV_16_44)
+    @patch("rekordbox_edit.api._convert._apply_converted_record")
+    @patch("rekordbox_edit.api._convert._run_ffmpeg")
+    @patch("rekordbox_edit.api._convert.os.path.exists", return_value=True)
     @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=True)
-    @patch("rekordbox_edit.api.convert._get_output_path")
-    @patch("rekordbox_edit.api.convert.get_file_type_for_format")
-    @patch("rekordbox_edit.api.convert.get_filtered_content")
+    @patch("rekordbox_edit.api._convert._get_output_path")
+    @patch("rekordbox_edit.api._convert.get_file_type_for_format")
+    @patch("rekordbox_edit.api._convert.get_filtered_content")
     def test_ctrl_c_keeps_the_files_already_converted(
         self,
         mock_gfc,
@@ -2315,7 +2315,7 @@ class TestRunFfmpeg:
         """The mocked ffmpeg builder chain, ending at the object .run() lands on."""
         with (
             patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=True),
-            patch("rekordbox_edit.api.convert.ffmpeg") as mock_ffmpeg,
+            patch("rekordbox_edit.api._convert.ffmpeg") as mock_ffmpeg,
         ):
             output = Mock()
             mock_ffmpeg.input.return_value.output.return_value = output
@@ -2424,8 +2424,8 @@ class TestProbeConvertedFile:
     """The probe half runs off the main thread once encoding is parallel, so it
     must reach its answer from the filesystem alone."""
 
-    @patch("rekordbox_edit.api.convert.os.path.getsize", return_value=987654)
-    @patch("rekordbox_edit.api.convert.get_audio_info")
+    @patch("rekordbox_edit.api._convert.os.path.getsize", return_value=987654)
+    @patch("rekordbox_edit.api._convert.get_audio_info")
     def test_reads_size_and_audio_without_a_session(
         self, mock_get_audio_info, _mock_getsize
     ):
@@ -2437,8 +2437,8 @@ class TestProbeConvertedFile:
         assert probe.audio_info["bitrate"] == 1411
         assert probe.audio_info["bit_depth"] == 16
 
-    @patch("rekordbox_edit.api.convert.os.path.getsize", return_value=1)
-    @patch("rekordbox_edit.api.convert.get_audio_info")
+    @patch("rekordbox_edit.api._convert.os.path.getsize", return_value=1)
+    @patch("rekordbox_edit.api._convert.get_audio_info")
     def test_mp3_without_a_probed_bitrate_assumes_320(
         self, mock_get_audio_info, _mock_getsize
     ):
@@ -2619,7 +2619,7 @@ class TestRollbackSession:
         db.session = None
         _rollback_session(db)
 
-    @patch("rekordbox_edit.api.convert.logger")
+    @patch("rekordbox_edit.api._convert.logger")
     def test_rollback_exception_logs_critical_and_reraises(self, mock_logger, mock_db):
         mock_db.session.rollback.side_effect = Exception("DB connection lost")
 
@@ -2660,7 +2660,7 @@ class TestConvertStampsUsns:
     )
 
     @patch(
-        "rekordbox_edit.api.convert._probe_converted_file",
+        "rekordbox_edit.api._convert._probe_converted_file",
         # A real probe, not a Mock: these values are written to actual columns.
         return_value=ConvertedFileProbe(
             audio_info=AudioInfo(
@@ -2675,12 +2675,12 @@ class TestConvertStampsUsns:
             file_size=123456,
         ),
     )
-    @patch("rekordbox_edit.api.convert.os.replace")
-    @patch("rekordbox_edit.api.convert._run_ffmpeg", return_value=True)
-    @patch("rekordbox_edit.api.convert.os.path.exists", return_value=True)
-    @patch("rekordbox_edit.api.convert.os.listdir", return_value=[])
+    @patch("rekordbox_edit.api._convert.os.replace")
+    @patch("rekordbox_edit.api._convert._run_ffmpeg", return_value=True)
+    @patch("rekordbox_edit.api._convert.os.path.exists", return_value=True)
+    @patch("rekordbox_edit.api._convert.os.listdir", return_value=[])
     @patch(
-        "rekordbox_edit.api.convert.get_audio_info",
+        "rekordbox_edit.api._convert.get_audio_info",
         return_value={**_PROBE_WAV_16_44, "codec": "flac", "container": "flac"},
     )
     @patch("rekordbox_edit.utils.ffmpeg_in_path", return_value=True)

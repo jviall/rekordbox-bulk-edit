@@ -4,10 +4,10 @@ Usage:
     from rekordbox_edit.api import search, edit, convert, import_tracks, remove
 """
 
-from rekordbox_edit.api.convert import convert
-from rekordbox_edit.api.edit import edit
+from rekordbox_edit.api._convert import convert
+from rekordbox_edit.api._edit import edit
 from rekordbox_edit.api.import_ import import_tracks
-from rekordbox_edit.api.remove import remove
+from rekordbox_edit.api._remove import remove
 from rekordbox_edit.api.search import search
 
 __all__ = ["search", "edit", "convert", "import_tracks", "remove"]
