@@ -50,3 +50,49 @@ class DatabaseBusyError(RekordboxEditError, TimeoutError):
 
 class OperationAborted(RekordboxEditError):
     """A write gave up partway. Work committed before the failure is kept."""
+
+
+class ConvertAborted(OperationAborted):
+    """A conversion failed partway through a batch.
+
+    Files converted before the failure are already committed, so the counts
+    travel with the error rather than being recovered from the response the
+    caller never receives.
+    """
+
+    def __init__(
+        self,
+        reason: str,
+        *,
+        failed_path: str,
+        converted: int,
+        not_attempted: int,
+    ):
+        self.failed_path = failed_path
+        self.converted = converted
+        self.not_attempted = not_attempted
+        super().__init__(reason)
+
+
+class ImportInputError(InputError):
+    """The request itself is invalid: a path that does not exist, an
+    unconfirmed directory argument, or a playlist name that matches no
+    playlist or more than one. Distinct from a write-phase failure, which
+    means the database failed and must not be reported as user error."""
+
+
+class DirectoryConfirmationRequired(ImportInputError):
+    """Directory arguments would be walked recursively without `recurse` set.
+
+    Carries the counts so a caller can compose its own prompt, and its own
+    hint about whatever it calls the authorization, rather than parsing
+    either back out of the message.
+    """
+
+    def __init__(self, directories: int, files: int):
+        self.directories = directories
+        self.files = files
+        super().__init__(
+            f"{directories} directory argument(s) would be walked recursively, "
+            f"adding {files} file(s)."
+        )

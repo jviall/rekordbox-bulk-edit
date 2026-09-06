@@ -8,10 +8,9 @@ from unittest.mock import Mock, patch
 import ffmpeg
 import pytest
 
-from rekordbox_edit.errors import DependencyMissingError
+from rekordbox_edit.errors import ConvertAborted, DependencyMissingError
 from rekordbox_edit.api._convert import (
     TEMP_PREFIX,
-    ConvertAborted,
     ConvertedFileProbe,
     _EncodeJob,
     _apply_converted_record,

@@ -29,6 +29,7 @@ plugins:
           options:
             filters: ["!^_", "!^model_config$"]
             show_root_heading: true
+            heading_level: 3
             show_source: false
             members_order: source
             show_if_no_docstring: true

@@ -5,7 +5,7 @@ from unittest.mock import Mock, patch
 import pytest
 from click.testing import CliRunner
 
-from rekordbox_edit.api._convert import ConvertAborted
+from rekordbox_edit.errors import ConvertAborted
 from rekordbox_edit.cli.convert import convert_command
 from rekordbox_edit.models import (
     DEFAULT_THREADS,

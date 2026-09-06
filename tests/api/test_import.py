@@ -9,9 +9,9 @@ import mutagen
 import pytest
 
 from rekordbox_edit.api import _import as import_module
+from rekordbox_edit.errors import DirectoryConfirmationRequired
 from rekordbox_edit.api._import import (
     AUDIO_EXTENSIONS,
-    DirectoryConfirmationRequired,
     IMPORT_DEFAULTS,
     UNMAPPED_EXTENSIONS,
     _build_content,

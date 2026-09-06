@@ -11,10 +11,8 @@ from rekordbox_edit.cli._click import (
     paths_argument,
     print_option,
 )
-from rekordbox_edit.api._import import (
-    DirectoryConfirmationRequired,
-    import_tracks,
-)
+from rekordbox_edit.api._import import import_tracks
+from rekordbox_edit.errors import DirectoryConfirmationRequired
 from rekordbox_edit.cli._utils import (
     SCRIPTING_MODES,
     _build_args,

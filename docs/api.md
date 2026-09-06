@@ -25,14 +25,6 @@ A write command's response reaches its tracks two ways, though a dry run populat
 [`RekordboxRunningError`][rekordbox_edit.errors.RekordboxRunningError], and each will grab a single-writer advisory lock for the
 duration of the write to prevent concurrent writes by other rekordbox-edit processes.
 
-## Errors
-
-Most errors these functions raise descend from
-[`RekordboxEditError`][rekordbox_edit.errors.RekordboxEditError].
-[`InputError`][rekordbox_edit.errors.InputError] also subclasses `ValueError`.
-
-::: rekordbox_edit.errors
-
 ## Functions
 
 ::: rekordbox_edit.api.search
@@ -45,6 +37,15 @@ Most errors these functions raise descend from
 
 ::: rekordbox_edit.api.remove
 
+## Progress
+
+`convert` encodes files one at a time and can say which one it is on, for a
+caller that wants to show it. Pass any object satisfying this protocol as
+`convert(..., progress=)`; how the run is displayed stays with the caller.
+The other commands report nothing as they go.
+
+::: rekordbox_edit.api.ConvertProgress
+
 ## Models
 
 The models form three layers: the [`FilterArgs`][rekordbox_edit.models.FilterArgs] base that every command shares, the per-command requests and responses, and the lower-level domain types those req/resp models are built from. The write commands extend [`WriteFilterArgs`][rekordbox_edit.models.WriteFilterArgs] instead, which adds the requirement that at least one filter be set.
@@ -56,53 +57,109 @@ The models form three layers: the [`FilterArgs`][rekordbox_edit.models.FilterArg
 ### Search
 
 ::: rekordbox_edit.models.SearchRequest
+    options:
+      heading_level: 4
 
 ::: rekordbox_edit.models.SearchResponse
+    options:
+      heading_level: 4
 
 ### Edit
 
 ::: rekordbox_edit.models.EditRequest
+    options:
+      heading_level: 4
 
 ::: rekordbox_edit.models.EditResponse
+    options:
+      heading_level: 4
 
 ::: rekordbox_edit.models.EditResult
+    options:
+      heading_level: 4
 
 ### Convert
 
 ::: rekordbox_edit.models.ConvertRequest
+    options:
+      heading_level: 4
 
 ::: rekordbox_edit.models.ConvertResponse
+    options:
+      heading_level: 4
 
 ::: rekordbox_edit.models.ConvertResult
+    options:
+      heading_level: 4
 
 ### Import
 
 ::: rekordbox_edit.models.ImportRequest
+    options:
+      heading_level: 4
 
 ::: rekordbox_edit.models.ImportResponse
+    options:
+      heading_level: 4
 
 ::: rekordbox_edit.models.ImportResult
+    options:
+      heading_level: 4
 
 ### Remove
 
 ::: rekordbox_edit.models.RemoveRequest
+    options:
+      heading_level: 4
 
 ::: rekordbox_edit.models.RemoveResponse
+    options:
+      heading_level: 4
 
 ::: rekordbox_edit.models.RemoveResult
+    options:
+      heading_level: 4
 
 ### Miscellaneous
 
 ::: rekordbox_edit.models.Track
+    options:
+      heading_level: 4
 
 ::: rekordbox_edit.models.EditOp
+    options:
+      heading_level: 4
 
 ::: rekordbox_edit.models.ConvertOp
+    options:
+      heading_level: 4
 
 ::: rekordbox_edit.models.ImportOp
+    options:
+      heading_level: 4
 
 ::: rekordbox_edit.models.RemoveOp
+    options:
+      heading_level: 4
 
 ::: rekordbox_edit.models.SkippedTrack
+    options:
+      heading_level: 4
 
 ::: rekordbox_edit.models.SkipReason
+    options:
+      heading_level: 4
+
+## Errors
+
+Most errors these functions raise descend from
+[`RekordboxEditError`][rekordbox_edit.errors.RekordboxEditError].
+[`InputError`][rekordbox_edit.errors.InputError] also subclasses `ValueError`.
+Every error a command raises on purpose is listed here, including the ones
+only one command raises, such as
+[`ConvertAborted`][rekordbox_edit.errors.ConvertAborted].
+
+::: rekordbox_edit.errors
+    options:
+      show_root_heading: false
+      show_root_toc_entry: false
