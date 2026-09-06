@@ -33,7 +33,6 @@ def jobs_for(sources: list[Path], fmt: str, ext: str) -> list[_EncodeJob]:
     out = WORK / "out"
     return [
         _EncodeJob(
-            op_id=str(i),
             source_path=str(src),
             file_name=src.name,
             file_type=_FLAC_FILE_TYPE,
