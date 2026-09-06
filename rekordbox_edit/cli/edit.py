@@ -99,16 +99,16 @@ def edit_command(db, **kwargs):
 
     if print_opt not in SCRIPTING_MODES:
         print_track_info(
-            preview.tracks,
+            [op.track for op in preview.result.edits],
             changed_field=PrintableField[preview.result.field],
             new_values=[op.new_value for op in preview.result.edits],
         )
 
     if interactive:
         selected_ids = []
-        for track, op in zip(preview.tracks, preview.result.edits):
+        for op in preview.result.edits:
             try:
-                if confirm(f"  Edit {track.ID}?", default=True):
+                if confirm(f"  Edit {op.track.ID}?", default=True):
                     selected_ids.append(op.id)
             except UserQuit:
                 break
@@ -153,7 +153,7 @@ def _prompt_gates(db, args, preview):
         named.add(reason)
         logger.info(f"{len(held)} track(s) held back: {_SKIP_MESSAGES[reason]}")
         for s in held:
-            logger.info(f"  {s.id}")
+            logger.info(f"  {s.track.FileNameL if s.track else '(unknown file)'}")
         if confirm(f"Include {len(held)} held-back track(s) anyway?", default=False):
             lifted[field] = True
             named.discard(reason)
@@ -196,14 +196,14 @@ def _print_edit_result(response, print_opt, *, dry_run: bool) -> None:
     if not dry_run:
         logger.info(f"Applied {len(response.result.edits)} edit(s).")
     if print_opt == PrintChoice.IDS:
-        _print_response_ids(response)
+        _print_response_ids([op.id for op in response.result.edits])
     elif print_opt == PrintChoice.JSON:
         _print_response_json(response)
     elif print_opt not in SCRIPTING_MODES and dry_run:
         # Preview already rendered above in default flow; explicit --dry-run
         # path with no print_opt renders here.
         print_track_info(
-            response.tracks,
+            [op.track for op in response.result.edits],
             changed_field=PrintableField[response.result.field],
             new_values=[op.new_value for op in response.result.edits],
         )

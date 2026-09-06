@@ -12,13 +12,12 @@ import ffmpeg
 from ffmpeg import Error as FfmpegError
 from pyrekordbox import Rekordbox6Database
 from pyrekordbox.db6 import DjmdContent
-from sqlalchemy import select
 
 from rekordbox_edit.api._utils import (
-    _order_tracks_by_op,
     _sync_audio_columns,
     _update_anlz_paths,
     stamp_usns,
+    track_from_content,
     writing,
 )
 from rekordbox_edit.errors import OperationAborted
@@ -28,6 +27,7 @@ from rekordbox_edit.models import (
     ConvertResponse,
     ConvertResult,
     SkippedTrack,
+    Track,
 )
 from rekordbox_edit.query import find_content_by_ids, get_filtered_content
 from rekordbox_edit.utils import (
@@ -212,13 +212,13 @@ class _EncodeJob:
     that is not thread-safe.
     """
 
-    op_id: str
     source_path: str
     file_name: str | None
     file_type: int | None
     output_path: str
     temp_path: str
     output_format: str
+    track: Track | None = None
 
 
 class ConvertProgress(Protocol):
@@ -262,13 +262,13 @@ def _encode_job_for(
 ) -> _EncodeJob:
     """Copy what the encode needs off a content row, on the main thread."""
     return _EncodeJob(
-        op_id=op.id,
         source_path=content.FolderPath or "",
         file_name=content.FileNameL,
         file_type=content.FileType,
         output_path=op.output_path,
         temp_path=_temp_output_path(op.output_path),
         output_format=output_format,
+        track=op.track,
     )
 
 
@@ -285,7 +285,8 @@ def _encode_one(job: _EncodeJob) -> _EncodeResult:
         # rather than a systemic failure worth abandoning the batch.
         logger.warning(f"Skipping {job.file_name}: {job.source_path} is gone")
         return _EncodeResult(
-            job, skipped=SkippedTrack(id=job.op_id, reason="file_not_found")
+            job,
+            skipped=SkippedTrack(reason="file_not_found", track=job.track),
         )
 
     audio_info = get_audio_info(job.source_path)
@@ -298,7 +299,8 @@ def _encode_one(job: _EncodeJob) -> _EncodeResult:
             f"file type {get_file_type_name(job.file_type)!r}"
         )
         return _EncodeResult(
-            job, skipped=SkippedTrack(id=job.op_id, reason="codec_mismatch")
+            job,
+            skipped=SkippedTrack(reason="codec_mismatch", track=job.track),
         )
 
     if job.output_format == "MP3":
@@ -424,25 +426,26 @@ def _get_output_path(content, output_format) -> Tuple[str, str, str]:
 def _classify_convert(content, args: ConvertRequest) -> ConvertOp | SkippedTrack:
     """Return ConvertOp if this track should be converted, or SkippedTrack with
     reason if not."""
+    track = track_from_content(content)
     target = get_file_type_for_format(args.format_out)
     if content.FileType == target:
         logger.debug(
             f"skip convert id={content.ID} reason=already_target_format "
             f"file_type={content.FileType} target={target}"
         )
-        return SkippedTrack(id=str(content.ID), reason="already_target_format")
+        return SkippedTrack(reason="already_target_format", track=track)
     if content.FileType not in _INPUT_FILE_TYPES:
         logger.debug(
             f"skip convert id={content.ID} reason=unsupported_source_format "
             f"file_type={content.FileType}"
         )
-        return SkippedTrack(id=str(content.ID), reason="unsupported_source_format")
+        return SkippedTrack(reason="unsupported_source_format", track=track)
     output_path, _, _ = _get_output_path(content, args.format_out)
     if not args.overwrite and os.path.exists(output_path):
         logger.debug(
             f"skip convert id={content.ID} reason=output_file_exists path={output_path}"
         )
-        return SkippedTrack(id=str(content.ID), reason="output_file_exists")
+        return SkippedTrack(reason="output_file_exists", track=track)
     # The DB SampleRate stands in for the probe here so dry-run previews match;
     # the convert loop re-probes and reconciles. MP3 always encodes at the target.
     if args.format_out.upper() == "MP3":
@@ -459,6 +462,7 @@ def _classify_convert(content, args: ConvertRequest) -> ConvertOp | SkippedTrack
         output_file_type=args.format_out.upper(),
         output_bit_depth=TARGET_BIT_DEPTH,
         output_sample_rate=output_sample_rate,
+        track=track,
     )
 
 
@@ -466,20 +470,23 @@ def _recheck_convert(op: ConvertOp, args: ConvertRequest) -> ConvertOp | Skipped
     """Confirm an already-approved conversion still holds.
 
     The op cleared classification during the preview, so a path that reads
-    differently now changed while the user was deciding.
+    differently now changed while the user was deciding. A `db_or_fs_changed`
+    skip reports `op.track`, the plan-time snapshot, rather than re-reading
+    the row: unlike edit, convert has no live row on hand here to refresh it
+    from.
     """
     if not os.path.exists(op.source_path):
         logger.debug(
             f"skip convert id={op.id} reason=db_or_fs_changed "
             f"source_gone={op.source_path}"
         )
-        return SkippedTrack(id=op.id, reason="db_or_fs_changed")
+        return SkippedTrack(reason="db_or_fs_changed", track=op.track)
     if not args.overwrite and os.path.exists(op.output_path):
         logger.debug(
             f"skip convert id={op.id} reason=db_or_fs_changed "
             f"output_appeared={op.output_path}"
         )
-        return SkippedTrack(id=op.id, reason="db_or_fs_changed")
+        return SkippedTrack(reason="db_or_fs_changed", track=op.track)
     return op
 
 
@@ -541,7 +548,7 @@ def convert(
                 logger.debug(
                     f"skip convert id={op.id} reason=db_or_fs_changed row_gone"
                 )
-                skipped.append(SkippedTrack(id=op.id, reason="db_or_fs_changed"))
+                skipped.append(SkippedTrack(reason="db_or_fs_changed", track=op.track))
                 continue
             result = _recheck_convert(op, args)
             if isinstance(result, ConvertOp):
@@ -556,9 +563,9 @@ def convert(
     if dry_run:
         logger.debug(f"convert dry-run return with {len(ops)} planned conversion(s)")
         return ConvertResponse(
-            tracks=_order_tracks_by_op(contents, ops),
             result=ConvertResult(
                 format_out=args.format_out,
+                dry_run=True,
                 converted=ops,
                 deleted=0,
                 skipped=skipped,
@@ -567,9 +574,9 @@ def convert(
 
     if not ops:
         return ConvertResponse(
-            tracks=[],
             result=ConvertResult(
                 format_out=args.format_out,
+                dry_run=dry_run,
                 converted=[],
                 deleted=0,
                 skipped=skipped,
@@ -704,11 +711,16 @@ def convert(
                     _stop_pending_encodes()
                     raise _abort_batch(e, job, position) from e
 
+                # Refreshed post-commit: op.track up to now is the
+                # pre-conversion classification snapshot, and
+                # _apply_converted_record() just mutated the row's file
+                # location and audio columns in place.
                 converted_ops.append(
                     op.model_copy(
                         update={
                             "source_path": job.source_path,
                             "output_sample_rate": result.output_sample_rate,
+                            "track": track_from_content(content),
                         }
                     )
                 )
@@ -735,32 +747,10 @@ def convert(
     if args.delete_originals == "lossless" and kept and output_format_name != "MP3":
         logger.info(f"Kept {kept} original file(s) whose conversion was lossy")
 
-    converted_ids = [op.id for op in converted_ops]
-    try:
-        post_contents = (
-            db.session.execute(
-                select(DjmdContent).where(DjmdContent.ID.in_(converted_ids))
-            )
-            .scalars()
-            .all()
-        )
-        logger.debug(
-            f"convert post-commit re-query returned {len(post_contents)} track(s)"
-        )
-        tracks = _order_tracks_by_op(post_contents, converted_ops)
-    except Exception as e:
-        # Fall back to pre-mutation snapshots so the response stays valid;
-        # the commit succeeded, the caller should not see an alignment error.
-        logger.warning(
-            f"Failed to re-query tracks after commit; falling back to "
-            f"pre-mutation snapshots: {e}"
-        )
-        tracks = _order_tracks_by_op(list(content_map.values()), converted_ops)
-
     return ConvertResponse(
-        tracks=tracks,
         result=ConvertResult(
             format_out=args.format_out,
+            dry_run=dry_run,
             converted=converted_ops,
             deleted=deleted,
             skipped=skipped,

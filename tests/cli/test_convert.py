@@ -24,15 +24,23 @@ def mock_logger():
         yield mock_log
 
 
-def _response(tracks=None, converted=None, deleted=0, skipped=None, format_out="aiff"):
+def _response(
+    tracks=None,
+    converted=None,
+    deleted=0,
+    skipped=None,
+    format_out="aiff",
+    dry_run=False,
+):
     tracks = tracks or [Track(ID="1", FileNameL="t.aiff", FolderPath="/t.aiff")]
     converted = converted or [
-        ConvertOp(id=t.ID, source_path="/t.wav", output_path="/t.aiff") for t in tracks
+        ConvertOp(id=t.ID, source_path="/t.wav", output_path="/t.aiff", track=t)
+        for t in tracks
     ]
     return ConvertResponse(
-        tracks=tracks,
         result=ConvertResult(
             format_out=format_out,
+            dry_run=dry_run,
             converted=converted,
             deleted=deleted,
             skipped=skipped or [],
@@ -89,7 +97,7 @@ class TestConvertCommand:
     ):
         mock_db_class.return_value = Mock(session=Mock())
         mock_convert.return_value = _response(
-            skipped=[SkippedTrack(id="2", reason="already_target_format")]
+            skipped=[SkippedTrack(reason="already_target_format")]
         )
 
         CliRunner().invoke(convert_command, ["--format-out", "aiff", "--yes"])
@@ -106,7 +114,7 @@ class TestConvertCommand:
     ):
         mock_db_class.return_value = Mock(session=Mock())
         mock_convert.return_value = _response(
-            skipped=[SkippedTrack(id="2", reason="output_file_exists")]
+            skipped=[SkippedTrack(reason="output_file_exists")]
         )
 
         CliRunner().invoke(convert_command, ["--format-out", "aiff", "--yes"])
@@ -122,7 +130,7 @@ class TestConvertCommand:
     ):
         mock_db_class.return_value = Mock(session=Mock())
         mock_convert.return_value = _response(
-            skipped=[SkippedTrack(id="2", reason="unsupported_source_format")]
+            skipped=[SkippedTrack(reason="unsupported_source_format")]
         )
 
         CliRunner().invoke(convert_command, ["--format-out", "aiff", "--yes"])
@@ -219,8 +227,8 @@ class TestConvertCommand:
         # The preview cannot detect codec_mismatch (dry runs never probe);
         # only the live run surfaces it. Both runs report the same
         # classification skip, which must not be warned about twice.
-        preview_skips = [SkippedTrack(id="2", reason="already_target_format")]
-        live_skips = preview_skips + [SkippedTrack(id="3", reason="codec_mismatch")]
+        preview_skips = [SkippedTrack(reason="already_target_format")]
+        live_skips = preview_skips + [SkippedTrack(reason="codec_mismatch")]
         mock_convert.side_effect = [
             _response(skipped=preview_skips),
             _response(skipped=live_skips),
@@ -274,9 +282,8 @@ class TestConvertCommand:
     ):
         mock_db_class.return_value = Mock(session=Mock())
         mock_convert.return_value = ConvertResponse(
-            tracks=[],
             result=ConvertResult(
-                format_out="aiff", converted=[], deleted=0, skipped=[]
+                format_out="aiff", dry_run=True, converted=[], deleted=0, skipped=[]
             ),
         )
 
@@ -299,8 +306,12 @@ class TestConvertCommand:
             Track(ID="B", FileNameL="b.aiff", FolderPath="/b.aiff"),
         ]
         ops = [
-            ConvertOp(id="A", source_path="/a.wav", output_path="/a.aiff"),
-            ConvertOp(id="B", source_path="/b.wav", output_path="/b.aiff"),
+            ConvertOp(
+                id="A", source_path="/a.wav", output_path="/a.aiff", track=tracks[0]
+            ),
+            ConvertOp(
+                id="B", source_path="/b.wav", output_path="/b.aiff", track=tracks[1]
+            ),
         ]
         mock_convert.return_value = _response(tracks=tracks, converted=ops)
         # Confirm A, decline B.
@@ -329,8 +340,12 @@ class TestConvertCommand:
             Track(ID="B", FileNameL="b.aiff", FolderPath="/b.aiff"),
         ]
         ops = [
-            ConvertOp(id="A", source_path="/a.wav", output_path="/a.aiff"),
-            ConvertOp(id="B", source_path="/b.wav", output_path="/b.aiff"),
+            ConvertOp(
+                id="A", source_path="/a.wav", output_path="/a.aiff", track=tracks[0]
+            ),
+            ConvertOp(
+                id="B", source_path="/b.wav", output_path="/b.aiff", track=tracks[1]
+            ),
         ]
         mock_convert.return_value = _response(tracks=tracks, converted=ops)
         # Confirm A, then quit before answering for B.
@@ -399,7 +414,7 @@ class TestMissingSourceReporting:
         mock_db_class.return_value = Mock(session=Mock())
         mock_convert.side_effect = [
             _response(),
-            _response(skipped=[SkippedTrack(id="9", reason="file_not_found")]),
+            _response(skipped=[SkippedTrack(reason="file_not_found")]),
         ]
 
         with patch("rekordbox_edit.cli.convert.confirm", return_value=True):
@@ -424,7 +439,7 @@ class TestDriftReporting:
         mock_db_class.return_value = Mock(session=Mock())
         mock_convert.side_effect = [
             _response(),
-            _response(skipped=[SkippedTrack(id="9", reason="db_or_fs_changed")]),
+            _response(skipped=[SkippedTrack(reason="db_or_fs_changed")]),
         ]
 
         result = CliRunner().invoke(convert_command, ["--format-out", "aiff"])
@@ -484,7 +499,7 @@ class TestConvertOverwriteGate:
     ):
         mock_db_class.return_value = Mock(session=Mock())
         mock_convert.return_value = _response(
-            skipped=[SkippedTrack(id="9", reason="output_file_exists")]
+            skipped=[SkippedTrack(reason="output_file_exists")]
         )
         mock_confirm.side_effect = [True, True]  # overwrite, then apply
 
@@ -508,7 +523,7 @@ class TestConvertOverwriteGate:
     ):
         mock_db_class.return_value = Mock(session=Mock())
         mock_convert.return_value = _response(
-            skipped=[SkippedTrack(id="9", reason="output_file_exists")]
+            skipped=[SkippedTrack(reason="output_file_exists")]
         )
         mock_confirm.side_effect = [False, True]  # keep them, then apply
 
@@ -528,7 +543,7 @@ class TestConvertOverwriteGate:
     ):
         mock_db_class.return_value = Mock(session=Mock())
         mock_convert.return_value = _response(
-            skipped=[SkippedTrack(id="9", reason="output_file_exists")]
+            skipped=[SkippedTrack(reason="output_file_exists")]
         )
         mock_confirm.side_effect = [True]  # only the apply prompt
 
@@ -550,7 +565,7 @@ class TestConvertOverwriteGate:
     ):
         mock_db_class.return_value = Mock(session=Mock())
         mock_convert.return_value = _response(
-            skipped=[SkippedTrack(id="9", reason="output_file_exists")]
+            skipped=[SkippedTrack(reason="output_file_exists")]
         )
 
         result = CliRunner().invoke(convert_command, ["--format-out", "aiff"])
@@ -568,7 +583,7 @@ class TestConvertOverwriteGate:
         # default is no, so only --overwrite clobbers anything.
         mock_db_class.return_value = Mock(session=Mock())
         mock_convert.return_value = _response(
-            skipped=[SkippedTrack(id="9", reason="output_file_exists")]
+            skipped=[SkippedTrack(reason="output_file_exists")]
         )
 
         result = CliRunner().invoke(convert_command, ["--format-out", "aiff", "--yes"])

@@ -14,21 +14,21 @@ Three layers:
 
 Response semantics:
 
-- `tracks` always reflects the **current DB state** at the moment the response
-  was built. Pre-execute for dry-runs, post-execute for write runs. `import` is the
-  one exception: a dry-run has no rows to describe, so it returns synthetic
-  `Track` models built from the planned values, with `ID` left empty.
+- For a write command, `tracks` is what the command actually did: the rows
+  it wrote, in their current state. A dry run changes nothing, so `tracks`
+  is always empty for a dry run; read `result`'s ops instead to see what was
+  planned.
+- Tracks the command declined to touch are reached through
+  `result.skipped[].track` and are deliberately not mixed into `tracks`.
 - `result` summarizes what happened (or would happen in a dry-run). Response
   models should self describe the operation that happened (e.g. the field name
   for edit, the target format for convert) so a response is fully self-describing.
-- `tracks` and `result.edits` / `result.converted` / `result.added` align 1:1 in
-  their contents and order by index;
 """
 
 import os
 from typing import Literal, TypeAlias
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, computed_field, model_validator
 
 # ── Filter base ───────────────────────────────────────────────────────────
 
@@ -185,12 +185,19 @@ SkipReason: TypeAlias = Literal[
 
 
 class SkippedTrack(BaseModel):
-    """A track the command declined to operate on.
-    e.g. A result in a [convert][rekordbox_edit.api.convert] command that is already the target format.
+    """A track the command declined to operate on, and the row it declined to
+    touch. e.g. A result in a [convert][rekordbox_edit.api.convert] command that
+    is already the target format.
     """
 
-    id: str
     reason: SkipReason
+    track: Track | None = None
+    """The track the command passed over, in its state at that point.
+
+    None only where there is no track to describe: an import rejecting a file
+    type it does not recognize, or one whose tags it could not read, has
+    neither a database record nor usable tags.
+    """
 
 
 class EditOp(BaseModel):
@@ -198,6 +205,9 @@ class EditOp(BaseModel):
 
     id: str
     new_value: str
+    track: Track
+    """The track this edit acted on: its state before the write during a dry
+    run, or as written once the edit is applied."""
 
 
 class ConvertOp(BaseModel):
@@ -205,7 +215,7 @@ class ConvertOp(BaseModel):
     the file type, bit depth, and sample rate on each side. Source audio
     fields mirror the database record; output fields reflect the conversion
     target, with the sample rate clamped to the source so a conversion never
-    up-samples."""
+    up-samples. `track` is the track it acts on."""
 
     id: str
     source_path: str
@@ -216,6 +226,9 @@ class ConvertOp(BaseModel):
     output_file_type: str | None = None
     output_bit_depth: int | None = None
     output_sample_rate: int | None = None
+    track: Track
+    """The track this conversion acted on: its state before conversion during
+    a dry run, or as written once the conversion is applied."""
 
 
 class ImportOp(BaseModel):
@@ -226,6 +239,10 @@ class ImportOp(BaseModel):
     id: str
     path: str
     action: Literal["create", "playlist_add"]
+    track: Track
+    """The track this op describes: the planned row's synthetic data for a
+    create still awaiting insertion, the existing row for a playlist add, or
+    the newly written row once a create is applied."""
 
 
 # ── Response envelopes ────────────────────────────────────────────────────
@@ -236,67 +253,70 @@ class SearchResponse(BaseModel):
 
 
 class EditResult(BaseModel):
-    """Result payload for edit(). `edits` aligns 1:1 with response.tracks."""
+    """Result payload for edit()."""
 
     field: str
+    dry_run: bool
     edits: list[EditOp]
     skipped: list[SkippedTrack]
 
 
 class EditResponse(BaseModel):
-    tracks: list[Track]
     result: EditResult
 
-    @model_validator(mode="after")
-    def _check_edit_alignment(self) -> "EditResponse":
-        if len(self.tracks) != len(self.result.edits):
-            raise ValueError(
-                f"tracks ({len(self.tracks)}) and result.edits "
-                f"({len(self.result.edits)}) must align 1:1"
-            )
-        return self
+    @computed_field
+    @property
+    def tracks(self) -> list[Track]:
+        """The rows this edit wrote, in their current state. Empty for a dry
+        run, since a dry run changes nothing; see `result.edits` for what was
+        planned."""
+        if self.result.dry_run:
+            return []
+        return [op.track for op in self.result.edits]
 
 
 class ConvertResult(BaseModel):
-    """Result payload for convert(). `converted` aligns 1:1 with response.tracks."""
+    """Result payload for convert()."""
 
     format_out: str
+    dry_run: bool
     converted: list[ConvertOp]
     deleted: int
     skipped: list[SkippedTrack]
 
 
 class ConvertResponse(BaseModel):
-    tracks: list[Track]
     result: ConvertResult
 
-    @model_validator(mode="after")
-    def _check_convert_alignment(self) -> "ConvertResponse":
-        if len(self.tracks) != len(self.result.converted):
-            raise ValueError(
-                f"tracks ({len(self.tracks)}) and result.converted "
-                f"({len(self.result.converted)}) must align 1:1"
-            )
-        return self
+    @computed_field
+    @property
+    def tracks(self) -> list[Track]:
+        """The rows this conversion wrote, in their current state. Empty for a
+        dry run, since a dry run changes nothing; see `result.converted` for
+        what was planned."""
+        if self.result.dry_run:
+            return []
+        return [op.track for op in self.result.converted]
 
 
 class ImportResult(BaseModel):
-    """Result payload for import_tracks(). `added` aligns 1:1 with response.tracks."""
+    """Result payload for import_tracks()."""
 
     playlist: str | None
+    dry_run: bool
     added: list[ImportOp]
     skipped: list[SkippedTrack]
 
 
 class ImportResponse(BaseModel):
-    tracks: list[Track]
     result: ImportResult
 
-    @model_validator(mode="after")
-    def _check_import_alignment(self) -> "ImportResponse":
-        if len(self.tracks) != len(self.result.added):
-            raise ValueError(
-                f"tracks ({len(self.tracks)}) and result.added "
-                f"({len(self.result.added)}) must align 1:1"
-            )
-        return self
+    @computed_field
+    @property
+    def tracks(self) -> list[Track]:
+        """The rows this import created or added to the playlist, in their
+        current state. Empty for a dry run, since a dry run changes nothing;
+        see `result.added` for what was planned."""
+        if self.result.dry_run:
+            return []
+        return [op.track for op in self.result.added]

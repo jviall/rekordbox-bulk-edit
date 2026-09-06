@@ -17,6 +17,8 @@ Different filter kinds — `artist` and `format` above — AND together by defau
 
 `--print json` on any CLI command emits exactly these response envelopes, so the models below also document the JSON you get when scripting.
 
+A write command's response reaches its tracks two ways, though a dry run populates only one of them. For a write command (`edit`, `convert`, `import_tracks`), `tracks` at the top level holds what the command actually did, and is empty for a dry run, since a dry run changes nothing. Each op describes the planned or performed state regardless: `result.edits[].track` and its equivalents. Tracks a command declined to touch are not in `tracks`. They are at `result.skipped[].track`, alongside the reason.
+
 ## Writing Safely
 
 `edit`, `convert`, and `import_tracks` each have checks against concurrent writes. They will refuse to run while Rekordbox is open, raising

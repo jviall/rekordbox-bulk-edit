@@ -28,7 +28,6 @@ from rekordbox_edit.models import (
     EditOp,
     EditResponse,
     EditResult,
-    SearchResponse,
     Track,
 )
 
@@ -108,11 +107,7 @@ class TestValidateScriptingPreconditions:
 
 class TestPrintResponseIds:
     def test_prints_space_separated_ids(self, capsys):
-        track = Track(ID="1", FileNameL="x", FolderPath="/x")
-        resp = SearchResponse(
-            tracks=[track, Track(ID="2", FileNameL="y", FolderPath="/y")]
-        )
-        _print_response_ids(resp)
+        _print_response_ids(["1", "2"])
         assert capsys.readouterr().out.strip() == "1 2"
 
 
@@ -120,9 +115,11 @@ class TestPrintResponseJson:
     def test_emits_envelope_json(self, capsys):
         track = Track(ID="1", FileNameL="x", FolderPath="/x")
         resp = EditResponse(
-            tracks=[track],
             result=EditResult(
-                field="Title", edits=[EditOp(id="1", new_value="N")], skipped=[]
+                field="Title",
+                dry_run=False,
+                edits=[EditOp(id="1", new_value="N", track=track)],
+                skipped=[],
             ),
         )
         _print_response_json(resp)
@@ -135,11 +132,16 @@ class TestPrintResponseJson:
     def test_convert_response_json(self, capsys):
         track = Track(ID="1", FileNameL="x.aif", FolderPath="/x.aif")
         resp = ConvertResponse(
-            tracks=[track],
             result=ConvertResult(
                 format_out="aiff",
+                dry_run=False,
                 converted=[
-                    ConvertOp(id="1", source_path="/x.wav", output_path="/x.aif")
+                    ConvertOp(
+                        id="1",
+                        source_path="/x.wav",
+                        output_path="/x.aif",
+                        track=track,
+                    )
                 ],
                 deleted=0,
                 skipped=[],

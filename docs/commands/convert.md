@@ -54,9 +54,6 @@ rbe convert --format-out mp3 --playlist "Export" --yes --delete-originals all
 # Delete originals only where the conversion lost nothing
 rbe convert --format-out aiff --format flac --yes --delete-originals lossless
 
-# Get just the IDs of files that would be converted
-rbe convert --format-out aiff --format flac --print ids --dry-run
-
 # Convert everything a search finds
 rbe search --artist "Lauryn Hill" --print ids | rbe convert --format-out aiff --yes
 

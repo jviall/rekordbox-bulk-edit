@@ -4,8 +4,8 @@ import pytest
 from pydantic import ValidationError
 
 from rekordbox_edit.models import (
-    ConvertRequest,
     ConvertOp,
+    ConvertRequest,
     ConvertResponse,
     ConvertResult,
     EditRequest,
@@ -22,6 +22,144 @@ from rekordbox_edit.models import (
     SkippedTrack,
     Track,
 )
+
+
+def test_ops_carry_their_track(make_track):
+    track = make_track(ID="7", Title="Gravity")
+    op = EditOp(id="7", new_value="Bassline", track=track)
+    assert op.track is not None
+    assert op.track.Title == "Gravity"
+
+
+def test_skipped_track_carries_its_track(make_track):
+    track = make_track(ID="9", FileNameL="held.flac")
+    skipped = SkippedTrack(reason="no_change", track=track)
+    assert skipped.track is not None
+    assert skipped.track.FileNameL == "held.flac"
+
+
+def test_tracks_is_derived_from_the_ops(make_track):
+    first, second = make_track(ID="1"), make_track(ID="2")
+    response = EditResponse(
+        result=EditResult(
+            field="Title",
+            dry_run=False,
+            edits=[
+                EditOp(id="1", new_value="A", track=first),
+                EditOp(id="2", new_value="B", track=second),
+            ],
+            skipped=[],
+        )
+    )
+    assert [t.ID for t in response.tracks] == ["1", "2"]
+
+
+def test_tracks_is_empty_on_a_dry_run_even_with_edits(make_track):
+    track = make_track(ID="1")
+    response = EditResponse(
+        result=EditResult(
+            field="Title",
+            dry_run=True,
+            edits=[EditOp(id="1", new_value="A", track=track)],
+            skipped=[],
+        )
+    )
+    assert response.tracks == []
+    assert response.result.edits[0].track.ID == "1"
+
+
+def _edit_response(tracks, *, dry_run):
+    return EditResponse(
+        result=EditResult(
+            field="Title",
+            dry_run=dry_run,
+            edits=[
+                EditOp(id=str(i), new_value="x", track=t) for i, t in enumerate(tracks)
+            ],
+            skipped=[],
+        )
+    )
+
+
+def _convert_response(tracks, *, dry_run):
+    return ConvertResponse(
+        result=ConvertResult(
+            format_out="AIFF",
+            dry_run=dry_run,
+            converted=[
+                ConvertOp(id=str(i), source_path="/a", output_path="/b", track=t)
+                for i, t in enumerate(tracks)
+            ],
+            deleted=0,
+            skipped=[],
+        )
+    )
+
+
+def _import_response(tracks, *, dry_run):
+    return ImportResponse(
+        result=ImportResult(
+            playlist=None,
+            dry_run=dry_run,
+            added=[
+                ImportOp(id=str(i), path="/a", action="create", track=t)
+                for i, t in enumerate(tracks)
+            ],
+            skipped=[],
+        )
+    )
+
+
+@pytest.mark.parametrize(
+    "build_response",
+    [_edit_response, _convert_response, _import_response],
+    ids=["edit", "convert", "import"],
+)
+def test_computed_tracks_field_is_serialized_at_top_level(build_response, make_track):
+    """`tracks` is a computed field: it must survive model_dump(), not just
+    attribute access, on every response that carries one."""
+    tracks = [make_track(ID="1", Title="A"), make_track(ID="2", Title="B")]
+    response = build_response(tracks, dry_run=False)
+
+    payload = response.model_dump()
+
+    assert [t["ID"] for t in payload["tracks"]] == ["1", "2"]
+    assert [t["Title"] for t in payload["tracks"]] == ["A", "B"]
+
+
+@pytest.mark.parametrize(
+    "build_response",
+    [_edit_response, _convert_response, _import_response],
+    ids=["edit", "convert", "import"],
+)
+def test_computed_tracks_field_is_present_but_empty_on_a_dry_run(
+    build_response, make_track
+):
+    """The `tracks` key must still serialize at the top level on a dry run,
+    holding an empty list rather than disappearing."""
+    tracks = [make_track(ID="1", Title="A")]
+    response = build_response(tracks, dry_run=True)
+
+    payload = response.model_dump()
+
+    assert payload["tracks"] == []
+
+
+def test_skipped_rows_are_not_mixed_into_tracks(make_track):
+    response = EditResponse(
+        result=EditResult(
+            field="Title",
+            dry_run=False,
+            edits=[],
+            skipped=[
+                SkippedTrack(reason="no_change", track=make_track(ID="3")),
+            ],
+        )
+    )
+    assert response.tracks == []
+    skipped_track = response.result.skipped[0].track
+    assert skipped_track is not None
+    assert skipped_track.ID == "3"
 
 
 class TestTrack:
@@ -119,103 +257,49 @@ class TestConvertRequest:
 
 class TestSkippedTrack:
     def test_known_reasons_accepted(self):
-        assert SkippedTrack(id="1", reason="no_change").reason == "no_change"
+        assert SkippedTrack(reason="no_change").reason == "no_change"
         assert (
-            SkippedTrack(id="1", reason="already_target_format").reason
+            SkippedTrack(reason="already_target_format").reason
             == "already_target_format"
         )
-        assert (
-            SkippedTrack(id="1", reason="output_file_exists").reason
-            == "output_file_exists"
-        )
-        assert SkippedTrack(id="1", reason="file_not_found").reason == "file_not_found"
-        assert (
-            SkippedTrack(id="1", reason="length_mismatch").reason == "length_mismatch"
-        )
-        assert (
-            SkippedTrack(id="1", reason="unknown_file_type").reason
-            == "unknown_file_type"
-        )
+        assert SkippedTrack(reason="output_file_exists").reason == "output_file_exists"
+        assert SkippedTrack(reason="file_not_found").reason == "file_not_found"
+        assert SkippedTrack(reason="length_mismatch").reason == "length_mismatch"
+        assert SkippedTrack(reason="unknown_file_type").reason == "unknown_file_type"
 
     def test_unknown_reason_rejected(self):
         with pytest.raises(ValidationError):
-            SkippedTrack(id="1", reason="nope")  # ty: ignore[invalid-argument-type]
-
-
-class TestEditResponseAlignment:
-    def test_rejects_mismatched_lengths(self):
-        track = Track(ID="1", FileNameL="x.wav", FolderPath="/x.wav")
-        with pytest.raises(ValidationError, match="align"):
-            EditResponse(
-                tracks=[track, track],
-                result=EditResult(
-                    field="Title",
-                    edits=[EditOp(id="1", new_value="X")],
-                    skipped=[],
-                ),
-            )
-
-    def test_accepts_matched_lengths(self):
-        track = Track(ID="1", FileNameL="x.wav", FolderPath="/x.wav")
-        EditResponse(
-            tracks=[track],
-            result=EditResult(
-                field="Title",
-                edits=[EditOp(id="1", new_value="X")],
-                skipped=[],
-            ),
-        )
-
-
-class TestConvertResponseAlignment:
-    def test_rejects_mismatched_lengths(self):
-        track = Track(ID="1", FileNameL="x.aif", FolderPath="/x.aif")
-        with pytest.raises(ValidationError, match="align"):
-            ConvertResponse(
-                tracks=[track, track],
-                result=ConvertResult(
-                    format_out="aiff",
-                    converted=[
-                        ConvertOp(id="1", source_path="/x.wav", output_path="/x.aif")
-                    ],
-                    deleted=0,
-                    skipped=[],
-                ),
-            )
-
-    def test_accepts_matched_lengths(self):
-        track = Track(ID="1", FileNameL="x.aif", FolderPath="/x.aif")
-        ConvertResponse(
-            tracks=[track],
-            result=ConvertResult(
-                format_out="aiff",
-                converted=[
-                    ConvertOp(id="1", source_path="/x.wav", output_path="/x.aif")
-                ],
-                deleted=0,
-                skipped=[],
-            ),
-        )
+            SkippedTrack(reason="nope")  # ty: ignore[invalid-argument-type]
 
 
 class TestEditResultCarriesField:
     def test_field_required(self):
         with pytest.raises(ValidationError):
-            EditResult(edits=[], skipped=[])  # ty: ignore[missing-argument]  # missing field
+            EditResult(dry_run=False, edits=[], skipped=[])  # ty: ignore[missing-argument]  # missing field
 
     def test_field_accessible(self):
-        r = EditResult(field="Title", edits=[], skipped=[])
+        r = EditResult(field="Title", dry_run=False, edits=[], skipped=[])
         assert r.field == "Title"
+
+    def test_dry_run_required(self):
+        with pytest.raises(ValidationError):
+            EditResult(field="Title", edits=[], skipped=[])  # ty: ignore[missing-argument]  # missing dry_run
 
 
 class TestConvertResultCarriesFormatOut:
     def test_format_out_required(self):
         with pytest.raises(ValidationError):
-            ConvertResult(converted=[], deleted=0, skipped=[])  # ty: ignore[missing-argument]  # missing format_out
+            ConvertResult(dry_run=False, converted=[], deleted=0, skipped=[])  # ty: ignore[missing-argument]  # missing format_out
 
     def test_format_out_accessible(self):
-        r = ConvertResult(format_out="aiff", converted=[], deleted=0, skipped=[])
+        r = ConvertResult(
+            format_out="aiff", dry_run=False, converted=[], deleted=0, skipped=[]
+        )
         assert r.format_out == "aiff"
+
+    def test_dry_run_required(self):
+        with pytest.raises(ValidationError):
+            ConvertResult(format_out="aiff", converted=[], deleted=0, skipped=[])  # ty: ignore[missing-argument]  # missing dry_run
 
 
 class TestSearchResponse:
@@ -238,24 +322,27 @@ class TestImportRequest:
 
 
 class TestImportResponse:
-    def test_rejects_misaligned_tracks_and_ops(self):
-        with pytest.raises(ValidationError):
-            ImportResponse(
-                tracks=[],
-                result=ImportResult(
-                    playlist=None,
-                    added=[ImportOp(id="1", path="/a.flac", action="create")],
-                    skipped=[],
-                ),
-            )
-
-    def test_accepts_aligned_tracks_and_ops(self):
+    def test_tracks_derived_from_added_ops(self):
+        track = Track(ID="1", FileNameL="a.flac", FolderPath="/a.flac")
         response = ImportResponse(
-            tracks=[Track(ID="1", FileNameL="a.flac", FolderPath="/a.flac")],
             result=ImportResult(
                 playlist=None,
-                added=[ImportOp(id="1", path="/a.flac", action="create")],
+                dry_run=False,
+                added=[ImportOp(id="1", path="/a.flac", action="create", track=track)],
                 skipped=[],
             ),
         )
         assert len(response.tracks) == 1
+
+    def test_tracks_empty_on_dry_run(self):
+        track = Track(ID="", FileNameL="a.flac", FolderPath="/a.flac")
+        response = ImportResponse(
+            result=ImportResult(
+                playlist=None,
+                dry_run=True,
+                added=[ImportOp(id="", path="/a.flac", action="create", track=track)],
+                skipped=[],
+            ),
+        )
+        assert response.tracks == []
+        assert response.result.added[0].track.FileNameL == "a.flac"

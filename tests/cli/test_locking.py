@@ -26,9 +26,11 @@ def mock_rekordbox_not_running():
 def _response():
     track = Track(ID="1", Title="New", FileNameL="x.wav", FolderPath="/x.wav")
     return EditResponse(
-        tracks=[track],
         result=EditResult(
-            field="Title", edits=[EditOp(id="1", new_value="New")], skipped=[]
+            field="Title",
+            dry_run=False,
+            edits=[EditOp(id="1", new_value="New", track=track)],
+            skipped=[],
         ),
     )
 

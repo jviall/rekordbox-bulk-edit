@@ -1,6 +1,7 @@
 import pytest
 from unittest.mock import MagicMock, call, patch
 
+from rekordbox_edit.api._utils import track_from_content
 from rekordbox_edit.api.edit import _classify_edit, edit
 from rekordbox_edit.api.field_handlers import FIELD_HANDLERS
 from sqlalchemy import text
@@ -49,7 +50,8 @@ class TestClassifyEdit:
         result = _classify_edit(mock_db, content, args)
 
         assert isinstance(result, SkippedTrack)
-        assert result.id == "1"
+        assert result.track is not None
+        assert result.track.ID == "1"
         assert result.reason == "no_change"
 
     def test_plain_replace_sets_when_current_is_none(
@@ -96,8 +98,11 @@ class TestEditDryRun:
 
         assert isinstance(response, EditResponse)
         assert response.result.field == "Title"
-        assert response.result.edits == [EditOp(id="1", new_value="New")]
-        assert response.tracks[0].ID == "1"
+        assert response.result.edits == [
+            EditOp(id="1", new_value="New", track=track_from_content(content))
+        ]
+        assert response.result.dry_run is True
+        assert response.tracks == []
         mock_db.session.commit.assert_not_called()
 
     @patch("rekordbox_edit.api.edit.get_filtered_content")
@@ -132,6 +137,38 @@ class TestEditDryRun:
         mock_db.session.commit.assert_not_called()
 
 
+class TestEditResponseTracksDryRunRule:
+    """`tracks` is empty for a dry run, since a dry run changes nothing; the
+    ops still carry their tracks, and a real run populates both."""
+
+    @patch("rekordbox_edit.api.edit.get_filtered_content")
+    def test_dry_run_has_empty_tracks_but_ops_carry_theirs(
+        self, mock_gfc, mock_db, make_djmd_content_item
+    ):
+        content = make_djmd_content_item(ID="1", Title="Old")
+        mock_gfc.return_value.scalars.return_value.all.return_value = [content]
+
+        response = edit(
+            mock_db, EditRequest(field="Title", replace_value="New"), dry_run=True
+        )
+
+        assert response.tracks == []
+        assert response.result.edits[0].track.ID == "1"
+
+    @patch("rekordbox_edit.api.edit.get_filtered_content")
+    def test_real_run_has_both_tracks_and_ops(
+        self, mock_gfc, mock_db, make_djmd_content_item
+    ):
+        content = make_djmd_content_item(ID="1", Title="Old")
+        mock_gfc.return_value.scalars.return_value.all.return_value = [content]
+
+        response = edit(mock_db, EditRequest(field="Title", replace_value="New"))
+
+        assert response.result.dry_run is False
+        assert response.tracks[0].ID == "1"
+        assert response.result.edits[0].track.ID == "1"
+
+
 class TestEditRealRun:
     @patch("rekordbox_edit.api.edit.get_filtered_content")
     def test_applies_changes_and_commits(
@@ -144,8 +181,23 @@ class TestEditRealRun:
 
         assert content.Title == "New"
         mock_db.session.commit.assert_called_once()
-        assert response.result.edits == [EditOp(id="1", new_value="New")]
+        assert [op.id for op in response.result.edits] == ["1"]
         assert response.tracks[0].ID == "1"
+
+    @patch("rekordbox_edit.api.edit.get_filtered_content")
+    def test_the_committed_track_reflects_the_new_value(
+        self, mock_gfc, mock_db, make_djmd_content_item
+    ):
+        # A stale pre-write snapshot would still read "Old" here: the op's
+        # track is captured during classification, before handler.apply()
+        # ever touches the row, so the response must re-read it post-commit.
+        content = make_djmd_content_item(ID="1", Title="Old")
+        mock_gfc.return_value.scalars.return_value.all.return_value = [content]
+
+        response = edit(mock_db, EditRequest(field="Title", replace_value="New"))
+
+        assert response.result.edits[0].track.Title == "New"
+        assert response.tracks[0].Title == "New"
 
     @patch("rekordbox_edit.api.edit.get_filtered_content")
     def test_empty_result_returns_empty_response_without_commit(
@@ -236,7 +288,7 @@ class TestEditFromApprovedOps:
         response = edit(
             mock_db,
             EditRequest(field="Title", replace_value="New"),
-            ops=[EditOp(id="1", new_value="New")],
+            ops=[EditOp(id="1", new_value="New", track=track_from_content(approved))],
         )
 
         mock_gfc.assert_not_called()
@@ -254,29 +306,30 @@ class TestEditFromApprovedOps:
         response = edit(
             mock_db,
             EditRequest(field="Stub", replace_value="New"),
-            ops=[EditOp(id="1", new_value="New")],
+            ops=[EditOp(id="1", new_value="New", track=track_from_content(content))],
         )
 
         assert response.result.edits == []
         assert response.result.skipped == [
-            SkippedTrack(id="1", reason="db_or_fs_changed")
+            SkippedTrack(reason="db_or_fs_changed", track=track_from_content(content))
         ]
         stub_handler.apply.assert_not_called()
 
     @patch("rekordbox_edit.api.edit.find_content_by_ids")
     def test_a_row_deleted_since_the_preview_is_db_or_fs_changed(
-        self, mock_by_ids, mock_db
+        self, mock_by_ids, mock_db, make_track
     ):
         mock_by_ids.return_value = {}
+        track = make_track(ID="1")
 
         response = edit(
             mock_db,
             EditRequest(field="Title", replace_value="New"),
-            ops=[EditOp(id="1", new_value="New")],
+            ops=[EditOp(id="1", new_value="New", track=track)],
         )
 
         assert response.result.skipped == [
-            SkippedTrack(id="1", reason="db_or_fs_changed")
+            SkippedTrack(reason="db_or_fs_changed", track=track)
         ]
         mock_db.session.commit.assert_not_called()
 
@@ -293,7 +346,10 @@ class TestEditFromApprovedOps:
         response = edit(
             mock_db,
             EditRequest(field="Title", replace_value="New"),
-            ops=[EditOp(id="1", new_value="New"), EditOp(id="2", new_value="New")],
+            ops=[
+                EditOp(id="1", new_value="New", track=track_from_content(rows["1"])),
+                EditOp(id="2", new_value="New", track=track_from_content(rows["2"])),
+            ],
         )
 
         assert len(response.result.edits) == 2
