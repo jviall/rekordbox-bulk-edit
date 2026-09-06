@@ -8,9 +8,13 @@ import rekordbox_edit.api as api
 
 PUBLIC_FUNCTIONS = ["search", "edit", "convert", "import_tracks", "remove"]
 
+#: Non-function names the public surface carries: a caller implements this to
+#: watch a conversion run.
+PUBLIC_TYPES = ["ConvertProgress"]
+
 
 def test_the_public_names_are_the_whole_surface():
-    assert api.__all__ == PUBLIC_FUNCTIONS
+    assert api.__all__ == PUBLIC_FUNCTIONS + PUBLIC_TYPES
 
 
 @pytest.mark.parametrize("name", PUBLIC_FUNCTIONS)

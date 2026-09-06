@@ -20,7 +20,7 @@ from rekordbox_edit.api._utils import (
     track_from_content,
     writing,
 )
-from rekordbox_edit.errors import OperationAborted
+from rekordbox_edit.errors import ConvertAborted
 from rekordbox_edit.models import (
     ConvertOp,
     ConvertRequest,
@@ -368,28 +368,6 @@ def _sweep_orphan_temp_files(output_paths: Iterable[str]) -> None:
                 removed += 1
     if removed:
         _logger.debug(f"convert swept {removed} orphaned temp file(s)")
-
-
-class ConvertAborted(OperationAborted):
-    """A conversion failed partway through a batch.
-
-    Files converted before the failure are already committed, so the counts
-    travel with the error rather than being recovered from the response the
-    caller never receives.
-    """
-
-    def __init__(
-        self,
-        reason: str,
-        *,
-        failed_path: str,
-        converted: int,
-        not_attempted: int,
-    ):
-        self.failed_path = failed_path
-        self.converted = converted
-        self.not_attempted = not_attempted
-        super().__init__(reason)
 
 
 def _rollback_session(db) -> None:

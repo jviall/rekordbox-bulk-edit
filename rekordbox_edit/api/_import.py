@@ -10,7 +10,10 @@ from pyrekordbox import Rekordbox6Database
 from pyrekordbox.db6 import tables as tb
 
 from rekordbox_edit.api._utils import stamp_usns, track_from_content, writing
-from rekordbox_edit.errors import InputError
+from rekordbox_edit.errors import (
+    DirectoryConfirmationRequired,
+    ImportInputError,
+)
 from rekordbox_edit.models import (
     ImportOp,
     ImportRequest,
@@ -44,30 +47,6 @@ UNMAPPED_EXTENSIONS = frozenset(
     for extension in AUDIO_EXTENSIONS
     if extension.lstrip(".").upper() not in tb.FileType.__members__
 )
-
-
-class ImportInputError(InputError):
-    """The request itself is invalid: a path that does not exist, an
-    unconfirmed directory argument, or a playlist name that matches no
-    playlist or more than one. Distinct from a write-phase failure, which
-    means the database failed and must not be reported as user error."""
-
-
-class DirectoryConfirmationRequired(ImportInputError):
-    """Directory arguments would be walked recursively without `recurse` set.
-
-    Carries the counts so a caller can compose its own prompt, and its own
-    hint about whatever it calls the authorization, rather than parsing
-    either back out of the message.
-    """
-
-    def __init__(self, directories: int, files: int):
-        self.directories = directories
-        self.files = files
-        super().__init__(
-            f"{directories} directory argument(s) would be walked recursively, "
-            f"adding {files} file(s)."
-        )
 
 
 @dataclass

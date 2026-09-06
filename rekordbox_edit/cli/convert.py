@@ -5,7 +5,8 @@ import sys
 
 import click
 
-from rekordbox_edit.api._convert import ConvertAborted, convert
+from rekordbox_edit.api._convert import convert
+from rekordbox_edit.errors import ConvertAborted
 from rekordbox_edit.cli._click import (
     add_click_options,
     convert_click_options,
