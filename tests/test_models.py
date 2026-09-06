@@ -8,8 +8,8 @@ from rekordbox_edit.models import (
     ConvertRequest,
     ConvertResponse,
     ConvertResult,
-    EditRequest,
     EditOp,
+    EditRequest,
     EditResponse,
     EditResult,
     FilterArgs,
@@ -17,6 +17,10 @@ from rekordbox_edit.models import (
     ImportRequest,
     ImportResponse,
     ImportResult,
+    RemoveOp,
+    RemoveRequest,
+    RemoveResponse,
+    RemoveResult,
     SearchRequest,
     SearchResponse,
     SkippedTrack,
@@ -110,10 +114,21 @@ def _import_response(tracks, *, dry_run):
     )
 
 
+def _remove_response(tracks, *, dry_run):
+    return RemoveResponse(
+        result=RemoveResult(
+            dry_run=dry_run,
+            removed=[RemoveOp(id=str(i), track=t) for i, t in enumerate(tracks)],
+            skipped=[],
+            deleted_relatives=0,
+        )
+    )
+
+
 @pytest.mark.parametrize(
     "build_response",
-    [_edit_response, _convert_response, _import_response],
-    ids=["edit", "convert", "import"],
+    [_edit_response, _convert_response, _import_response, _remove_response],
+    ids=["edit", "convert", "import", "remove"],
 )
 def test_computed_tracks_field_is_serialized_at_top_level(build_response, make_track):
     """`tracks` is a computed field: it must survive model_dump(), not just
@@ -129,8 +144,8 @@ def test_computed_tracks_field_is_serialized_at_top_level(build_response, make_t
 
 @pytest.mark.parametrize(
     "build_response",
-    [_edit_response, _convert_response, _import_response],
-    ids=["edit", "convert", "import"],
+    [_edit_response, _convert_response, _import_response, _remove_response],
+    ids=["edit", "convert", "import", "remove"],
 )
 def test_computed_tracks_field_is_present_but_empty_on_a_dry_run(
     build_response, make_track
@@ -346,3 +361,34 @@ class TestImportResponse:
         )
         assert response.tracks == []
         assert response.result.added[0].track.FileNameL == "a.flac"
+
+
+def test_remove_response_tracks_are_the_removed_rows(make_track):
+    response = RemoveResponse(
+        result=RemoveResult(
+            dry_run=False,
+            removed=[RemoveOp(id="4", track=make_track(ID="4"))],
+            skipped=[],
+            deleted_relatives=2,
+        )
+    )
+    assert [t.ID for t in response.tracks] == ["4"]
+    assert response.result.deleted_relatives == 2
+    assert response.result.removed[0].source_deleted is False
+
+
+def test_remove_response_tracks_empty_on_dry_run(make_track):
+    response = RemoveResponse(
+        result=RemoveResult(
+            dry_run=True,
+            removed=[RemoveOp(id="4", track=make_track(ID="4"))],
+            skipped=[],
+            deleted_relatives=0,
+        )
+    )
+    assert response.tracks == []
+    assert response.result.removed[0].track.ID == "4"
+
+
+def test_remove_request_defaults_to_keeping_the_source():
+    assert RemoveRequest().delete_source is False

@@ -5,6 +5,7 @@ import sys
 
 import click
 
+from rekordbox_edit.api.convert import ConvertAborted, convert
 from rekordbox_edit.cli._click import (
     add_click_options,
     convert_click_options,
@@ -13,15 +14,14 @@ from rekordbox_edit.cli._click import (
     print_option,
     track_ids_argument,
 )
-from rekordbox_edit.api.convert import ConvertAborted, convert
 from rekordbox_edit.cli._progress import convert_progress
 from rekordbox_edit.cli._utils import (
     SCRIPTING_MODES,
+    UserQuit,
     _build_args,
     _handle_stdin,
     _print_response_ids,
     _print_response_json,
-    UserQuit,
     _validate_scripting_preconditions,
     confirm,
     with_database,

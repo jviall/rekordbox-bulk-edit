@@ -4,12 +4,13 @@ Three layers:
 
 - **Filter base** (`FilterArgs`) declares track-selection criteria shared by all
   commands.
-- **API/Command request models** (`SearchRequest`, `EditRequest`, `ConvertRequest`, `ImportRequest`) extend `FilterArgs`
+- **API/Command request models** (`SearchRequest`, `EditRequest`, `ConvertRequest`, `ImportRequest`, `RemoveRequest`) extend `FilterArgs`
   with command-specific fields, except `ImportRequest`, which selects paths on
   disk rather than existing rows.
-- **API/Command response models** (`SearchResponse`, `EditResponse`, `ConvertResponse`, `ImportResponse`)
-  describe what each command returns.
-- **Domain types** (`Track`, `EditOp`, `ConvertOp`, `ImportOp`, `SkippedTrack`)
+- **API/Command response models** (`SearchResponse`, `EditResponse`, `ConvertResponse`, `ImportResponse`, `RemoveResponse`)
+  describe what each command returns. `RemoveRequest` and `RemoveResponse` model
+  the shape of the `remove()` command.
+- **Domain types** (`Track`, `EditOp`, `ConvertOp`, `ImportOp`, `RemoveOp`, `SkippedTrack`)
   which help describe the internals of requests/responses
 
 Response semantics:
@@ -130,6 +131,13 @@ class ImportRequest(BaseModel):
     from --yes, and from an answered walk prompt."""
 
 
+class RemoveRequest(FilterArgs):
+    """Inputs for remove(): which tracks to delete, and whether to unlink their
+    source audio files as well."""
+
+    delete_source: bool = False
+
+
 # ── Domain types ──────────────────────────────────────────────────────────
 
 
@@ -245,6 +253,17 @@ class ImportOp(BaseModel):
     the newly written row once a create is applied."""
 
 
+class RemoveOp(BaseModel):
+    """A planned or performed removal. `track` is the row as it stood
+    immediately before deletion, since it cannot be read afterward.
+    `source_deleted` is False for a planned removal, for a run without
+    --delete-source, and for a source file that was already gone."""
+
+    id: str
+    track: Track
+    source_deleted: bool = False
+
+
 # ── Response envelopes ────────────────────────────────────────────────────
 
 
@@ -320,3 +339,32 @@ class ImportResponse(BaseModel):
         if self.result.dry_run:
             return []
         return [op.track for op in self.result.added]
+
+
+class RemoveResult(BaseModel):
+    """Result payload for remove().
+
+    `deleted_relatives` counts the shared artist, album, genre, and label
+    records the removal left behind and deleted. It is an aggregate rather
+    than a per-op field because such a record is not attributable to one
+    track.
+    """
+
+    dry_run: bool
+    removed: list[RemoveOp]
+    skipped: list[SkippedTrack]
+    deleted_relatives: int
+
+
+class RemoveResponse(BaseModel):
+    result: RemoveResult
+
+    @computed_field
+    @property
+    def tracks(self) -> list[Track]:
+        """The rows this command removed, as they stood before deletion.
+        Empty for a dry run, since a dry run changes nothing; see
+        `result.removed` for what was planned."""
+        if self.result.dry_run:
+            return []
+        return [op.track for op in self.result.removed]
