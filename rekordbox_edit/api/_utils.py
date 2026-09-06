@@ -102,6 +102,26 @@ _RESERVE_USNS = text(
 )
 
 
+def reserve_usns(db: Rekordbox6Database, count: int) -> int | None:
+    """Claim `count` USNs and return the highest one claimed.
+
+    The claimed block runs from `returned - count + 1` through `returned`.
+    Call this inside the transaction that writes the rows.
+
+    Rows that are being deleted cannot be stamped, but the counter must still
+    move past them, which is why reserving is separable from stamping.
+    """
+    if count <= 0:
+        return None
+    session = require_session(db)
+    last_usn = session.execute(_RESERVE_USNS, {"count": count}).scalar()
+    if last_usn is None:
+        logger.warning("No localUpdateCount in agentRegistry; leaving USNs unstamped. ")
+        return None
+    logger.debug(f"reserved USNs {last_usn - count + 1}..{last_usn}")
+    return last_usn
+
+
 def stamp_usns(db: Rekordbox6Database, rows: Sequence[Any]) -> int | None:
     """Give each row a fresh USN and advance the library's counter.
 
@@ -124,14 +144,11 @@ def stamp_usns(db: Rekordbox6Database, rows: Sequence[Any]) -> int | None:
     if not stampable:
         return None
 
-    session = require_session(db)
-    last_usn = session.execute(_RESERVE_USNS, {"count": num_stampable}).scalar()
+    last_usn = reserve_usns(db, num_stampable)
     if last_usn is None:
-        logger.warning("No localUpdateCount in agentRegistry; leaving USNs unstamped. ")
         return None
 
     for usn, row in enumerate(stampable, start=last_usn - num_stampable + 1):
         row.rb_local_usn = usn
 
-    logger.debug(f"reserved USNs {last_usn - num_stampable + 1}..{last_usn}")
     return last_usn

@@ -12,6 +12,7 @@ from sqlalchemy import text
 from tests.api.conftest import close_database
 
 from rekordbox_edit.api._utils import (
+    reserve_usns,
     stamp_usns,
     track_from_content,
     writing,
@@ -44,6 +45,25 @@ class TestTrackFromContent:
 _COUNTER = text(
     "SELECT int_1 FROM agentRegistry WHERE registry_id = 'localUpdateCount'"
 )
+
+
+def current_usn(db):
+    return db.session.execute(
+        text("SELECT int_1 FROM agentRegistry WHERE registry_id = 'localUpdateCount'")
+    ).scalar()
+
+
+class TestReserveUsns:
+    def test_reserve_usns_advances_the_counter(self, db):
+        before = current_usn(db)
+        last = reserve_usns(db, 5)
+        assert last == before + 5
+        assert current_usn(db) == before + 5
+
+    def test_reserve_usns_is_a_noop_for_zero(self, db):
+        before = current_usn(db)
+        assert reserve_usns(db, 0) is None
+        assert current_usn(db) == before
 
 
 class TestStampUsns:
