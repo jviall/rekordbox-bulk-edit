@@ -15,7 +15,7 @@ from rekordbox_edit.utils import FILE_TYPES
 from rekordbox_edit.errors import RekordboxEditError
 
 
-logger = logging.getLogger(__name__)
+_logger = logging.getLogger(__name__)
 
 
 class UnreadableFile(RekordboxEditError):
@@ -202,5 +202,5 @@ def read_tags(path: str) -> TrackTags:
         "length": int(length) if length is not None else None,
         "file_type": _file_type(audio),
     }
-    logger.debug(f"read tags for {path}: file_type={result['file_type']}")
+    _logger.debug(f"read tags for {path}: file_type={result['file_type']}")
     return result

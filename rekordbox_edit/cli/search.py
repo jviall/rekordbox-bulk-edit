@@ -22,7 +22,7 @@ from rekordbox_edit.display import print_track_info
 from rekordbox_edit.logger import PrintChoice, get_debug_file_path, set_level
 from rekordbox_edit.models import SearchRequest
 
-logger = logging.getLogger(__name__)
+_logger = logging.getLogger(__name__)
 
 
 @click.command(

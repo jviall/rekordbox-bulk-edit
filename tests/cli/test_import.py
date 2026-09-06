@@ -23,7 +23,7 @@ from rekordbox_edit.cli._utils import UserQuit
 
 @pytest.fixture(autouse=True)
 def mock_logger():
-    with patch("rekordbox_edit.cli.import_.logger") as mock_log:
+    with patch("rekordbox_edit.cli.import_._logger") as mock_log:
         yield mock_log
 
 
@@ -133,7 +133,7 @@ class TestImportCommand:
             result=ImportResult(playlist=None, dry_run=False, added=[], skipped=[])
         )
 
-        with patch("rekordbox_edit.cli.import_.logger") as mock_log:
+        with patch("rekordbox_edit.cli.import_._logger") as mock_log:
             result = CliRunner().invoke(import_command, ["/m/a.flac", "--yes"])
 
         assert result.exit_code == 0
@@ -502,7 +502,7 @@ class TestImportCommand:
         assert result.exit_code == 0
         assert mock_import.call_args.args[1].playlist == "My Set"
 
-    @patch("rekordbox_edit.cli.import_.logger")
+    @patch("rekordbox_edit.cli.import_._logger")
     @patch("rekordbox_edit.cli.import_.import_tracks")
     @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
     def test_playlist_only_add_does_not_report_zero_created(
@@ -551,7 +551,7 @@ class TestImportCommand:
         assert prompt == "Place 1 existing track(s) in the playlist?"
         assert "Add 0" not in prompt
 
-    @patch("rekordbox_edit.cli.import_.logger")
+    @patch("rekordbox_edit.cli.import_._logger")
     @patch("rekordbox_edit.cli.import_.import_tracks")
     @patch("rekordbox_edit.cli._utils.Rekordbox6Database")
     def test_mixed_create_and_playlist_add_reports_both_counts(

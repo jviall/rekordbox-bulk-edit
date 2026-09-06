@@ -21,7 +21,7 @@ from platformdirs import PlatformDirs
 
 from rekordbox_edit.errors import DatabaseBusyError
 
-logger = logging.getLogger(__name__)
+_logger = logging.getLogger(__name__)
 
 __all__ = ["DatabaseBusyError", "SCRIPTED_TIMEOUT", "database_lock"]
 
@@ -89,7 +89,7 @@ def database_lock(db_directory, command: str, timeout: float) -> Iterator[None]:
             f"Another rekordbox-edit process is writing to this library"
             f"{_describe_holder(path)}. Wait for it to finish, then try again."
         ) from e
-    logger.debug(f"Acquired write lock: {path}")
+    _logger.debug(f"Acquired write lock: {path}")
     try:
         # Best effort: the lock itself is the OS file lock, and this payload
         # only exists to make the busy message name the holder.
@@ -104,9 +104,9 @@ def database_lock(db_directory, command: str, timeout: float) -> Iterator[None]:
             encoding="utf-8",
         )
     except OSError as e:
-        logger.debug(f"Could not record lock holder: {e}")
+        _logger.debug(f"Could not record lock holder: {e}")
     try:
         yield
     finally:
         lock.release()
-        logger.debug(f"Released write lock: {path}")
+        _logger.debug(f"Released write lock: {path}")

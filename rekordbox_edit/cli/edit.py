@@ -29,7 +29,7 @@ from rekordbox_edit.display import PrintableField, print_track_info
 from rekordbox_edit.logger import PrintChoice, get_debug_file_path, set_level
 from rekordbox_edit.models import EditRequest
 
-logger = logging.getLogger(__name__)
+_logger = logging.getLogger(__name__)
 
 # Skips a preview cannot predict: they surface only when the approved plan is
 # re-checked against the database and filesystem at write time.
@@ -77,7 +77,7 @@ def edit_command(db, **kwargs):
         _report_skips(response.result.skipped)
 
         if not response.result.edits and not dry_run:
-            logger.info("No changes to make.")
+            _logger.info("No changes to make.")
             return
 
         _print_edit_result(response, print_opt, dry_run=dry_run)
@@ -94,7 +94,7 @@ def edit_command(db, **kwargs):
     _report_skips(preview.result.skipped, exclude=reported_individually)
 
     if not preview.result.edits:
-        logger.info("No changes to make.")
+        _logger.info("No changes to make.")
         return
 
     if print_opt not in SCRIPTING_MODES:
@@ -113,7 +113,7 @@ def edit_command(db, **kwargs):
             except UserQuit:
                 break
         if not selected_ids:
-            logger.info("Cancelled.")
+            _logger.info("Cancelled.")
             return
         chosen = set(selected_ids)
         selected = [op for op in preview.result.edits if op.id in chosen]
@@ -121,7 +121,7 @@ def edit_command(db, **kwargs):
     else:
         try:
             if not confirm(f"Apply {len(preview.result.edits)} edit(s)?", default=True):
-                logger.info("Cancelled.")
+                _logger.info("Cancelled.")
                 return
         except UserQuit:
             return
@@ -151,9 +151,9 @@ def _prompt_gates(db, args, preview):
         if not held:
             continue
         named.add(reason)
-        logger.info(f"{len(held)} track(s) held back: {_SKIP_MESSAGES[reason]}")
+        _logger.info(f"{len(held)} track(s) held back: {_SKIP_MESSAGES[reason]}")
         for s in held:
-            logger.info(f"  {s.track.FileNameL if s.track else '(unknown file)'}")
+            _logger.info(f"  {s.track.FileNameL if s.track else '(unknown file)'}")
         if confirm(f"Include {len(held)} held-back track(s) anyway?", default=False):
             lifted[field] = True
             named.discard(reason)
@@ -189,12 +189,12 @@ def _report_skips(skipped, *, exclude: frozenset[str] = frozenset()) -> None:
             continue
         count = sum(1 for s in skipped if s.reason == reason)
         if count:
-            logger.warning(f"Skipping {count} track(s): {message}")
+            _logger.warning(f"Skipping {count} track(s): {message}")
 
 
 def _print_edit_result(response, print_opt, *, dry_run: bool) -> None:
     if not dry_run:
-        logger.info(f"Applied {len(response.result.edits)} edit(s).")
+        _logger.info(f"Applied {len(response.result.edits)} edit(s).")
     if print_opt == PrintChoice.IDS:
         _print_response_ids([op.id for op in response.result.edits])
     elif print_opt == PrintChoice.JSON:

@@ -17,7 +17,7 @@ from rekordbox_edit.models import (
 
 @pytest.fixture(autouse=True)
 def mock_logger():
-    with patch("rekordbox_edit.cli.remove.logger") as mock_log:
+    with patch("rekordbox_edit.cli.remove._logger") as mock_log:
         yield mock_log
 
 

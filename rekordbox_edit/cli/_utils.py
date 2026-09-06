@@ -21,7 +21,7 @@ from rekordbox_edit.errors import (
 from rekordbox_edit.locking import SCRIPTED_TIMEOUT, database_lock
 from rekordbox_edit.logger import PrintChoice
 
-logger = logging.getLogger(__name__)
+_logger = logging.getLogger(__name__)
 
 SCRIPTING_MODES = (PrintChoice.IDS, PrintChoice.SILENT, PrintChoice.JSON)
 
@@ -142,7 +142,7 @@ def with_database(*, writes: bool = False):
                 DependencyMissingError,
                 RekordboxRunningError,
             ) as e:
-                logger.error(str(e))
+                _logger.error(str(e))
                 sys.exit(1)
             finally:
                 db.close()
@@ -194,14 +194,14 @@ def confirm(
     )
 
     if response.lower() == ConfirmChoice.YES.value:
-        logger.debug(f"User confirmed: {prompt}")
+        _logger.debug(f"User confirmed: {prompt}")
         return True
     elif response.lower() == ConfirmChoice.NO.value:
-        logger.debug(f"User declined: {prompt}")
+        _logger.debug(f"User declined: {prompt}")
         if abort:
             raise UserQuit("User declined to continue")
         else:
             return False
     elif response.lower()[0] == ConfirmChoice.QUIT.value:
-        logger.debug("User quit.")
+        _logger.debug("User quit.")
         raise UserQuit("User quit")

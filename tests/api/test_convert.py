@@ -2619,7 +2619,7 @@ class TestRollbackSession:
         db.session = None
         _rollback_session(db)
 
-    @patch("rekordbox_edit.api._convert.logger")
+    @patch("rekordbox_edit.api._convert._logger")
     def test_rollback_exception_logs_critical_and_reraises(self, mock_logger, mock_db):
         mock_db.session.rollback.side_effect = Exception("DB connection lost")
 

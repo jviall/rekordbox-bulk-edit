@@ -42,7 +42,7 @@ from rekordbox_edit.utils import (
     require_ffmpeg,
 )
 
-logger = logging.getLogger(__name__)
+_logger = logging.getLogger(__name__)
 
 TARGET_BIT_DEPTH = 16
 TARGET_SAMPLE_RATE = 44100
@@ -82,7 +82,7 @@ def _classify_fidelity(
     """
     bit_depth = audio_info["bit_depth"]
     sample_rate = audio_info["sample_rate"]
-    logger.debug(
+    _logger.debug(
         f"Source audio: bit_depth={bit_depth}, sample_rate={sample_rate}, "
         f"channels={audio_info.get('channels')}"
     )
@@ -141,16 +141,16 @@ def _run_ffmpeg(input_path, output_path, output_kwargs: dict, label: str) -> boo
             .global_args("-nostdin")
             .run(capture_stdout=True, capture_stderr=True)
         )
-        logger.debug(f"Conversion to {label} succeeded: {output_path}")
+        _logger.debug(f"Conversion to {label} succeeded: {output_path}")
         return True
     except FfmpegError as e:
-        logger.error(f"FFmpeg conversion failed for {input_path}: {e}")
+        _logger.error(f"FFmpeg conversion failed for {input_path}: {e}")
         if e.stderr:
             stderr = e.stderr.decode() if isinstance(e.stderr, bytes) else e.stderr
-            logger.debug(f"FFmpeg stderr:\n{stderr}")
+            _logger.debug(f"FFmpeg stderr:\n{stderr}")
         return False
     except Exception as e:
-        logger.error(f"Conversion failed for {input_path}: {e}")
+        _logger.error(f"Conversion failed for {input_path}: {e}")
         raise e
 
 
@@ -171,7 +171,7 @@ def _probe_converted_file(
     """Probe a converted file for the values its content row needs."""
     audio_info = get_audio_info(converted_file_path)
     if output_format.upper() == "MP3" and audio_info["bitrate"] is None:
-        logger.debug("MP3 bitrate not found in probe, assuming 320kbps")
+        _logger.debug("MP3 bitrate not found in probe, assuming 320kbps")
         audio_info["bitrate"] = 320
     return ConvertedFileProbe(
         audio_info=audio_info,
@@ -283,7 +283,7 @@ def _encode_one(job: _EncodeJob) -> _EncodeResult:
         # Classification and the encode are separated by a confirmation prompt,
         # so a source going missing is an expected outcome of that window
         # rather than a systemic failure worth abandoning the batch.
-        logger.warning(f"Skipping {job.file_name}: {job.source_path} is gone")
+        _logger.warning(f"Skipping {job.file_name}: {job.source_path} is gone")
         return _EncodeResult(
             job,
             skipped=SkippedTrack(reason="file_not_found", track=job.track),
@@ -293,7 +293,7 @@ def _encode_one(job: _EncodeJob) -> _EncodeResult:
     if not probe_matches_file_type(
         job.file_type, audio_info["codec"], audio_info["container"]
     ):
-        logger.warning(
+        _logger.warning(
             f"Skipping {job.file_name}: probed codec "
             f"{audio_info['codec']!r} does not match its Rekordbox "
             f"file type {get_file_type_name(job.file_type)!r}"
@@ -346,9 +346,9 @@ def _temp_output_path(output_path: str) -> str:
 def _remove_temp_file(temp_path: str) -> None:
     try:
         os.remove(temp_path)
-        logger.debug(f"Removed temp output {temp_path}")
+        _logger.debug(f"Removed temp output {temp_path}")
     except OSError as e:
-        logger.debug(f"Could not remove temp output {temp_path}: {e}")
+        _logger.debug(f"Could not remove temp output {temp_path}: {e}")
 
 
 def _sweep_orphan_temp_files(output_paths: Iterable[str]) -> None:
@@ -360,14 +360,14 @@ def _sweep_orphan_temp_files(output_paths: Iterable[str]) -> None:
         try:
             names = os.listdir(directory)
         except OSError as e:
-            logger.debug(f"Could not sweep {directory}: {e}")
+            _logger.debug(f"Could not sweep {directory}: {e}")
             continue
         for name in names:
             if name.startswith(TEMP_PREFIX):
                 _remove_temp_file(os.path.join(directory, name))
                 removed += 1
     if removed:
-        logger.debug(f"convert swept {removed} orphaned temp file(s)")
+        _logger.debug(f"convert swept {removed} orphaned temp file(s)")
 
 
 class ConvertAborted(OperationAborted):
@@ -395,14 +395,14 @@ class ConvertAborted(OperationAborted):
 def _rollback_session(db) -> None:
     """Roll back whatever the failing file left uncommitted. Earlier files
     committed in their own transactions and are unaffected."""
-    logger.debug("Attempting DB session rollback.")
+    _logger.debug("Attempting DB session rollback.")
     if not (db and db.session):
         return
     try:
         db.session.rollback()
     except Exception as e:
-        logger.critical(f"Encountered error during session rollback: {e}")
-        logger.critical(
+        _logger.critical(f"Encountered error during session rollback: {e}")
+        _logger.critical(
             "Check the state of your rekordbox library and consider reverting to a backup database if something's not right"
         )
         raise
@@ -429,20 +429,20 @@ def _classify_convert(content, args: ConvertRequest) -> ConvertOp | SkippedTrack
     track = track_from_content(content)
     target = get_file_type_for_format(args.format_out)
     if content.FileType == target:
-        logger.debug(
+        _logger.debug(
             f"skip convert id={content.ID} reason=already_target_format "
             f"file_type={content.FileType} target={target}"
         )
         return SkippedTrack(reason="already_target_format", track=track)
     if content.FileType not in _INPUT_FILE_TYPES:
-        logger.debug(
+        _logger.debug(
             f"skip convert id={content.ID} reason=unsupported_source_format "
             f"file_type={content.FileType}"
         )
         return SkippedTrack(reason="unsupported_source_format", track=track)
     output_path, _, _ = _get_output_path(content, args.format_out)
     if not args.overwrite and os.path.exists(output_path):
-        logger.debug(
+        _logger.debug(
             f"skip convert id={content.ID} reason=output_file_exists path={output_path}"
         )
         return SkippedTrack(reason="output_file_exists", track=track)
@@ -476,13 +476,13 @@ def _recheck_convert(op: ConvertOp, args: ConvertRequest) -> ConvertOp | Skipped
     from.
     """
     if not os.path.exists(op.source_path):
-        logger.debug(
+        _logger.debug(
             f"skip convert id={op.id} reason=db_or_fs_changed "
             f"source_gone={op.source_path}"
         )
         return SkippedTrack(reason="db_or_fs_changed", track=op.track)
     if not args.overwrite and os.path.exists(op.output_path):
-        logger.debug(
+        _logger.debug(
             f"skip convert id={op.id} reason=db_or_fs_changed "
             f"output_appeared={op.output_path}"
         )
@@ -523,7 +523,7 @@ def convert(
     op's paths are re-checked and reported as `db_or_fs_changed` if they no
     longer hold.
     """
-    logger.debug(f"convert start format_out={args.format_out} dry_run={dry_run}")
+    _logger.debug(f"convert start format_out={args.format_out} dry_run={dry_run}")
     require_ffmpeg()
 
     planned: list[ConvertOp] = []
@@ -531,21 +531,21 @@ def convert(
 
     if ops is None:
         contents = get_filtered_content(db, args).scalars().all()
-        logger.debug(f"convert fetched {len(contents)} candidate(s) from filter")
+        _logger.debug(f"convert fetched {len(contents)} candidate(s) from filter")
         for c in contents:
             result = _classify_convert(c, args)
             if isinstance(result, ConvertOp):
                 planned.append(result)
             else:
                 skipped.append(result)
-        logger.debug(f"convert classified ops={len(planned)} skipped={len(skipped)}")
+        _logger.debug(f"convert classified ops={len(planned)} skipped={len(skipped)}")
     else:
         rows = find_content_by_ids(db, [op.id for op in ops])
         contents = []
         for op in ops:
             content = rows.get(op.id)
             if content is None:
-                logger.debug(
+                _logger.debug(
                     f"skip convert id={op.id} reason=db_or_fs_changed row_gone"
                 )
                 skipped.append(SkippedTrack(reason="db_or_fs_changed", track=op.track))
@@ -556,12 +556,12 @@ def convert(
                 contents.append(content)
             else:
                 skipped.append(result)
-        logger.debug(f"convert re-checked ops={len(planned)} skipped={len(skipped)}")
+        _logger.debug(f"convert re-checked ops={len(planned)} skipped={len(skipped)}")
 
     ops = planned
 
     if dry_run:
-        logger.debug(f"convert dry-run return with {len(ops)} planned conversion(s)")
+        _logger.debug(f"convert dry-run return with {len(ops)} planned conversion(s)")
         return ConvertResponse(
             result=ConvertResult(
                 format_out=args.format_out,
@@ -608,7 +608,7 @@ def convert(
         ) -> ConvertAborted:
             """Give up on the batch, keeping every conversion already committed."""
             _rollback_session(db)
-            logger.debug(
+            _logger.debug(
                 f"convert aborted at {job.source_path} after "
                 f"{len(converted_ops)} committed conversion(s)"
             )
@@ -671,7 +671,7 @@ def convert(
                     result = encoding.pop(index).result()
                 except KeyboardInterrupt as e:
                     _stop_pending_encodes()
-                    logger.warning("Interrupted; keeping the files already converted.")
+                    _logger.warning("Interrupted; keeping the files already converted.")
                     raise _abort_batch(e, job, position) from e
                 except BaseException as e:
                     _stop_pending_encodes()
@@ -693,7 +693,7 @@ def convert(
                 # Printed on completion rather than at dispatch: with several
                 # encodes in flight, a line printed at dispatch would name a file
                 # that is not the one being worked on next.
-                logger.info(f"[{position}/{len(ops)}] converted {job.file_name}")
+                _logger.info(f"[{position}/{len(ops)}] converted {job.file_name}")
 
                 try:
                     os.replace(job.temp_path, job.output_path)
@@ -729,7 +729,7 @@ def convert(
                 try:
                     _update_anlz_paths(db, content, os.path.basename(job.output_path))
                 except Exception as e:
-                    logger.warning(
+                    _logger.warning(
                         f"Failed to update ANLZ path tags for {job.file_name}: {e}"
                     )
 
@@ -739,13 +739,13 @@ def convert(
                         os.remove(job.source_path)
                         deleted += 1
                     except Exception as e:
-                        logger.warning(f"Failed to delete {job.source_path}: {e}")
+                        _logger.warning(f"Failed to delete {job.source_path}: {e}")
 
-    logger.debug(f"convert committed {len(converted_ops)} conversion(s)")
+    _logger.debug(f"convert committed {len(converted_ops)} conversion(s)")
 
     kept = len(converted_ops) - deletable
     if args.delete_originals == "lossless" and kept and output_format_name != "MP3":
-        logger.info(f"Kept {kept} original file(s) whose conversion was lossy")
+        _logger.info(f"Kept {kept} original file(s) whose conversion was lossy")
 
     return ConvertResponse(
         result=ConvertResult(

@@ -14,7 +14,7 @@ from rekordbox_edit.models import Track
 from rekordbox_edit.query import require_session
 from rekordbox_edit.utils import AudioInfo, get_file_type_for_format
 
-logger = logging.getLogger(__name__)
+_logger = logging.getLogger(__name__)
 
 _COLUMN_KEYS = tuple(c.key for c in DjmdContent.__table__.columns)
 
@@ -88,7 +88,7 @@ def _update_anlz_paths(
     for anlz_path, anlz in anlz_files.items():
         anlz.set_path(new_ppth)
         anlz.save(anlz_path)
-        logger.debug(f"Updated PPTH of {anlz_path} to {new_ppth}")
+        _logger.debug(f"Updated PPTH of {anlz_path} to {new_ppth}")
 
 
 #: Claims the next `count` USNs. SQLite evaluates `int_1 + :count` against the
@@ -116,9 +116,11 @@ def reserve_usns(db: Rekordbox6Database, count: int) -> int | None:
     session = require_session(db)
     last_usn = session.execute(_RESERVE_USNS, {"count": count}).scalar()
     if last_usn is None:
-        logger.warning("No localUpdateCount in agentRegistry; leaving USNs unstamped. ")
+        _logger.warning(
+            "No localUpdateCount in agentRegistry; leaving USNs unstamped. "
+        )
         return None
-    logger.debug(f"reserved USNs {last_usn - count + 1}..{last_usn}")
+    _logger.debug(f"reserved USNs {last_usn - count + 1}..{last_usn}")
     return last_usn
 
 
@@ -138,7 +140,7 @@ def stamp_usns(db: Rekordbox6Database, rows: Sequence[Any]) -> int | None:
     num_stampable = len(stampable)
     num_rows = len(rows)
     if num_stampable < num_rows:
-        logger.warning(
+        _logger.warning(
             f"{num_rows - num_stampable} rows are missing a '{USN_COLUMN}' value and won't get a fresh stamp."
         )
     if not stampable:

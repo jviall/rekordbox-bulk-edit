@@ -28,7 +28,7 @@ from rekordbox_edit.query import (
 from rekordbox_edit.tags import TrackTags, UnreadableFile, read_tags
 from rekordbox_edit.utils import FILE_TYPES
 
-logger = logging.getLogger(__name__)
+_logger = logging.getLogger(__name__)
 
 # Every extension RBE recognizes, and the subset add_content cannot type.
 # add_content resolves the file type with `getattr(FileType, suffix)`, which
@@ -133,7 +133,7 @@ def _expand_paths(paths: list[str]) -> _Expansion:
         candidate = _ImportCandidate.of(path)
         candidates.setdefault(candidate.key, candidate)
 
-    logger.debug(
+    _logger.debug(
         f"expanded {len(paths)} argument(s) to {len(candidates)} file(s), "
         f"{len(directories)} directory walk(s), {len(rejected)} rejected"
     )
@@ -281,7 +281,7 @@ def _build_content(
     # add_content stores str(Path(path)), which is backslashed on Windows.
     # Rekordbox forward-slashes FolderPath on every platform.
     content.FolderPath = candidate.stored
-    logger.debug(f"built content row for {candidate.stored} type={content.FileType}")
+    _logger.debug(f"built content row for {candidate.stored} type={content.FileType}")
     return content
 
 
@@ -306,21 +306,21 @@ def _classify_import(
         content_id = str(existing.ID)
         track = track_from_content(existing)
         if playlist is not None and content_id not in playlist_member_ids:
-            logger.debug(f"playlist_add id={content_id} path={path}")
+            _logger.debug(f"playlist_add id={content_id} path={path}")
             return ImportOp(
                 id=content_id, path=path, action="playlist_add", track=track
             )
-        logger.debug(f"skip import id={content_id} reason=already_exists path={path}")
+        _logger.debug(f"skip import id={content_id} reason=already_exists path={path}")
         return SkippedTrack(reason="already_exists", track=track)
 
     if os.path.splitext(path)[1].lower() in UNMAPPED_EXTENSIONS:
-        logger.warning(f"Skipping {path}: unsupported file type")
+        _logger.warning(f"Skipping {path}: unsupported file type")
         return SkippedTrack(reason="unsupported_file_type")
 
     try:
         candidate.tags = read_tags(path)
     except UnreadableFile as e:
-        logger.warning(f"Skipping {path}: {e}")
+        _logger.warning(f"Skipping {path}: {e}")
         return SkippedTrack(reason="unreadable_file")
 
     return ImportOp(id="", path=path, action="create", track=_planned_track(candidate))
@@ -385,7 +385,7 @@ def import_tracks(
     imported unpreviewed; an op whose file is gone is reported as
     `db_or_fs_changed`.
     """
-    logger.debug(f"import start paths={len(args.paths)} dry_run={dry_run}")
+    _logger.debug(f"import start paths={len(args.paths)} dry_run={dry_run}")
 
     skipped: list[SkippedTrack] = []
     if ops is None:
@@ -393,13 +393,13 @@ def import_tracks(
         if directories and not args.recurse:
             raise DirectoryConfirmationRequired(len(directories), len(candidates))
         for path in rejected:
-            logger.warning(f"Skipping {path}: not an audio file RBE recognizes")
+            _logger.warning(f"Skipping {path}: not an audio file RBE recognizes")
             skipped.append(SkippedTrack(reason="unsupported_file_type"))
     else:
         candidates = []
         for op in ops:
             if not os.path.exists(op.path):
-                logger.debug(f"skip import reason=db_or_fs_changed path={op.path}")
+                _logger.debug(f"skip import reason=db_or_fs_changed path={op.path}")
                 skipped.append(SkippedTrack(reason="db_or_fs_changed", track=op.track))
                 continue
             candidates.append(_ImportCandidate.of(op.path))
@@ -430,7 +430,7 @@ def import_tracks(
         else:
             planned.append((result, candidate))
     ops = [op for op, _ in planned]
-    logger.debug(f"import classified ops={len(ops)} skipped={len(skipped)}")
+    _logger.debug(f"import classified ops={len(ops)} skipped={len(skipped)}")
 
     if dry_run:
         return _response(args.playlist, ops, skipped, dry_run=True)
@@ -454,9 +454,9 @@ def import_tracks(
 
             stamp_usns(db, [*written, *incidental])
             session.commit()
-            logger.debug(f"import committed {len(applied)} row(s)")
+            _logger.debug(f"import committed {len(applied)} row(s)")
         except BaseException:
-            logger.error(
+            _logger.error(
                 f"import rolling back after {len(applied)} partial operation(s)"
             )
             session.rollback()

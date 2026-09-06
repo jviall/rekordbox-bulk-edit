@@ -26,7 +26,7 @@ from rekordbox_edit.query import (
     require_session,
 )
 
-logger = logging.getLogger(__name__)
+_logger = logging.getLogger(__name__)
 
 #: The DjmdContent columns naming a track's relatives, by kind. A removal
 #: vacates every one of them. Key and colour are absent by design; see
@@ -122,7 +122,7 @@ def _sweep_orphans(db: Rekordbox6Database, relatives: dict[str, set[str]]) -> in
                     cascaded.setdefault("artist", set()).add(str(album_artist_id))
                 session.delete(row)
                 collected += 1
-                logger.debug(f"collected orphaned {kind} id={record_id}")
+                _logger.debug(f"collected orphaned {kind} id={record_id}")
         # Load-bearing: the next pass queries for references, and an
         # uncommitted delete must be visible to that query. This function
         # runs inside a caller's transaction, so flush rather than commit.
@@ -157,7 +157,7 @@ def _resolve_path_of_root(root: Path, path: Path) -> Path | None:
     resolved = path.resolve()
     root = root.resolve()
     if resolved == root or root not in resolved.parents:
-        logger.debug(f"Path ({resolved}) does not descend from root {root}")
+        _logger.debug(f"Path ({resolved}) does not descend from root {root}")
         return None
     return resolved
 
@@ -174,13 +174,13 @@ def _rmdir_if_empty_under(root: Path, directory: Path) -> None:
     the cleanup instead of being swept away.
     """
     if _resolve_path_of_root(root, directory) is None:
-        logger.warning("Refusing to delete outside the share tree")
+        _logger.warning("Refusing to delete outside the share tree")
         return
     try:
         directory.rmdir()
-        logger.debug(f"removed empty directory {directory}")
+        _logger.debug(f"removed empty directory {directory}")
     except OSError:
-        logger.debug(f"left non-empty directory {directory}")
+        _logger.debug(f"left non-empty directory {directory}")
 
 
 def remove_analysis_files(
@@ -200,7 +200,7 @@ def remove_analysis_files(
     # itself, and a recursive delete there would destroy every track's analysis
     # in the library.
     if not analysis_data_path:
-        logger.debug("no analysis to remove")
+        _logger.debug("no analysis to remove")
         return
 
     share_dir = db.share_directory
@@ -209,7 +209,7 @@ def remove_analysis_files(
         share_dir / Path(analysis_data_path.strip("\\/")).parent,
     )
     if anlz_dir is None:
-        logger.warning("Refusing to delete outside the share tree")
+        _logger.warning("Refusing to delete outside the share tree")
         return
 
     # A non-empty but malformed AnalysisDataPath is refused too. The real
@@ -223,7 +223,7 @@ def remove_analysis_files(
     # an unexpected shape is refused rather than acted on.
     depth = len(anlz_dir.relative_to(share_dir.resolve()).parts)
     if depth != _ANALYSIS_DIR_DEPTH:
-        logger.warning(
+        _logger.warning(
             "analysis path did not have the expected share/PIONEER/USBANLZ/"
             f"<xxx>/<uuid> shape, skipping cleanup: {anlz_dir}"
         )
@@ -233,7 +233,7 @@ def remove_analysis_files(
         return
 
     shutil.rmtree(anlz_dir)
-    logger.debug(f"removed analysis directory {anlz_dir}")
+    _logger.debug(f"removed analysis directory {anlz_dir}")
     _rmdir_if_empty_under(share_dir, anlz_dir.parent)
 
 
@@ -268,7 +268,7 @@ def remove_artwork_files(db: Rekordbox6Database, image_path: str | None) -> None
     # AnalysisDataPath resolves to; it is not caught by name coincidence the way
     # a share directory literally named "share" happens to survive in tests.
     if not image_path:
-        logger.debug("no artwork to remove")
+        _logger.debug("no artwork to remove")
         return
 
     share_dir = db.share_directory
@@ -279,7 +279,7 @@ def remove_artwork_files(db: Rekordbox6Database, image_path: str | None) -> None
     art_dir = artwork_file.parent
     depth = len(art_dir.relative_to(share_dir.resolve()).parts)
     if depth != _ARTWORK_DIR_DEPTH:
-        logger.warning(
+        _logger.warning(
             "artwork path did not have the expected share/PIONEER/Artwork/"
             f"<xxx>/<uuid> shape, skipping cleanup: {art_dir}"
         )
@@ -293,7 +293,7 @@ def remove_artwork_files(db: Rekordbox6Database, image_path: str | None) -> None
         target = art_dir / name
         if target.is_file():
             target.unlink()
-            logger.debug(f"removed artwork file {target}")
+            _logger.debug(f"removed artwork file {target}")
 
     _rmdir_if_empty_under(share_dir, art_dir)
     _rmdir_if_empty_under(share_dir, art_dir.parent)
@@ -360,7 +360,7 @@ def remove(
 
     Pass `ops` to apply an already-approved plan; filters will be ignored.
     """
-    logger.debug(f"remove start dry_run={dry_run} delete_source={args.delete_source}")
+    _logger.debug(f"remove start dry_run={dry_run} delete_source={args.delete_source}")
 
     planned: list[RemoveOp] = []
     skipped: list[SkippedTrack] = []
@@ -368,7 +368,7 @@ def remove(
 
     if ops is None:
         contents = list(get_filtered_content(db, args).scalars().all())
-        logger.debug(f"remove fetched {len(contents)} candidate(s) from filter")
+        _logger.debug(f"remove fetched {len(contents)} candidate(s) from filter")
         planned = [
             RemoveOp(id=str(c.ID), track=track_from_content(c)) for c in contents
         ]
@@ -377,17 +377,19 @@ def remove(
         seen_ids: set[str] = set()
         for op in ops:
             if op.id in seen_ids:
-                logger.debug(f"skip remove id={op.id} reason=duplicate_op")
+                _logger.debug(f"skip remove id={op.id} reason=duplicate_op")
                 continue
             seen_ids.add(op.id)
             content = rows.get(op.id)
             if content is None:
-                logger.debug(f"skip remove id={op.id} reason=db_or_fs_changed row_gone")
+                _logger.debug(
+                    f"skip remove id={op.id} reason=db_or_fs_changed row_gone"
+                )
                 skipped.append(SkippedTrack(reason="db_or_fs_changed", track=op.track))
                 continue
             contents.append(content)
             planned.append(RemoveOp(id=op.id, track=track_from_content(content)))
-        logger.debug(f"remove re-checked ops={len(planned)} skipped={len(skipped)}")
+        _logger.debug(f"remove re-checked ops={len(planned)} skipped={len(skipped)}")
 
     if dry_run or not planned:
         return RemoveResponse(
@@ -444,7 +446,7 @@ def remove(
         # cannot be stamped, but the counter must still move past all of them,
         reserve_usns(db, len(planned) + child_rows_deleted + deleted_relatives)
         session.commit()
-        logger.debug(
+        _logger.debug(
             f"remove committed {len(planned)} row(s), "
             f"{deleted_relatives} unreferenced relative(s) deleted"
         )
@@ -487,19 +489,19 @@ def _remove_on_disk_artifacts(
         except Exception as e:
             # A malformed stored path (e.g. an embedded NUL in AnalysisDataPath)
             # raises ValueError from Path.resolve(),
-            logger.warning(
+            _logger.warning(
                 f"could not clean up analysis files for track {artifact['id']}: {e}"
             )
         try:
             if artifact["other_referents"]:
-                logger.debug(
+                _logger.debug(
                     f"artwork {artifact['image_path']} still referenced; keeping it"
                 )
             else:
                 remove_artwork_files(db, artifact["image_path"])
 
         except Exception as e:
-            logger.warning(
+            _logger.warning(
                 f"could not clean up artwork files for track {artifact['id']}: {e}"
             )
         folder_path = artifact["folder_path"]
@@ -508,7 +510,7 @@ def _remove_on_disk_artifacts(
         try:
             os.remove(folder_path)
             deleted_sources.add(artifact["id"])
-            logger.debug(f"deleted source file {folder_path}")
+            _logger.debug(f"deleted source file {folder_path}")
         except Exception as e:
-            logger.warning(f"could not delete source file {folder_path}: {e}")
+            _logger.warning(f"could not delete source file {folder_path}: {e}")
     return deleted_sources

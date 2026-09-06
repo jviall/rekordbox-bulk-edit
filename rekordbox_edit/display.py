@@ -4,9 +4,9 @@ All rich Console output should go through the module-level ``console`` and be
 drained to the debug log immediately after printing:
 
     console.print(...)
-    logger.debug(console.export_text(clear=True))
+    _logger.debug(console.export_text(clear=True))
 
-Plain text output should continue to use ``logger.info()``.
+Plain text output should continue to use ``_logger.info()``.
 """
 
 import logging
@@ -24,7 +24,7 @@ from rich.theme import Theme
 from rekordbox_edit.models import Track
 from rekordbox_edit.utils import FILE_TYPES, get_file_type_name, stored_to_star_rating
 
-logger = logging.getLogger(__name__)
+_logger = logging.getLogger(__name__)
 
 #: Verbs that open a status line, e.g. "[1/49] converted foo.aiff" or
 #: "Skipping 1 file(s): ...".
@@ -160,7 +160,7 @@ def _cell_value(track: Track, column: PrintableField) -> str:
             return ""
         name = get_file_type_name(track.FileType)
         if name is None:
-            logger.warning(
+            _logger.warning(
                 f"Unexpected FileType [{track.FileType}] for track ID [{track.ID}]"
             )
             return "UNKNOWN"
@@ -226,4 +226,4 @@ def print_track_info(
         table.add_row(str(i), *cells)
 
     console.print(table)
-    logger.debug(console.export_text(clear=True))
+    _logger.debug(console.export_text(clear=True))

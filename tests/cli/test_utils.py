@@ -165,7 +165,7 @@ class TestConfirm:
     def mock_dependencies(self, mocker):
         """Mock all dependencies for confirm function."""
         mock_click_prompt = mocker.patch("rekordbox_edit.cli._utils.click.prompt")
-        mock_logger = mocker.patch("rekordbox_edit.cli._utils.logger")
+        mock_logger = mocker.patch("rekordbox_edit.cli._utils._logger")
         return {
             "click_prompt": mock_click_prompt,
             "logger": mock_logger,
