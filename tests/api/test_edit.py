@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, call, patch
 
 from rekordbox_edit.api._utils import track_from_content
 from rekordbox_edit.api._edit import _classify_edit, edit
-from rekordbox_edit.api.field_handlers import FIELD_HANDLERS
+from rekordbox_edit.api._field_handlers import FIELD_HANDLERS
 from sqlalchemy import text
 
 from rekordbox_edit.query import require_session

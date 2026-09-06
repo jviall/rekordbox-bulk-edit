@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from rekordbox_edit.api.field_handlers import (
+from rekordbox_edit.api._field_handlers import (
     FIELD_HANDLERS,
     FolderPathField,
     RelationalField,
@@ -353,7 +353,7 @@ class TestFolderPathField:
         )
         assert _folder_handler().compute_new_value(None, args) is None
 
-    @patch("rekordbox_edit.api.field_handlers.os.path.exists", return_value=False)
+    @patch("rekordbox_edit.api._field_handlers.os.path.exists", return_value=False)
     def test_validate_missing_file_skips(self, _exists, make_djmd_content_item):
         content = make_djmd_content_item(ID="1")
         args = EditRequest(
@@ -366,7 +366,7 @@ class TestFolderPathField:
 
         assert reason == "file_not_found"
 
-    @patch("rekordbox_edit.api.field_handlers.os.path.exists", return_value=False)
+    @patch("rekordbox_edit.api._field_handlers.os.path.exists", return_value=False)
     def test_validate_missing_file_allowed_proceeds(
         self, _exists, make_djmd_content_item
     ):
@@ -384,9 +384,9 @@ class TestFolderPathField:
 
         assert reason is None
 
-    @patch("rekordbox_edit.api.field_handlers.get_audio_info")
-    @patch("rekordbox_edit.api.field_handlers.os.path.getsize", return_value=1000)
-    @patch("rekordbox_edit.api.field_handlers.os.path.exists", return_value=True)
+    @patch("rekordbox_edit.api._field_handlers.get_audio_info")
+    @patch("rekordbox_edit.api._field_handlers.os.path.getsize", return_value=1000)
+    @patch("rekordbox_edit.api._field_handlers.os.path.exists", return_value=True)
     def test_validate_same_size_skips_probe(
         self, _exists, _getsize, mock_probe, make_djmd_content_item
     ):
@@ -404,11 +404,11 @@ class TestFolderPathField:
         mock_probe.assert_not_called()
 
     @patch(
-        "rekordbox_edit.api.field_handlers.get_audio_info",
+        "rekordbox_edit.api._field_handlers.get_audio_info",
         side_effect=OSError("ffprobe failed"),
     )
-    @patch("rekordbox_edit.api.field_handlers.os.path.getsize", return_value=2000)
-    @patch("rekordbox_edit.api.field_handlers.os.path.exists", return_value=True)
+    @patch("rekordbox_edit.api._field_handlers.os.path.getsize", return_value=2000)
+    @patch("rekordbox_edit.api._field_handlers.os.path.exists", return_value=True)
     def test_validate_probe_failure_skips(
         self, _exists, _getsize, _probe_fn, make_djmd_content_item
     ):
@@ -425,11 +425,11 @@ class TestFolderPathField:
         assert reason == "unknown_file_type"
 
     @patch(
-        "rekordbox_edit.api.field_handlers.get_audio_info",
+        "rekordbox_edit.api._field_handlers.get_audio_info",
         side_effect=DependencyMissingError("FFmpeg is required"),
     )
-    @patch("rekordbox_edit.api.field_handlers.os.path.getsize", return_value=2000)
-    @patch("rekordbox_edit.api.field_handlers.os.path.exists", return_value=True)
+    @patch("rekordbox_edit.api._field_handlers.os.path.getsize", return_value=2000)
+    @patch("rekordbox_edit.api._field_handlers.os.path.exists", return_value=True)
     def test_validate_missing_ffmpeg_is_not_a_per_track_skip(
         self, _exists, _getsize, _probe_fn, make_djmd_content_item
     ):
@@ -447,11 +447,11 @@ class TestFolderPathField:
             )
 
     @patch(
-        "rekordbox_edit.api.field_handlers.get_audio_info",
+        "rekordbox_edit.api._field_handlers.get_audio_info",
         return_value=_probe(codec="vorbis", container="ogg"),
     )
-    @patch("rekordbox_edit.api.field_handlers.os.path.getsize", return_value=2000)
-    @patch("rekordbox_edit.api.field_handlers.os.path.exists", return_value=True)
+    @patch("rekordbox_edit.api._field_handlers.os.path.getsize", return_value=2000)
+    @patch("rekordbox_edit.api._field_handlers.os.path.exists", return_value=True)
     def test_validate_unknown_codec_skips_even_when_gates_are_lifted(
         self, _exists, _getsize, _probe_fn, make_djmd_content_item
     ):
@@ -472,11 +472,11 @@ class TestFolderPathField:
         assert reason == "unknown_file_type"
 
     @patch(
-        "rekordbox_edit.api.field_handlers.get_audio_info",
+        "rekordbox_edit.api._field_handlers.get_audio_info",
         return_value=_probe(duration=300.0),
     )
-    @patch("rekordbox_edit.api.field_handlers.os.path.getsize", return_value=2000)
-    @patch("rekordbox_edit.api.field_handlers.os.path.exists", return_value=True)
+    @patch("rekordbox_edit.api._field_handlers.os.path.getsize", return_value=2000)
+    @patch("rekordbox_edit.api._field_handlers.os.path.exists", return_value=True)
     def test_validate_length_mismatch_with_analysis_skips(
         self, _exists, _getsize, _probe_fn, make_djmd_content_item
     ):
@@ -495,11 +495,11 @@ class TestFolderPathField:
         assert reason == "length_mismatch"
 
     @patch(
-        "rekordbox_edit.api.field_handlers.get_audio_info",
+        "rekordbox_edit.api._field_handlers.get_audio_info",
         return_value=_probe(duration=300.0),
     )
-    @patch("rekordbox_edit.api.field_handlers.os.path.getsize", return_value=2000)
-    @patch("rekordbox_edit.api.field_handlers.os.path.exists", return_value=True)
+    @patch("rekordbox_edit.api._field_handlers.os.path.getsize", return_value=2000)
+    @patch("rekordbox_edit.api._field_handlers.os.path.exists", return_value=True)
     def test_validate_length_mismatch_with_cues_skips(
         self, _exists, _getsize, _probe_fn, make_djmd_content_item
     ):
@@ -520,11 +520,11 @@ class TestFolderPathField:
         assert reason == "length_mismatch"
 
     @patch(
-        "rekordbox_edit.api.field_handlers.get_audio_info",
+        "rekordbox_edit.api._field_handlers.get_audio_info",
         return_value=_probe(duration=300.0),
     )
-    @patch("rekordbox_edit.api.field_handlers.os.path.getsize", return_value=2000)
-    @patch("rekordbox_edit.api.field_handlers.os.path.exists", return_value=True)
+    @patch("rekordbox_edit.api._field_handlers.os.path.getsize", return_value=2000)
+    @patch("rekordbox_edit.api._field_handlers.os.path.exists", return_value=True)
     def test_validate_length_mismatch_without_analysis_warns_only(
         self, _exists, _getsize, _probe_fn, make_djmd_content_item
     ):
@@ -543,11 +543,11 @@ class TestFolderPathField:
         assert reason is None
 
     @patch(
-        "rekordbox_edit.api.field_handlers.get_audio_info",
+        "rekordbox_edit.api._field_handlers.get_audio_info",
         return_value=_probe(duration=300.0),
     )
-    @patch("rekordbox_edit.api.field_handlers.os.path.getsize", return_value=2000)
-    @patch("rekordbox_edit.api.field_handlers.os.path.exists", return_value=True)
+    @patch("rekordbox_edit.api._field_handlers.os.path.getsize", return_value=2000)
+    @patch("rekordbox_edit.api._field_handlers.os.path.exists", return_value=True)
     def test_validate_length_mismatch_allowed_proceeds(
         self, _exists, _getsize, _probe_fn, make_djmd_content_item
     ):
@@ -568,8 +568,8 @@ class TestFolderPathField:
 
         assert reason is None
 
-    @patch("rekordbox_edit.api.field_handlers.os.path.getsize", return_value=1000)
-    @patch("rekordbox_edit.api.field_handlers.os.path.exists", return_value=True)
+    @patch("rekordbox_edit.api._field_handlers.os.path.getsize", return_value=1000)
+    @patch("rekordbox_edit.api._field_handlers.os.path.exists", return_value=True)
     def test_apply_relocation_updates_paths_only(
         self, _exists, _getsize, make_djmd_content_item
     ):
@@ -599,7 +599,7 @@ class TestFolderPathField:
         assert content.FileSize == 1000
 
     @patch(
-        "rekordbox_edit.api.field_handlers.get_audio_info",
+        "rekordbox_edit.api._field_handlers.get_audio_info",
         return_value=_probe(
             codec="flac",
             container="flac",
@@ -609,8 +609,8 @@ class TestFolderPathField:
             duration=214.9,
         ),
     )
-    @patch("rekordbox_edit.api.field_handlers.os.path.getsize", return_value=2000)
-    @patch("rekordbox_edit.api.field_handlers.os.path.exists", return_value=True)
+    @patch("rekordbox_edit.api._field_handlers.os.path.getsize", return_value=2000)
+    @patch("rekordbox_edit.api._field_handlers.os.path.exists", return_value=True)
     def test_apply_replaced_file_syncs_metadata(
         self, _exists, _getsize, _probe_fn, make_djmd_content_item
     ):
@@ -642,13 +642,13 @@ class TestFolderPathField:
         assert content.Length == 214
 
     @patch(
-        "rekordbox_edit.api.field_handlers.get_audio_info",
+        "rekordbox_edit.api._field_handlers.get_audio_info",
         return_value=_probe(
             codec="mp3", container="mp3", bit_depth=None, bitrate=None, duration=None
         ),
     )
-    @patch("rekordbox_edit.api.field_handlers.os.path.getsize", return_value=2000)
-    @patch("rekordbox_edit.api.field_handlers.os.path.exists", return_value=True)
+    @patch("rekordbox_edit.api._field_handlers.os.path.getsize", return_value=2000)
+    @patch("rekordbox_edit.api._field_handlers.os.path.exists", return_value=True)
     def test_apply_probes_on_cache_miss_and_keeps_unreported_columns(
         self, _exists, _getsize, mock_probe, make_djmd_content_item
     ):
@@ -672,11 +672,11 @@ class TestFolderPathField:
         assert content.Length == 214
 
     @patch(
-        "rekordbox_edit.api.field_handlers.get_audio_info",
+        "rekordbox_edit.api._field_handlers.get_audio_info",
         return_value=_probe(codec="vorbis", container="ogg"),
     )
-    @patch("rekordbox_edit.api.field_handlers.os.path.getsize", return_value=2000)
-    @patch("rekordbox_edit.api.field_handlers.os.path.exists", return_value=True)
+    @patch("rekordbox_edit.api._field_handlers.os.path.getsize", return_value=2000)
+    @patch("rekordbox_edit.api._field_handlers.os.path.exists", return_value=True)
     def test_apply_unknown_file_type_leaves_audio_columns(
         self, _exists, _getsize, _probe_fn, make_djmd_content_item
     ):
@@ -692,7 +692,7 @@ class TestFolderPathField:
         assert content.FileType == 11
         assert content.FileSize == 1000
 
-    @patch("rekordbox_edit.api.field_handlers.os.path.exists", return_value=False)
+    @patch("rekordbox_edit.api._field_handlers.os.path.exists", return_value=False)
     def test_apply_allowed_missing_file_writes_paths_only(
         self, _exists, make_djmd_content_item
     ):
@@ -717,7 +717,7 @@ class TestFolderPathField:
         assert content.FileSize == 1000
         assert content.FileType == 11
 
-    @patch("rekordbox_edit.api.field_handlers._update_anlz_paths")
+    @patch("rekordbox_edit.api._field_handlers._update_anlz_paths")
     def test_post_commit_rewrites_ppth_on_rename(
         self, mock_anlz, make_djmd_content_item
     ):
@@ -730,7 +730,7 @@ class TestFolderPathField:
 
         mock_anlz.assert_called_once_with(db, content, "song.flac")
 
-    @patch("rekordbox_edit.api.field_handlers._update_anlz_paths")
+    @patch("rekordbox_edit.api._field_handlers._update_anlz_paths")
     def test_post_commit_skips_when_basename_unchanged(
         self, mock_anlz, make_djmd_content_item
     ):
@@ -742,7 +742,7 @@ class TestFolderPathField:
 
         mock_anlz.assert_not_called()
 
-    @patch("rekordbox_edit.api.field_handlers._update_anlz_paths")
+    @patch("rekordbox_edit.api._field_handlers._update_anlz_paths")
     def test_post_commit_swallows_anlz_errors(self, mock_anlz, make_djmd_content_item):
         mock_anlz.side_effect = OSError("disk full")
         content = make_djmd_content_item(

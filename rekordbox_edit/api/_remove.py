@@ -12,7 +12,7 @@ from pyrekordbox.db6 import tables as tb
 from sqlalchemy import or_
 
 from rekordbox_edit.api._utils import reserve_usns, track_from_content, writing
-from rekordbox_edit.api.field_handlers import _ARTIST_ROLE_COLUMNS
+from rekordbox_edit.api._field_handlers import _ARTIST_ROLE_COLUMNS
 from rekordbox_edit.models import (
     RemoveOp,
     RemoveRequest,

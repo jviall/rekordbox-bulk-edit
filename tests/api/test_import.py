@@ -8,8 +8,8 @@ from unittest.mock import MagicMock, patch
 import mutagen
 import pytest
 
-from rekordbox_edit.api import import_ as import_module
-from rekordbox_edit.api.import_ import (
+from rekordbox_edit.api import _import as import_module
+from rekordbox_edit.api._import import (
     AUDIO_EXTENSIONS,
     DirectoryConfirmationRequired,
     IMPORT_DEFAULTS,
@@ -429,7 +429,7 @@ class TestClassifyImport:
 
     @pytest.fixture()
     def readable(self, tags):
-        with patch("rekordbox_edit.api.import_.read_tags", return_value=tags) as reader:
+        with patch("rekordbox_edit.api._import.read_tags", return_value=tags) as reader:
             yield reader
 
     def test_new_file_without_a_playlist_is_created(self, readable):
@@ -463,7 +463,7 @@ class TestClassifyImport:
 
     def test_a_file_mutagen_cannot_read_is_skipped(self):
         with patch(
-            "rekordbox_edit.api.import_.read_tags",
+            "rekordbox_edit.api._import.read_tags",
             side_effect=UnreadableFile("bad header"),
         ):
             result = _classify_import(_candidate("/music/a.flac"), None, set(), None)
@@ -510,7 +510,7 @@ def one_flac(tmp_path):
 
 @pytest.fixture()
 def stub_tags():
-    with patch("rekordbox_edit.api.import_.read_tags") as reader:
+    with patch("rekordbox_edit.api._import.read_tags") as reader:
         reader.return_value = {
             "title": "A",
             "artist": None,
@@ -532,7 +532,7 @@ def stub_tags():
 
 class TestImport:
     def test_dry_run_writes_nothing(self, mock_db, one_flac, stub_tags):
-        with patch("rekordbox_edit.api.import_.find_content_by_key", return_value={}):
+        with patch("rekordbox_edit.api._import.find_content_by_key", return_value={}):
             response = import_tracks(
                 mock_db, ImportRequest(paths=[one_flac]), dry_run=True
             )
@@ -547,7 +547,7 @@ class TestImport:
         # New rows have no ID before insert, so the plan's op carries a
         # synthetic stand-in describing what would be created. `tracks`
         # itself stays empty: a dry run changes nothing.
-        with patch("rekordbox_edit.api.import_.find_content_by_key", return_value={}):
+        with patch("rekordbox_edit.api._import.find_content_by_key", return_value={}):
             response = import_tracks(
                 mock_db, ImportRequest(paths=[one_flac]), dry_run=True
             )
@@ -563,8 +563,8 @@ class TestImport:
         # reads every DjmdContent column, so the stub needs a fully-shaped
         # row rather than a bare MagicMock(ID=...).
         with (
-            patch("rekordbox_edit.api.import_.find_content_by_key", return_value={}),
-            patch("rekordbox_edit.api.import_._build_content") as builder,
+            patch("rekordbox_edit.api._import.find_content_by_key", return_value={}),
+            patch("rekordbox_edit.api._import._build_content") as builder,
         ):
             builder.return_value = make_djmd_content_item(ID="99")
             import_tracks(mock_db, ImportRequest(paths=[one_flac]))
@@ -578,8 +578,8 @@ class TestImport:
         # ID-less stand-in. `--print ids` (and any caller chaining off the
         # response) needs the real post-insert ID, not that placeholder.
         with (
-            patch("rekordbox_edit.api.import_.find_content_by_key", return_value={}),
-            patch("rekordbox_edit.api.import_._build_content") as builder,
+            patch("rekordbox_edit.api._import.find_content_by_key", return_value={}),
+            patch("rekordbox_edit.api._import._build_content") as builder,
         ):
             builder.return_value = make_djmd_content_item(ID="99")
             response = import_tracks(mock_db, ImportRequest(paths=[one_flac]))
@@ -590,7 +590,7 @@ class TestImport:
     def test_dry_run_has_empty_tracks_but_ops_carry_theirs(
         self, mock_db, one_flac, stub_tags
     ):
-        with patch("rekordbox_edit.api.import_.find_content_by_key", return_value={}):
+        with patch("rekordbox_edit.api._import.find_content_by_key", return_value={}):
             response = import_tracks(
                 mock_db, ImportRequest(paths=[one_flac]), dry_run=True
             )
@@ -602,8 +602,8 @@ class TestImport:
         self, mock_db, one_flac, stub_tags, make_djmd_content_item
     ):
         with (
-            patch("rekordbox_edit.api.import_.find_content_by_key", return_value={}),
-            patch("rekordbox_edit.api.import_._build_content") as builder,
+            patch("rekordbox_edit.api._import.find_content_by_key", return_value={}),
+            patch("rekordbox_edit.api._import._build_content") as builder,
         ):
             builder.return_value = make_djmd_content_item(ID="99")
             response = import_tracks(mock_db, ImportRequest(paths=[one_flac]))
@@ -618,9 +618,9 @@ class TestImport:
         from rekordbox_edit.tags import UnreadableFile
 
         with (
-            patch("rekordbox_edit.api.import_.find_content_by_key", return_value={}),
+            patch("rekordbox_edit.api._import.find_content_by_key", return_value={}),
             patch(
-                "rekordbox_edit.api.import_.read_tags", side_effect=UnreadableFile("x")
+                "rekordbox_edit.api._import.read_tags", side_effect=UnreadableFile("x")
             ),
         ):
             response = import_tracks(
@@ -638,7 +638,7 @@ class TestImport:
         bad = tmp_path / "a.mp4"
         bad.write_bytes(b"")
 
-        with patch("rekordbox_edit.api.import_.find_content_by_key", return_value={}):
+        with patch("rekordbox_edit.api._import.find_content_by_key", return_value={}):
             response = import_tracks(
                 mock_db, ImportRequest(paths=[str(bad)]), dry_run=True
             )
@@ -659,7 +659,7 @@ class TestImport:
         art = tmp_path / "cover.jpg"
         art.write_bytes(b"")
 
-        with patch("rekordbox_edit.api.import_.find_content_by_key", return_value={}):
+        with patch("rekordbox_edit.api._import.find_content_by_key", return_value={}):
             response = import_tracks(
                 mock_db, ImportRequest(paths=[str(art)]), dry_run=True
             )
@@ -678,9 +678,9 @@ class TestImport:
         bad.write_bytes(b"")
 
         with (
-            patch("rekordbox_edit.api.import_.find_content_by_key", return_value={}),
+            patch("rekordbox_edit.api._import.find_content_by_key", return_value={}),
             patch(
-                "rekordbox_edit.api.import_._build_content",
+                "rekordbox_edit.api._import._build_content",
                 return_value=make_djmd_content_item(ID="99"),
             ) as builder,
         ):
@@ -696,7 +696,7 @@ class TestImport:
 
     def test_raises_when_the_playlist_is_missing(self, mock_db, one_flac, stub_tags):
         with patch(
-            "rekordbox_edit.api.import_.find_playlists_by_name", return_value=[]
+            "rekordbox_edit.api._import.find_playlists_by_name", return_value=[]
         ):
             with pytest.raises(ValueError, match="No playlist named"):
                 import_tracks(
@@ -708,7 +708,7 @@ class TestImport:
     ):
         matches = [MagicMock(ID="1"), MagicMock(ID="2")]
         with patch(
-            "rekordbox_edit.api.import_.find_playlists_by_name", return_value=matches
+            "rekordbox_edit.api._import.find_playlists_by_name", return_value=matches
         ):
             with pytest.raises(ValueError, match="2 playlists named"):
                 import_tracks(mock_db, ImportRequest(paths=[one_flac], playlist="Dupe"))
@@ -724,7 +724,7 @@ class TestImport:
 
     def test_walks_a_directory_when_recurse_is_set(self, mock_db, tmp_path, stub_tags):
         (tmp_path / "a.flac").write_bytes(b"")
-        with patch("rekordbox_edit.api.import_.find_content_by_key", return_value={}):
+        with patch("rekordbox_edit.api._import.find_content_by_key", return_value={}):
             response = import_tracks(
                 mock_db,
                 ImportRequest(paths=[str(tmp_path)], recurse=True),
@@ -742,7 +742,7 @@ class TestImport:
         track.write_bytes(b"")
         monkeypatch.chdir(tmp_path)
 
-        with patch("rekordbox_edit.api.import_.find_content_by_key", return_value={}):
+        with patch("rekordbox_edit.api._import.find_content_by_key", return_value={}):
             response = import_tracks(
                 mock_db,
                 ImportRequest(paths=[str(track), "a.flac"]),
@@ -764,7 +764,7 @@ class TestImport:
         link = tmp_path / "link.flac"
         link.symlink_to(track)
 
-        with patch("rekordbox_edit.api.import_.find_content_by_key", return_value={}):
+        with patch("rekordbox_edit.api._import.find_content_by_key", return_value={}):
             response = import_tracks(
                 mock_db,
                 ImportRequest(paths=[str(track), str(link)]),
@@ -785,12 +785,12 @@ class TestImport:
 
         with (
             patch(
-                "rekordbox_edit.api.import_.find_playlists_by_name",
+                "rekordbox_edit.api._import.find_playlists_by_name",
                 return_value=[playlist],
             ),
-            patch("rekordbox_edit.api.import_.find_content_by_key", return_value={}),
+            patch("rekordbox_edit.api._import.find_content_by_key", return_value={}),
             patch(
-                "rekordbox_edit.api.import_._build_content", return_value=content
+                "rekordbox_edit.api._import._build_content", return_value=content
             ) as builder,
         ):
             response = import_tracks(
@@ -811,14 +811,14 @@ class TestImport:
 
         with (
             patch(
-                "rekordbox_edit.api.import_.find_playlists_by_name",
+                "rekordbox_edit.api._import.find_playlists_by_name",
                 return_value=[playlist],
             ),
             patch(
-                "rekordbox_edit.api.import_.find_content_by_key",
+                "rekordbox_edit.api._import.find_content_by_key",
                 return_value={_ImportCandidate.of(one_flac).key: existing},
             ),
-            patch("rekordbox_edit.api.import_._build_content") as builder,
+            patch("rekordbox_edit.api._import._build_content") as builder,
         ):
             response = import_tracks(
                 mock_db, ImportRequest(paths=[one_flac], playlist="Crate")
@@ -844,14 +844,14 @@ class TestImport:
 
         with (
             patch(
-                "rekordbox_edit.api.import_.find_playlists_by_name",
+                "rekordbox_edit.api._import.find_playlists_by_name",
                 return_value=[playlist],
             ),
             patch(
-                "rekordbox_edit.api.import_.find_content_by_key",
+                "rekordbox_edit.api._import.find_content_by_key",
                 return_value={_ImportCandidate.of(one_flac).key: existing},
             ),
-            patch("rekordbox_edit.api.import_._build_content") as builder,
+            patch("rekordbox_edit.api._import._build_content") as builder,
         ):
             response = import_tracks(
                 mock_db, ImportRequest(paths=[one_flac], playlist="Crate")
@@ -875,11 +875,11 @@ class TestImport:
 
         with (
             patch(
-                "rekordbox_edit.api.import_.find_content_by_key",
+                "rekordbox_edit.api._import.find_content_by_key",
                 return_value={_ImportCandidate.of(one_flac).key: existing},
             ),
-            patch("rekordbox_edit.api.import_.find_playlists_by_name") as find_pl,
-            patch("rekordbox_edit.api.import_._build_content") as builder,
+            patch("rekordbox_edit.api._import.find_playlists_by_name") as find_pl,
+            patch("rekordbox_edit.api._import._build_content") as builder,
         ):
             response = import_tracks(
                 mock_db, ImportRequest(paths=[one_flac], playlist="")
@@ -905,9 +905,9 @@ class TestImport:
         built = make_djmd_content_item(ID="1")
 
         with (
-            patch("rekordbox_edit.api.import_.find_content_by_key", return_value={}),
+            patch("rekordbox_edit.api._import.find_content_by_key", return_value={}),
             patch(
-                "rekordbox_edit.api.import_._build_content",
+                "rekordbox_edit.api._import._build_content",
                 side_effect=[built, RuntimeError("db exploded")],
             ),
             caplog.at_level("ERROR"),
@@ -938,7 +938,7 @@ class TestImportFromApprovedOps:
             )
         ]
 
-        with patch("rekordbox_edit.api.import_.find_content_by_key", return_value={}):
+        with patch("rekordbox_edit.api._import.find_content_by_key", return_value={}):
             response = import_tracks(
                 mock_db,
                 ImportRequest(paths=[str(crate)], recurse=True),
@@ -955,7 +955,7 @@ class TestImportFromApprovedOps:
         op_track = make_track(ID="")
         approved = [ImportOp(id="", path=gone, action="create", track=op_track)]
 
-        with patch("rekordbox_edit.api.import_.find_content_by_key", return_value={}):
+        with patch("rekordbox_edit.api._import.find_content_by_key", return_value={}):
             response = import_tracks(
                 mock_db, ImportRequest(paths=[gone]), dry_run=True, ops=approved
             )
@@ -979,7 +979,7 @@ class TestImportFromApprovedOps:
             )
         ]
 
-        with patch("rekordbox_edit.api.import_.find_content_by_key", return_value={}):
+        with patch("rekordbox_edit.api._import.find_content_by_key", return_value={}):
             response = import_tracks(
                 mock_db,
                 ImportRequest(paths=[str(crate)]),
