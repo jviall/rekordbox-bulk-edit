@@ -1,0 +1,9 @@
+file                                written  in file  ok?
+_aiff.aiff                           RB0001   RB0001  yes
+_wav.wav                             RB0002   RB0002  yes
+Wave Alpha.flac                      RB0003   RB0003  yes
+High Quality.mp3                     RB0004   RB0004  yes
+Variable Rate.mp3                    RB0005   RB0005  yes
+
+read with: /Users/jamesviall/.local/pipx/venvs/beets/bin/python
+all formats round-tripped: True

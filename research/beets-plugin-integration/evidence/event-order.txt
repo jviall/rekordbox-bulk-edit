@@ -1,0 +1,69 @@
+
+=== import -A (exit 0) ===
+    1. pluginload           
+    2. library_opened       lib=Library
+    3. import_begin         session=TerminalImportSession
+    4. import_task_created  session=TerminalImportSession task=ImportTask(n=2)
+    5. database_change      lib=Library model=Album(id=1)
+    6. database_change      lib=Library model=Item(id=1)
+    7. database_change      lib=Library model=Item(id=2)
+    8. write                item=Item(id=1) path=00 Wave Alpha.mp3 tags=dict
+    9. write                item=Item(id=2) path=00 Wave Beta.mp3 tags=dict
+   10. after_write          item=Item(id=1) path=00 Wave Alpha.mp3
+   11. after_convert        dest=00 Wave Alpha.mp3 item=Item(id=1) keepnew=bool
+   12. after_write          item=Item(id=2) path=00 Wave Beta.mp3
+   13. after_convert        dest=00 Wave Beta.mp3 item=Item(id=2) keepnew=bool
+   14. item_copied          destination=00 Wave Alpha.flac item=Item(id=1) source=01-flac-44_1k-16b.flac
+   15. database_change      lib=Library model=Item(id=1)
+   16. database_change      lib=Library model=Album(id=1)
+   17. item_copied          destination=00 Wave Beta.flac item=Item(id=2) source=02-flac-96k-24b.flac
+   18. database_change      lib=Library model=Item(id=2)
+   19. database_change      lib=Library model=Album(id=1)
+   20. database_change      lib=Library model=Item(id=1)
+   21. database_change      lib=Library model=Item(id=2)
+   22. import_task_files    session=TerminalImportSession task=ImportTask(n=2)
+   23. album_imported       album=Album(id=1) lib=Library
+   24. import               lib=Library paths=list
+   25. cli_exit             lib=Library
+  -- 25 events, 13 distinct
+
+=== reimport (beet import -L) (exit 0) ===
+    1. pluginload           
+    2. library_opened       lib=Library
+    3. import_begin         session=TerminalImportSession
+    4. import_task_created  session=TerminalImportSession task=ImportTask(n=2)
+    5. database_change      lib=Library model=Item(id=1)
+    6. item_removed         item=Item(id=1)
+    7. database_change      lib=Library model=Item(id=2)
+    8. database_change      lib=Library model=Album(id=1)
+    9. album_removed        album=Album(id=1)
+   10. item_removed         item=Item(id=2)
+   11. database_change      lib=Library model=Album(id=1)
+   12. database_change      lib=Library model=Item(id=1)
+   13. database_change      lib=Library model=Item(id=2)
+   14. database_change      lib=Library model=Album(id=1)
+   15. database_change      lib=Library model=Item(id=1)
+   16. database_change      lib=Library model=Item(id=2)
+   17. database_change      lib=Library model=Item(id=1)
+   18. database_change      lib=Library model=Item(id=2)
+   19. write                item=Item(id=1) path=00 Wave Alpha.mp3 tags=dict
+   20. write                item=Item(id=2) path=00 Wave Beta.mp3 tags=dict
+   21. after_write          item=Item(id=1) path=00 Wave Alpha.mp3
+   22. after_convert        dest=00 Wave Alpha.mp3 item=Item(id=1) keepnew=bool
+   23. after_write          item=Item(id=2) path=00 Wave Beta.mp3
+   24. after_convert        dest=00 Wave Beta.mp3 item=Item(id=2) keepnew=bool
+   25. before_item_moved    destination=00 Wave Alpha.flac item=Item(id=1) source=00 Wave Alpha.flac
+   26. item_moved           destination=00 Wave Alpha.flac item=Item(id=1) source=00 Wave Alpha.flac
+   27. database_change      lib=Library model=Item(id=1)
+   28. database_change      lib=Library model=Album(id=1)
+   29. before_item_moved    destination=00 Wave Beta.flac item=Item(id=2) source=00 Wave Beta.flac
+   30. item_moved           destination=00 Wave Beta.flac item=Item(id=2) source=00 Wave Beta.flac
+   31. database_change      lib=Library model=Item(id=2)
+   32. database_change      lib=Library model=Album(id=1)
+   33. database_change      lib=Library model=Item(id=1)
+   34. database_change      lib=Library model=Item(id=2)
+   35. import_task_files    session=TerminalImportSession task=ImportTask(n=2)
+   36. album_imported       album=Album(id=1) lib=Library
+   37. import               lib=Library paths=list
+   38. cli_exit             lib=Library
+  -- 38 events, 16 distinct

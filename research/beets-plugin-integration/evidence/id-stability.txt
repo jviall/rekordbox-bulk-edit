@@ -1,0 +1,7 @@
+path (basename)                           id before  id after  same?
+Wave Alpha.flac                                   1         4 NO
+Wave Beta.flac                                    2         5 NO
+High Quality.mp3                                  3         6 NO
+
+paths preserved: True
+ids changed:     3 of 3

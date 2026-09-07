@@ -1,0 +1,11 @@
+$ uv run scripts/file_level_encode.py tests/e2e/fixtures/audio/{01-flac-44_1k-16b.flac,02-flac-96k-24b.flac,06-wav-96k-24b.wav}
+
+01-flac-44_1k-16b.flac (codec=flac 44100Hz 16bit)
+  declared type    encoded: 01-flac-44_1k-16b.aiff codec=pcm_s16be 44100Hz 16bit lossless=True bytes=176590
+  file_type=None   skipped: codec_mismatch
+02-flac-96k-24b.flac (codec=flac 96000Hz 24bit)
+  declared type    encoded: 02-flac-96k-24b.aiff codec=pcm_s16be 44100Hz 16bit lossless=False bytes=176588
+  file_type=None   skipped: codec_mismatch
+06-wav-96k-24b.wav (codec=pcm_s24le 96000Hz 24bit)
+  declared type    encoded: 06-wav-96k-24b.aiff codec=pcm_s16be 44100Hz 16bit lossless=False bytes=176594
+  file_type=None   skipped: codec_mismatch
