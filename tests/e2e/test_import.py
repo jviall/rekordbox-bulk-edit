@@ -13,16 +13,14 @@ while keeping the real embedded tags this research is grounded in.
 """
 
 import shutil
-import subprocess
 from pathlib import Path
-from typing import Protocol
 
 import pytest
 from pyrekordbox import Rekordbox6Database
 from pyrekordbox.db6 import tables as tb
 
 from rekordbox_edit.query import normalize_path
-from tests.e2e.conftest import AUDIO_DIR
+from tests.e2e.conftest import AUDIO_DIR, CliRun
 
 pytestmark = pytest.mark.e2e
 
@@ -64,44 +62,6 @@ EXPECTED_ZERO = ("SampleRate", "BitRate", "BitDepth", "BPM", "Analysed")
 
 
 @pytest.fixture
-def fresh_db(_db_source: Path, tmp_path: Path) -> Path:
-    """A private copy of the fixture DB, isolated from the ordered journey
-    suite and from every other test in this file."""
-    dst = tmp_path / _db_source.name
-    shutil.copy(_db_source, dst)
-    return dst
-
-
-class Rbe(Protocol):
-    def __call__(
-        self, command: str, *args: str
-    ) -> subprocess.CompletedProcess[str]: ...
-
-
-@pytest.fixture
-def rbe(fresh_db: Path) -> Rbe:
-    """Invoke the installed CLI against this test's private DB copy."""
-
-    def _run(command: str, *args: str) -> subprocess.CompletedProcess[str]:
-        return subprocess.run(
-            [
-                "uv",
-                "run",
-                "rekordbox-edit",
-                command,
-                "--database-path",
-                str(fresh_db),
-                *args,
-            ],
-            capture_output=True,
-            check=False,
-            encoding="utf-8",
-        )
-
-    return _run
-
-
-@pytest.fixture
 def staged_track(tmp_path: Path):
     """Copy a named audio fixture to a path the DB fixture has never
     recorded, so `import` always takes the create path."""
@@ -116,7 +76,7 @@ def staged_track(tmp_path: Path):
 
 
 def test_imported_row_matches_the_rekordbox_import_shape(
-    rbe: Rbe, fresh_db: Path, staged_track
+    rbe: CliRun, fresh_db: Path, staged_track
 ):
     """Import one fixture file and check the row column by column."""
     track = staged_track("01-flac-44_1k-16b.flac")
@@ -151,7 +111,7 @@ def test_imported_row_matches_the_rekordbox_import_shape(
 
 
 def test_adding_the_same_file_twice_creates_one_row(
-    rbe: Rbe, fresh_db: Path, staged_track
+    rbe: CliRun, fresh_db: Path, staged_track
 ):
     track = staged_track("01-flac-44_1k-16b.flac")
     rbe("import", str(track), "--yes")
@@ -170,7 +130,7 @@ def test_adding_the_same_file_twice_creates_one_row(
 
 
 def test_untagged_file_falls_back_to_the_filename_stem(
-    rbe: Rbe, fresh_db: Path, staged_track
+    rbe: CliRun, fresh_db: Path, staged_track
 ):
     # The AIFF fixture carries no tags at all.
     track = staged_track("05-aiff-44_1k-16b.aiff")

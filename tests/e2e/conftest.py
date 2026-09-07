@@ -11,6 +11,7 @@ import subprocess
 import sys
 from collections.abc import Callable, Iterator
 from pathlib import Path
+from typing import Protocol
 
 import pytest
 from syrupy.extensions.json import JSONSnapshotExtension
@@ -108,36 +109,68 @@ def staged_audio(_e2e_preconditions: None) -> Iterator[Path]:
     yield STAGED_AUDIO_DIR
 
 
-CliRun = Callable[..., subprocess.CompletedProcess[str]]
-
-
-@pytest.fixture
-def cli(db_path: Path) -> CliRun:
-    """Invoke the installed `rekordbox-edit` CLI against the mutable fixture DB.
+class CliRun(Protocol):
+    """Invoke the installed `rekordbox-edit` CLI against a fixture DB copy.
 
     Usage:
         result = cli("search", "--print", "json")
         result = cli("edit", "Title", "--replace", "X", "--yes", stdin="<ids>")
     """
 
+    def __call__(
+        self, command: str, *args: str, stdin: str | None = None
+    ) -> subprocess.CompletedProcess[str]: ...
+
+
+def _run_cli(
+    db_path: Path, command: str, *args: str, stdin: str | None = None
+) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        [
+            "uv",
+            "run",
+            "rekordbox-edit",
+            command,
+            "--database-path",
+            str(db_path),
+            *args,
+        ],
+        input=stdin,
+        capture_output=True,
+        check=False,
+        encoding="utf-8",
+    )
+
+
+@pytest.fixture
+def cli(db_path: Path) -> CliRun:
+    """Drive the CLI against the session-wide mutable copy the journey mutates."""
+
     def _run(
         command: str, *args: str, stdin: str | None = None
     ) -> subprocess.CompletedProcess[str]:
-        return subprocess.run(
-            [
-                "uv",
-                "run",
-                "rekordbox-edit",
-                command,
-                "--database-path",
-                str(db_path),
-                *args,
-            ],
-            input=stdin,
-            capture_output=True,
-            check=False,
-            encoding="utf-8",
-        )
+        return _run_cli(db_path, command, *args, stdin=stdin)
+
+    return _run
+
+
+@pytest.fixture
+def fresh_db(_db_source: Path, tmp_path: Path) -> Path:
+    """A private copy of the fixture DB, isolated from the ordered journey
+    suite and from every other test using it."""
+    dst = tmp_path / _db_source.name
+    shutil.copy(_db_source, dst)
+    return dst
+
+
+@pytest.fixture
+def rbe(fresh_db: Path) -> CliRun:
+    """Drive the CLI against this test's private DB copy."""
+
+    def _run(
+        command: str, *args: str, stdin: str | None = None
+    ) -> subprocess.CompletedProcess[str]:
+        return _run_cli(fresh_db, command, *args, stdin=stdin)
 
     return _run
 
