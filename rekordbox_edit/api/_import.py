@@ -9,6 +9,7 @@ from typing import NamedTuple, cast
 from pyrekordbox import Rekordbox6Database
 from pyrekordbox.db6 import tables as tb
 
+from rekordbox_edit.api._relations import find_by_name, get_or_create
 from rekordbox_edit.api._utils import stamp_usns, track_from_content, writing
 from rekordbox_edit.errors import (
     DirectoryConfirmationRequired,
@@ -162,56 +163,29 @@ IMPORT_DEFAULTS: dict[str, object] = {
 }
 
 
-def _get_or_create(db, table, name: str, factory, created: list | None = None):
-    """Reuse a row matching by name, else create one.
-
-    Same query shape as RelationalField._get_or_create in api/field_handlers.py,
-    generalized over a table and factory so one function covers all five
-    relational columns instead of a per-kind branch.
-
-    New rows are appended to `created` when given: add_content flushes,
-    which moves them out of session.new before they can be found again.
-    """
-    existing = db.session.query(table).filter_by(Name=name).order_by(table.ID).first()
-    if existing is not None:
-        return existing
-    row = factory(name)
-    if created is not None:
-        created.append(row)
-    return row
-
-
 def _resolve_relations(
     db: Rekordbox6Database, tags: TrackTags, created: list | None = None
 ) -> dict[str, str]:
     """Foreign keys for a track's tags, creating shared rows as needed.
 
     A tag that is absent yields no key, leaving the column at add_content's
-    default. KeyID is the exception: DjmdKey is a fixed table with no add_key
-    helper, so an unmatched key falls back to Rekordbox's '0' sentinel.
+    default. KeyID is the exception: DjmdKey is a closed table the tool must
+    not add to, so an unmatched key falls back to Rekordbox's '0' sentinel.
     """
-    session = require_session(db)
     relations: dict[str, str] = {}
-    for field, column, table, factory in (
-        ("artist", "ArtistID", tb.DjmdArtist, db.add_artist),
-        ("composer", "ComposerID", tb.DjmdArtist, db.add_artist),
-        ("album", "AlbumID", tb.DjmdAlbum, db.add_album),
-        ("genre", "GenreID", tb.DjmdGenre, db.add_genre),
-        ("label", "LabelID", tb.DjmdLabel, db.add_label),
+    for field, column, kind in (
+        ("artist", "ArtistID", "artist"),
+        ("composer", "ComposerID", "artist"),
+        ("album", "AlbumID", "album"),
+        ("genre", "GenreID", "genre"),
+        ("label", "LabelID", "label"),
     ):
         value = tags.get(field)
         if value:
-            relations[column] = _get_or_create(db, table, value, factory, created).ID
+            relations[column] = get_or_create(db, kind, value, created).ID
 
     key = tags.get("key")
-    row = (
-        session.query(tb.DjmdKey)
-        .filter_by(ScaleName=key)
-        .order_by(tb.DjmdKey.ID)
-        .first()
-        if key
-        else None
-    )
+    row = find_by_name(db, "key", key) if key else None
     relations["KeyID"] = row.ID if row else "0"
     return relations
 

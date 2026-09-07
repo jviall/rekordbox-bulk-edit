@@ -3,16 +3,14 @@
 import logging
 import os
 import shutil
-from collections.abc import Sequence
 from pathlib import Path
-from typing import Any, TypedDict
+from typing import TypedDict
 
 from pyrekordbox import Rekordbox6Database
 from pyrekordbox.db6 import tables as tb
-from sqlalchemy import or_
 
+from rekordbox_edit.api._relations import relatives_of, sweep_orphans
 from rekordbox_edit.api._utils import reserve_usns, track_from_content, writing
-from rekordbox_edit.api._field_handlers import _ARTIST_ROLE_COLUMNS
 from rekordbox_edit.models import (
     RemoveOp,
     RemoveRequest,
@@ -28,16 +26,6 @@ from rekordbox_edit.query import (
 
 _logger = logging.getLogger(__name__)
 
-#: The DjmdContent columns naming a track's relatives, by kind. A removal
-#: vacates every one of them. Key and colour are absent by design; see
-#: _SWEEPABLE.
-_RELATIVE_COLUMNS = {
-    "artist": ("ArtistID", "RemixerID", "OrgArtistID", "ComposerID", "Lyricist"),
-    "album": ("AlbumID",),
-    "genre": ("GenreID",),
-    "label": ("LabelID",),
-}
-
 
 def _content_child_tables() -> list[type[tb.Base]]:
     """Every mapped table that references a track by ContentID."""
@@ -49,87 +37,6 @@ def _content_child_tables() -> list[type[tb.Base]]:
         if "ContentID" in cls.__table__.columns:
             tables.append(cls)
     return tables
-
-
-#: The four kinds rekordbox collects at zero references, each mapped to the
-#: table holding the record and the DjmdContent column pointing at it.
-#:
-#: Key and colour are deliberately absent. DjmdKey is a closed enumeration of
-#: musical keys shared by hundreds of tracks and ColorID names a fixed
-#: palette, so collecting either would be wrong even at zero references. A
-#: caller that passes them is ignored rather than obeyed.
-_SWEEPABLE: dict[str, tuple[type[tb.Base], Any]] = {
-    "artist": (tb.DjmdArtist, tb.DjmdContent.ArtistID),
-    "album": (tb.DjmdAlbum, tb.DjmdContent.AlbumID),
-    "genre": (tb.DjmdGenre, tb.DjmdContent.GenreID),
-    "label": (tb.DjmdLabel, tb.DjmdContent.LabelID),
-}
-
-
-def _is_referenced(db: Rekordbox6Database, kind: str, record_id: str) -> bool:
-    """Whether anything still points at this record."""
-    session = require_session(db)
-    if kind == "artist":
-        in_content = (
-            session.query(tb.DjmdContent)
-            .filter(or_(*(col == record_id for col in _ARTIST_ROLE_COLUMNS)))
-            .first()
-        )
-        in_album = (
-            session.query(tb.DjmdAlbum)
-            .filter(tb.DjmdAlbum.AlbumArtistID == record_id)
-            .first()
-        )
-        return in_content is not None or in_album is not None
-    _, column = _SWEEPABLE[kind]
-    return session.query(tb.DjmdContent).filter(column == record_id).first() is not None
-
-
-def _sweep_orphans(db: Rekordbox6Database, relatives: dict[str, set[str]]) -> int:
-    """Delete every given relative nothing references, repeating to a fixpoint.
-
-    Rekordbox sweeps once, which leaks: collecting an orphaned album never
-    re-examines the artist that album's AlbumArtistID pointed at, leaving that
-    artist at zero references forever. Repeating the sweep until nothing new
-    becomes unreferenced closes that gap.
-
-    Kinds outside `_SWEEPABLE` are ignored, so passing a key or a colour id is
-    safe rather than a caller error.
-    """
-    session = require_session(db)
-    pending = {
-        kind: {i for i in ids if i not in (None, "")}
-        for kind, ids in relatives.items()
-        if kind in _SWEEPABLE
-    }
-    collected = 0
-
-    while pending:
-        cascaded: dict[str, set[str]] = {}
-        for kind, ids in pending.items():
-            table, _ = _SWEEPABLE[kind]
-            for record_id in ids:
-                if _is_referenced(db, kind, record_id):
-                    continue
-                row = session.query(table).filter_by(ID=record_id).first()
-                if row is None:
-                    continue
-                # An album's own AlbumArtistID may be the last reference
-                # holding that artist alive, so deleting the album can orphan
-                # it. That cascade is what the loop exists to catch.
-                album_artist_id = getattr(row, "AlbumArtistID", None)
-                if kind == "album" and album_artist_id:
-                    cascaded.setdefault("artist", set()).add(str(album_artist_id))
-                session.delete(row)
-                collected += 1
-                _logger.debug(f"collected orphaned {kind} id={record_id}")
-        # Load-bearing: the next pass queries for references, and an
-        # uncommitted delete must be visible to that query. This function
-        # runs inside a caller's transaction, so flush rather than commit.
-        session.flush()
-        pending = cascaded
-
-    return collected
 
 
 #: share/PIONEER/USBANLZ/<xxx>/<uuid> — the analysis directory sits exactly
@@ -299,23 +206,6 @@ def remove_artwork_files(db: Rekordbox6Database, image_path: str | None) -> None
     _rmdir_if_empty_under(share_dir, art_dir.parent)
 
 
-def _relatives_of(contents: Sequence[tb.DjmdContent]) -> dict[str, set[str]]:
-    """Collect the shared records the given tracks point at, by kind.
-
-    Read before the rows are deleted, because the foreign keys go with them.
-    Each id is a candidate for deletion rather than a record to delete: the
-    sweep keeps whichever ones something else still references.
-    """
-    relatives: dict[str, set[str]] = {kind: set() for kind in _RELATIVE_COLUMNS}
-    for content in contents:
-        for kind, columns in _RELATIVE_COLUMNS.items():
-            for column in columns:
-                value = getattr(content, column, None)
-                if value not in (None, ""):
-                    relatives[kind].add(str(value))
-    return relatives
-
-
 class _OnDiskArtifacts(TypedDict):
     """The paths a removed track leaves behind, read while its row still exists."""
 
@@ -424,7 +314,7 @@ def remove(
         }
         for c in contents
     ]
-    relatives = _relatives_of(contents)
+    relatives = relatives_of(contents)
 
     with writing(db, "remove"):
         session = require_session(db)
@@ -440,7 +330,7 @@ def remove(
             session.delete(content)
         session.flush()
 
-        deleted_relatives = _sweep_orphans(db, relatives)
+        deleted_relatives = sweep_orphans(db, relatives)
         # Every deleted row carries an rb_local_usn: the DjmdContent rows, the
         # child rows just deleted above, and the swept orphans. Deleted rows
         # cannot be stamped, but the counter must still move past all of them,

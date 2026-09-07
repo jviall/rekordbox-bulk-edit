@@ -11,8 +11,12 @@ import os
 
 from pyrekordbox import Rekordbox6Database
 from pyrekordbox.db6 import tables as tb
-from sqlalchemy import or_
 
+from rekordbox_edit.api._relations import (
+    RELATIONS,
+    delete_if_orphaned,
+    get_or_create,
+)
 from rekordbox_edit.api._utils import _sync_audio_columns, _update_anlz_paths
 from rekordbox_edit.errors import DependencyMissingError
 from rekordbox_edit.models import EditRequest, SkipReason
@@ -125,19 +129,9 @@ class RatingField(FieldHandler):
         content.Rating = star_rating_to_stored(int(new_value))
 
 
-# Every DjmdContent column pointing at a DjmdArtist row; an artist is orphaned
-# only when none of these, nor any album's AlbumArtistID, still reference it.
-_ARTIST_ROLE_COLUMNS = (
-    tb.DjmdContent.ArtistID,
-    tb.DjmdContent.RemixerID,
-    tb.DjmdContent.OrgArtistID,
-    tb.DjmdContent.ComposerID,
-    tb.DjmdContent.Lyricist,
-)
-
-
 class RelationalField(FieldHandler):
-    """Artist or album: a shared record reached through a foreign key.
+    """A shared record reached through a foreign key: artist, album, genre, or
+    label.
 
     Setting the value reuses an existing record with the same name or creates
     one, then repoints the track. A record left with no references is deleted,
@@ -162,58 +156,12 @@ class RelationalField(FieldHandler):
     def apply(self, db, content, new_value):
         old_id = getattr(content, self.fk_column)
         if new_value == "":
-            setattr(content, self.fk_column, "")
+            setattr(content, self.fk_column, RELATIONS[self.kind].empty_value)
         else:
-            record = self._get_or_create(db, new_value)
+            record = get_or_create(db, self.kind, new_value)
             setattr(content, self.fk_column, record.ID)
         db.session.flush()
-        self._delete_if_orphaned(db, old_id)
-
-    def _get_or_create(self, db, name):
-        if self.kind == "artist":
-            existing = (
-                db.session.query(tb.DjmdArtist)
-                .filter_by(Name=name)
-                .order_by(tb.DjmdArtist.ID)
-                .first()
-            )
-            return existing or db.add_artist(name)
-        existing = (
-            db.session.query(tb.DjmdAlbum)
-            .filter_by(Name=name)
-            .order_by(tb.DjmdAlbum.ID)
-            .first()
-        )
-        return existing or db.add_album(name)
-
-    def _delete_if_orphaned(self, db, old_id):
-        if old_id in (None, ""):
-            return
-        if self.kind == "artist":
-            in_content = (
-                db.session.query(tb.DjmdContent)
-                .filter(or_(*(col == old_id for col in _ARTIST_ROLE_COLUMNS)))
-                .first()
-            )
-            in_album = (
-                db.session.query(tb.DjmdAlbum)
-                .filter(tb.DjmdAlbum.AlbumArtistID == old_id)
-                .first()
-            )
-            if in_content is None and in_album is None:
-                row = db.get_artist(ID=old_id)
-                if row is not None:
-                    db.delete(row)
-        else:
-            in_content = (
-                db.session.query(tb.DjmdContent)
-                .filter(tb.DjmdContent.AlbumID == old_id)
-                .first()
-            )
-            if in_content is None:
-                row = db.get_album(ID=old_id)
-                if row is not None:
-                    db.delete(row)
+        delete_if_orphaned(db, self.kind, old_id)
 
 
 class FolderPathField(FieldHandler):
