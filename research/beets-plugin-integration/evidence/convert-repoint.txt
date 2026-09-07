@@ -1,0 +1,59 @@
+$ scripts/convert_repoint.py tests/e2e/fixtures/audio/{01-flac-44_1k-16b.flac,02-flac-96k-24b.flac}
+
+── imported as singletons ────────────────────────────────────────
+
+Wave Alpha.flac
+  before                 id=1   format=FLAC   bitrate=96592   samplerate=44100 length=2.00
+    rbe output path      Alpha/Wave Alpha.aiff
+    beets destination    Alpha/Wave Alpha.aiff
+    match (default)      True
+    beets destination    Alpha/FLAC/Wave Alpha.aiff  (paths keyed on $format)
+    match ($format)      False
+  after repoint          id=1   format=AIFF   bitrate=705600  samplerate=44100 length=2.00
+    path                 Alpha/Wave Alpha.aiff
+    flexattr preserved   True
+    db-only comments     ''
+
+Wave Beta.flac
+  before                 id=2   format=FLAC   bitrate=818588  samplerate=96000 length=2.00
+    rbe output path      Beta/Wave Beta.aiff
+    beets destination    Beta/Wave Beta.aiff
+    match (default)      True
+    beets destination    Beta/FLAC/Wave Beta.aiff  (paths keyed on $format)
+    match ($format)      False
+  added item             id=3   format=AIFF   bitrate=705600  samplerate=44100 length=2.00
+    path                 Beta/Wave Beta.aiff
+    album_id             None (original's is None)
+    original still there True, id=2
+
+items in library: 3
+
+$ scripts/convert_repoint.py --albums tests/e2e/fixtures/audio/{01-flac-44_1k-16b.flac,02-flac-96k-24b.flac}
+
+── imported as an album ────────────────────────────────────────
+
+00 Wave Alpha.flac
+  before                 id=1   format=FLAC   bitrate=96592   samplerate=44100 length=2.00
+    rbe output path      Compilations/Lossless Vol 1/00 Wave Alpha.aiff
+    beets destination    Compilations/Lossless Vol 1/00 Wave Alpha.aiff
+    match (default)      True
+    beets destination    Alpha/FLAC/Wave Alpha.aiff  (paths keyed on $format)
+    match ($format)      False
+  after repoint          id=1   format=AIFF   bitrate=705600  samplerate=44100 length=2.00
+    path                 Compilations/Lossless Vol 1/00 Wave Alpha.aiff
+    flexattr preserved   True
+    db-only comments     ''
+
+00 Wave Beta.flac
+  before                 id=2   format=FLAC   bitrate=818588  samplerate=96000 length=2.00
+    rbe output path      Compilations/Lossless Vol 1/00 Wave Beta.aiff
+    beets destination    Compilations/Lossless Vol 1/00 Wave Beta.aiff
+    match (default)      True
+    beets destination    Beta/FLAC/Wave Beta.aiff  (paths keyed on $format)
+    match ($format)      False
+  added item             id=3   format=AIFF   bitrate=705600  samplerate=44100 length=2.00
+    path                 Compilations/Lossless Vol 1/00 Wave Beta.aiff
+    album_id             None (original's is 1)
+    original still there True, id=2
+
+items in library: 3
