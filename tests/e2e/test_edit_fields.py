@@ -18,15 +18,8 @@ from rekordbox_edit.models import EditRequest
 pytestmark = pytest.mark.e2e
 
 
-@pytest.fixture
-def fresh_db(_db_source, tmp_path):
-    dst = tmp_path / _db_source.name
-    shutil.copy(_db_source, dst)
-    return str(dst)
-
-
 def test_artist_reuse_deletes_orphan(fresh_db):
-    db = Rekordbox6Database(fresh_db)
+    db = Rekordbox6Database(str(fresh_db))
     assert db.session is not None
     before = db.session.query(tb.DjmdArtist).count()
 
@@ -46,7 +39,7 @@ def test_artist_reuse_deletes_orphan(fresh_db):
 
 
 def test_artist_reassign_keeps_shared_artist(fresh_db):
-    db = Rekordbox6Database(fresh_db)
+    db = Rekordbox6Database(str(fresh_db))
     assert db.session is not None
     before = db.session.query(tb.DjmdArtist).count()
 
@@ -66,7 +59,7 @@ def test_artist_reassign_keeps_shared_artist(fresh_db):
 
 
 def test_album_reuse_deletes_orphan_and_keeps_album_artist(fresh_db):
-    db = Rekordbox6Database(fresh_db)
+    db = Rekordbox6Database(str(fresh_db))
     assert db.session is not None
     before = db.session.query(tb.DjmdAlbum).count()
     target = db.session.query(tb.DjmdAlbum).filter_by(Name="Lossless Vol 1").first()
@@ -95,7 +88,7 @@ def test_album_reuse_deletes_orphan_and_keeps_album_artist(fresh_db):
 
 
 def test_album_create_new_has_no_album_artist(fresh_db):
-    db = Rekordbox6Database(fresh_db)
+    db = Rekordbox6Database(str(fresh_db))
     assert db.session is not None
 
     # Apple Alpha shares "Apple Lossless" with Apple Beta, so nothing orphans.
@@ -118,7 +111,7 @@ def test_album_create_new_has_no_album_artist(fresh_db):
 
 
 def test_rating_written_as_stored_value(fresh_db):
-    db = Rekordbox6Database(fresh_db)
+    db = Rekordbox6Database(str(fresh_db))
     assert db.session is not None
     edit(
         db, EditRequest(exact_title=["Apple Alpha"], field="Rating", replace_value="4")
@@ -133,7 +126,7 @@ def test_folderpath_relocation_updates_paths_only(fresh_db, staged_audio, tmp_pa
     new_dir.mkdir()
     shutil.copy(staged_audio / "01-flac-44_1k-16b.flac", new_dir)
 
-    db = Rekordbox6Database(fresh_db)
+    db = Rekordbox6Database(str(fresh_db))
     assert db.session is not None
     before = db.session.query(tb.DjmdContent).filter_by(Title="Wave Alpha").one()
     old_size, old_type, old_rate = before.FileSize, before.FileType, before.SampleRate
@@ -161,7 +154,7 @@ def test_folderpath_relocation_updates_paths_only(fresh_db, staged_audio, tmp_pa
 def test_folderpath_repoint_syncs_metadata(fresh_db, staged_audio):
     target = staged_audio / "05-aiff-44_1k-16b.aiff"
 
-    db = Rekordbox6Database(fresh_db)
+    db = Rekordbox6Database(str(fresh_db))
     assert db.session is not None
 
     # Repoint the FLAC track "Wave Alpha" at a staged AIFF file.
@@ -186,7 +179,7 @@ def test_folderpath_repoint_syncs_metadata(fresh_db, staged_audio):
 
 
 def test_folderpath_missing_file_skips_track(fresh_db):
-    db = Rekordbox6Database(fresh_db)
+    db = Rekordbox6Database(str(fresh_db))
     assert db.session is not None
     before = db.session.query(tb.DjmdContent).filter_by(Title="Wave Alpha").one()
     old_path = before.FolderPath
