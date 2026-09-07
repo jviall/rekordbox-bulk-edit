@@ -2,6 +2,7 @@ from typing import get_args
 from unittest.mock import MagicMock, patch
 
 import pytest
+from pyrekordbox.db6 import tables as tb
 
 from rekordbox_edit.api._field_handlers import (
     FIELD_HANDLERS,
@@ -9,6 +10,7 @@ from rekordbox_edit.api._field_handlers import (
     RelationalField,
     StringField,
 )
+from rekordbox_edit.api._relations import RELATIONS, find_by_name, get_or_create
 from rekordbox_edit.errors import DependencyMissingError
 from rekordbox_edit.models import EditRequest, SkipReason
 
@@ -55,10 +57,6 @@ class TestStringField:
         assert content.Title == "New"
 
 
-def _album_handler():
-    return RelationalField("AlbumName", "AlbumID", "AlbumName", "album")
-
-
 class TestCommentField:
     def test_registered_over_commnt_column(self):
         handler = FIELD_HANDLERS["Comment"]
@@ -89,93 +87,6 @@ class TestRelationalArtist:
     def test_compute_plain_replace(self):
         args = EditRequest(title=["x"], field="ArtistName", replace_value="Alpha")
         assert _artist_handler().compute_new_value("Gamma", args) == "Alpha"
-
-    def test_apply_reuses_existing_artist_and_deletes_orphan(
-        self, make_djmd_content_item
-    ):
-        content = make_djmd_content_item(ID="1", ArtistName="Gamma", ArtistID="G")
-        db = MagicMock()
-        existing = MagicMock(ID="A")
-        # get-or-create finds the existing artist by name.
-        db.session.query.return_value.filter_by.return_value.order_by.return_value.first.return_value = existing
-        # orphan check: vacated artist "G" is referenced nowhere.
-        db.session.query.return_value.filter.return_value.first.return_value = None
-        old_row = MagicMock()
-        db.get_artist.return_value = old_row
-
-        _artist_handler().apply(db, content, "Alpha")
-
-        assert content.ArtistID == "A"
-        db.add_artist.assert_not_called()
-        db.delete.assert_called_once_with(old_row)
-
-    def test_apply_creates_artist_when_absent(self, make_djmd_content_item):
-        content = make_djmd_content_item(ID="1", ArtistName="Gamma", ArtistID="G")
-        db = MagicMock()
-        db.session.query.return_value.filter_by.return_value.order_by.return_value.first.return_value = None
-        db.add_artist.return_value = MagicMock(ID="NEW")
-        db.session.query.return_value.filter.return_value.first.return_value = None
-        db.get_artist.return_value = MagicMock()
-
-        _artist_handler().apply(db, content, "Brand New")
-
-        db.add_artist.assert_called_once_with("Brand New")
-        assert content.ArtistID == "NEW"
-
-    def test_apply_keeps_artist_still_referenced(self, make_djmd_content_item):
-        content = make_djmd_content_item(ID="1", ArtistName="Alpha", ArtistID="A")
-        db = MagicMock()
-        db.session.query.return_value.filter_by.return_value.order_by.return_value.first.return_value = MagicMock(
-            ID="B"
-        )
-        # orphan check: vacated artist "A" still referenced by another row.
-        db.session.query.return_value.filter.return_value.first.return_value = (
-            MagicMock()
-        )
-
-        _artist_handler().apply(db, content, "Beta")
-
-        db.delete.assert_not_called()
-
-    def test_apply_clear_sets_empty_fk(self, make_djmd_content_item):
-        content = make_djmd_content_item(ID="1", ArtistName="Gamma", ArtistID="G")
-        db = MagicMock()
-        db.session.query.return_value.filter.return_value.first.return_value = None
-        db.get_artist.return_value = MagicMock()
-
-        _artist_handler().apply(db, content, "")
-
-        assert content.ArtistID == ""
-        db.add_artist.assert_not_called()
-
-    def test_apply_skips_orphan_check_when_no_previous_artist(
-        self, make_djmd_content_item
-    ):
-        content = make_djmd_content_item(ID="1", ArtistName="Gamma", ArtistID=None)
-        db = MagicMock()
-        db.session.query.return_value.filter_by.return_value.order_by.return_value.first.return_value = None
-        db.add_artist.return_value = MagicMock(ID="NEW")
-
-        _artist_handler().apply(db, content, "Brand New")
-
-        db.get_artist.assert_not_called()
-        db.delete.assert_not_called()
-
-    def test_apply_orphan_check_handles_missing_artist_row(
-        self, make_djmd_content_item
-    ):
-        content = make_djmd_content_item(ID="1", ArtistName="Gamma", ArtistID="G")
-        db = MagicMock()
-        existing = MagicMock(ID="A")
-        db.session.query.return_value.filter_by.return_value.order_by.return_value.first.return_value = existing
-        # orphan check: vacated artist "G" is referenced nowhere, but its row
-        # is already gone (e.g. deleted out-of-band).
-        db.session.query.return_value.filter.return_value.first.return_value = None
-        db.get_artist.return_value = None
-
-        _artist_handler().apply(db, content, "Alpha")
-
-        db.delete.assert_not_called()
 
 
 class TestRatingField:
@@ -210,85 +121,122 @@ class TestRatingField:
         assert content.Rating == 204
 
 
-class TestRelationalAlbum:
-    def test_apply_reuses_existing_album(self, make_djmd_content_item):
-        content = make_djmd_content_item(
-            ID="1", AlbumName="AIFF Sampler", AlbumID="OLD"
+#: Every relational field, as (edit field, foreign key column, relation kind).
+RELATIONAL_CASES = [
+    ("ArtistName", "ArtistID", "artist"),
+    ("AlbumName", "AlbumID", "album"),
+]
+
+
+@pytest.fixture
+def tracks(db):
+    """Two tracks from the fixture library, to test shared references."""
+    rows = db.session.query(tb.DjmdContent).order_by(tb.DjmdContent.ID).limit(2).all()
+    assert len(rows) == 2, "fixture library needs at least two tracks"
+    return rows
+
+
+def _point_at(db, content, fk_column, kind, name):
+    """Give the track a freshly created record of `kind` to sit on."""
+    record = get_or_create(db, kind, name)
+    db.session.flush()
+    setattr(content, fk_column, record.ID)
+    db.session.flush()
+    return record
+
+
+@pytest.mark.parametrize("field,fk_column,kind", RELATIONAL_CASES)
+class TestRelationalApply:
+    """Every relational field against the real database, since orphan
+    collection is a property of what the tables still reference."""
+
+    def test_reuses_an_existing_record(self, db, tracks, field, fk_column, kind):
+        content = tracks[0]
+        _point_at(db, content, fk_column, kind, "RBE Old")
+        target = get_or_create(db, kind, "RBE Reuse Target")
+        db.session.flush()
+
+        FIELD_HANDLERS[field].apply(db, content, "RBE Reuse Target")
+
+        assert str(getattr(content, fk_column)) == str(target.ID)
+        table = RELATIONS[kind].table
+        name_attr = RELATIONS[kind].name_attr
+        duplicates = (
+            db.session.query(table)
+            .filter(getattr(table, name_attr) == "RBE Reuse Target")
+            .count()
         )
-        db = MagicMock()
-        existing = MagicMock(ID="TARGET")
-        db.session.query.return_value.filter_by.return_value.order_by.return_value.first.return_value = existing
-        db.session.query.return_value.filter.return_value.first.return_value = None
-        db.get_album.return_value = MagicMock()
+        assert duplicates == 1
 
-        _album_handler().apply(db, content, "Lossless Vol 1")
+    def test_creates_a_record_when_the_name_is_new(
+        self, db, tracks, field, fk_column, kind
+    ):
+        content = tracks[0]
+        _point_at(db, content, fk_column, kind, "RBE Old")
 
-        # Reuse repoints the track and never creates a duplicate album. That the
-        # reused album's album-artist is left untouched is verified end-to-end in
-        # tests/e2e/test_edit_fields.py (a MagicMock cannot prove a non-write).
-        assert content.AlbumID == "TARGET"
-        db.add_album.assert_not_called()
+        FIELD_HANDLERS[field].apply(db, content, "RBE Brand New")
 
-    def test_apply_creates_album_without_album_artist(self, make_djmd_content_item):
-        content = make_djmd_content_item(ID="1", AlbumName="Old", AlbumID="OLD")
-        db = MagicMock()
-        db.session.query.return_value.filter_by.return_value.order_by.return_value.first.return_value = None
-        db.add_album.return_value = MagicMock(ID="NEW")
-        db.session.query.return_value.filter.return_value.first.return_value = None
-        db.get_album.return_value = MagicMock()
+        created = find_by_name(db, kind, "RBE Brand New")
+        assert str(getattr(content, fk_column)) == str(created.ID)
 
-        _album_handler().apply(db, content, "Brand New Album")
+    def test_collects_the_vacated_record(self, db, tracks, field, fk_column, kind):
+        content = tracks[0]
+        old = _point_at(db, content, fk_column, kind, "RBE Soon Orphaned")
+        old_id = old.ID
 
-        db.add_album.assert_called_once_with("Brand New Album")
-        assert content.AlbumID == "NEW"
+        FIELD_HANDLERS[field].apply(db, content, "RBE Somewhere Else")
 
-    def test_apply_deletes_orphaned_album(self, make_djmd_content_item):
-        content = make_djmd_content_item(
-            ID="1", AlbumName="AIFF Sampler", AlbumID="OLD"
-        )
-        db = MagicMock()
-        db.session.query.return_value.filter_by.return_value.order_by.return_value.first.return_value = MagicMock(
-            ID="TARGET"
-        )
-        db.session.query.return_value.filter.return_value.first.return_value = None
-        old_row = MagicMock()
-        db.get_album.return_value = old_row
+        table = RELATIONS[kind].table
+        assert db.session.query(table).filter_by(ID=old_id).first() is None
 
-        _album_handler().apply(db, content, "Lossless Vol 1")
+    def test_keeps_a_record_another_track_still_holds(
+        self, db, tracks, field, fk_column, kind
+    ):
+        content, sibling = tracks
+        shared = _point_at(db, content, fk_column, kind, "RBE Shared")
+        setattr(sibling, fk_column, shared.ID)
+        db.session.flush()
 
-        db.delete.assert_called_once_with(old_row)
+        FIELD_HANDLERS[field].apply(db, content, "RBE Somewhere Else")
 
-    def test_apply_orphan_check_handles_missing_album_row(self, make_djmd_content_item):
-        content = make_djmd_content_item(
-            ID="1", AlbumName="AIFF Sampler", AlbumID="OLD"
-        )
-        db = MagicMock()
-        db.session.query.return_value.filter_by.return_value.order_by.return_value.first.return_value = MagicMock(
-            ID="TARGET"
-        )
-        # orphan check: vacated album "OLD" is referenced nowhere, but its row
-        # is already gone (e.g. deleted out-of-band).
-        db.session.query.return_value.filter.return_value.first.return_value = None
-        db.get_album.return_value = None
+        table = RELATIONS[kind].table
+        assert db.session.query(table).filter_by(ID=shared.ID).first() is not None
 
-        _album_handler().apply(db, content, "Lossless Vol 1")
+    def test_leaves_other_tracks_on_the_shared_record(
+        self, db, tracks, field, fk_column, kind
+    ):
+        """Rekordbox reassigns the track rather than renaming the record every
+        other track shares."""
+        content, sibling = tracks
+        shared = _point_at(db, content, fk_column, kind, "RBE Shared")
+        setattr(sibling, fk_column, shared.ID)
+        db.session.flush()
 
-        db.delete.assert_not_called()
+        FIELD_HANDLERS[field].apply(db, content, "RBE Somewhere Else")
 
-    def test_apply_keeps_album_still_referenced(self, make_djmd_content_item):
-        content = make_djmd_content_item(ID="1", AlbumName="Old", AlbumID="OLD")
-        db = MagicMock()
-        db.session.query.return_value.filter_by.return_value.order_by.return_value.first.return_value = MagicMock(
-            ID="TARGET"
-        )
-        # orphan check: vacated album "OLD" still referenced by another row.
-        db.session.query.return_value.filter.return_value.first.return_value = (
-            MagicMock()
-        )
+        assert str(getattr(sibling, fk_column)) == str(shared.ID)
+        assert getattr(shared, RELATIONS[kind].name_attr) == "RBE Shared"
 
-        _album_handler().apply(db, content, "New Name")
+    def test_clearing_writes_the_empty_foreign_key(
+        self, db, tracks, field, fk_column, kind
+    ):
+        content = tracks[0]
+        _point_at(db, content, fk_column, kind, "RBE Soon Cleared")
 
-        db.delete.assert_not_called()
+        FIELD_HANDLERS[field].apply(db, content, "")
+
+        assert getattr(content, fk_column) == RELATIONS[kind].empty_value
+
+    def test_no_previous_record_collects_nothing(
+        self, db, tracks, field, fk_column, kind
+    ):
+        content = tracks[0]
+        setattr(content, fk_column, "")
+        db.session.flush()
+
+        FIELD_HANDLERS[field].apply(db, content, "RBE Fresh")
+
+        assert find_by_name(db, kind, "RBE Fresh") is not None
 
 
 def _folder_handler():
