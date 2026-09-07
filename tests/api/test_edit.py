@@ -1,9 +1,10 @@
 import pytest
+from pyrekordbox.db6 import tables as tb
 from unittest.mock import MagicMock, call, patch
 
 from rekordbox_edit.api._utils import track_from_content
 from rekordbox_edit.api._edit import _classify_edit, edit
-from rekordbox_edit.api._field_handlers import FIELD_HANDLERS
+from rekordbox_edit.api._field_handlers import FIELD_HANDLERS, NO_INCIDENTAL_ROWS
 from sqlalchemy import text
 
 from rekordbox_edit.query import require_session
@@ -23,6 +24,7 @@ def stub_handler(monkeypatch):
     handler.name = "Stub"
     handler.current_value.return_value = "Old"
     handler.compute_new_value.return_value = "New"
+    handler.apply.return_value = NO_INCIDENTAL_ROWS
     handler.validate_track.return_value = None
     monkeypatch.setitem(FIELD_HANDLERS, "Stub", handler)
     return handler
@@ -478,6 +480,53 @@ class TestEditStampsUsns:
         )
 
         assert session.execute(self._COUNTER).scalar() == start
+
+    @pytest.fixture
+    def lone_artist_track(self, db):
+        """A track holding the only reference to its artist, so moving it off
+        both creates a record and orphans one."""
+        session = require_session(db)
+        track = db.get_content().first()
+        artist = db.add_artist("RBE Lone Artist")
+        session.flush()
+        track.ArtistID = artist.ID
+        session.commit()
+        return track
+
+    def test_a_created_relation_row_gets_a_usn(self, db, lone_artist_track):
+        session = require_session(db)
+        start = session.execute(self._COUNTER).scalar()
+
+        edit(
+            db,
+            EditRequest(
+                field="ArtistName",
+                track_ids=[str(lone_artist_track.ID)],
+                replace_value="RBE Fresh Artist",
+            ),
+        )
+
+        created = session.query(tb.DjmdArtist).filter_by(Name="RBE Fresh Artist").one()
+        assert created.rb_local_usn is not None
+        assert created.rb_local_usn > start
+
+    def test_a_collected_orphan_still_moves_the_counter(self, db, lone_artist_track):
+        """A deleted row cannot carry a stamp, but a peer syncing from an
+        earlier USN still has to learn it is gone."""
+        session = require_session(db)
+        start = session.execute(self._COUNTER).scalar()
+
+        edit(
+            db,
+            EditRequest(
+                field="ArtistName",
+                track_ids=[str(lone_artist_track.ID)],
+                replace_value="RBE Fresh Artist",
+            ),
+        )
+
+        # The track, the artist row the edit created, and the one it collected.
+        assert session.execute(self._COUNTER).scalar() == start + 3
 
     def test_a_skipped_track_consumes_no_usn(self, db):
         session = require_session(db)

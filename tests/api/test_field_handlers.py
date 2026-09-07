@@ -222,6 +222,36 @@ class TestRelationalApply:
         assert str(getattr(sibling, fk_column)) == str(shared.ID)
         assert getattr(shared, RELATIONS[kind].name_attr) == "RBE Shared"
 
+    def test_reports_the_rows_it_created_and_collected(
+        self, db, tracks, field, fk_column, kind
+    ):
+        """The caller stamps what a write created and reserves a USN for what
+        it collected, so a handler has to say which rows those were."""
+        content = tracks[0]
+        _point_at(db, content, fk_column, kind, "RBE Soon Orphaned")
+
+        incidental = FIELD_HANDLERS[field].apply(db, content, "RBE Brand New")
+
+        assert [getattr(r, RELATIONS[kind].name_attr) for r in incidental.created] == [
+            "RBE Brand New"
+        ]
+        assert incidental.deleted == 1
+
+    def test_reports_nothing_when_it_reuses_and_orphans_nothing(
+        self, db, tracks, field, fk_column, kind
+    ):
+        content, sibling = tracks
+        shared = _point_at(db, content, fk_column, kind, "RBE Shared")
+        setattr(sibling, fk_column, shared.ID)
+        target = get_or_create(db, kind, "RBE Reuse Target")
+        db.session.flush()
+
+        incidental = FIELD_HANDLERS[field].apply(db, content, "RBE Reuse Target")
+
+        assert str(getattr(content, fk_column)) == str(target.ID)
+        assert incidental.created == ()
+        assert incidental.deleted == 0
+
     def test_clearing_writes_the_empty_foreign_key(
         self, db, tracks, field, fk_column, kind
     ):
