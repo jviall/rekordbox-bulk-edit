@@ -1,3 +1,97 @@
+## v0.12.0 (2026-09-07)
+
+
+- refactor(api)!: gather the public surface behind rekordbox_edit.api
+- The errors a command raises on purpose now all live in
+rekordbox_edit.errors, which docs/api.md documents as the error surface,
+rather than three of them hiding in modules that are now private.
+ConvertProgress appears in convert()'s signature, so the package
+re-exports it, and remove() joins the package's own re-exports.
+- The API reference gains a Progress section for ConvertProgress, moves
+Errors below what it serves, and renders each mkdocstrings block one
+level under its section heading instead of beside it.
+- BREAKING CHANGE: ConvertAborted, ImportInputError, and
+DirectoryConfirmationRequired import from rekordbox_edit.errors.
+- refactor(api): make every implementation module private
+- search, import_, and field_handlers were reachable as public modules,
+which put their internals — the module logger among them — in the
+documented API surface. The public surface is the five functions
+rekordbox_edit.api re-exports.
+- refactor: make each module's logger private
+- A module's logger was part of its public surface, and mkdocstrings
+documented it as such.
+- refactor(api): rename the submodules the re-exports shadowed
+- edit, convert, and remove each shared a name with the function
+api/__init__.py re-exports, which rebound the package attribute and left
+the module unreachable by attribute access or dotted string. Closes #212.
+- feat!: require at least one filter on write commands
+- An unfiltered edit, convert, or remove matched every track in the
+library, and with --yes it ran without a prompt. Closes #215.
+- BREAKING CHANGE: EditRequest, ConvertRequest, and RemoveRequest now
+reject a request with no selection filter.
+- chore(deps): update dependency ruff to v0.16.6 (#217)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+- feat: add the remove command
+- Deletes a track from the library: its DjmdContent row, every child row
+keyed by ContentID, its analysis and artwork files, and any artist,
+album, genre, or label the removal leaves unreferenced. The source audio
+file is kept unless --delete-source is passed, which unlinks it
+permanently rather than moving it to the trash.
+- Child tables are found by reflecting over the mapped metadata rather than
+from a list, which is how the two cloud-sync tables stay covered.
+- Two deliberate divergences from rekordbox, both recorded in
+research/remove-track-impact/decisions/remove-command-behavior.md: the
+orphan sweep repeats until nothing new becomes unreferenced, where
+rekordbox sweeps once and strands an artist; and the emptied artwork
+directory is removed, where rekordbox leaves it in place.
+- File deletion is guarded four ways. Empty AnalysisDataPath and ImagePath
+values are refused before any path resolves, since they resolve to the
+share root and the directory above it. Every path must resolve under the
+share directory, and each directory must sit at its expected depth, so a
+malformed column value cannot reach an ancestor tier. Artwork directories
+are removed with rmdir, so anything unexpected inside halts the cleanup.
+- The removal confirmation defaults to yes, matching edit and convert. The
+source-file prompt defaults to no and is answered up front by
+--delete-source, matching convert's --overwrite.
+- refactor(api): split USN reservation out of stamping
+- A deleted row cannot be stamped, but the library counter must still
+advance past it. `reserve_usns` claims a block without writing stamps;
+`stamp_usns` calls it and is otherwise unchanged.
+- refactor!: derive response tracks from the ops that carry them
+- Each op now carries the track it operated on, and the top-level `tracks`
+is derived from the ops rather than stored beside them. This removes the
+parallel arrays the CLI paired by index, and their alignment validators.
+- `tracks` means what a command actually did, so it is empty for a dry run;
+the ops carry the planned state. Each write result gains `dry_run`, which
+also lets a `--print json` consumer tell a dry run from a real one.
+- Fixes two cases where `tracks` reported the wrong rows: `import` never
+refreshed an op's track after commit, so `--print ids` returned empty IDs,
+and `edit` and `convert` snapshotted the row before mutating it, so they
+reported pre-write values.
+- BREAKING CHANGE: `result.skipped[].id` is replaced by
+`result.skipped[].track`. Read `.result.skipped[].track.ID` instead.
+`tracks` is empty for a dry run; read `result.edits[].track` and its
+equivalents for planned state.
+- docs(research): measure what rekordbox does when a track is removed
+- Six arms against ten purpose-built subjects in a rekordbox 7 library,
+covering the database rows, the analysis and artwork files, orphan
+collection, USN accounting, and when artwork is extracted. Records the
+decisions the remove command rests on, so none of them are inferred.
+- chore(deps): update pre-commit hook astral-sh/ruff-pre-commit to v0.16.6 (#218)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+- chore(deps): update dependency ty to v0.0.78 (#213)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+- chore(deps): update dependency filelock to v3.32.5 (#210)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+- chore(deps): update dependency pydantic to v2.13.5 (#208)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+- chore(deps): update dependency ty to v0.0.77 (#209)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+- chore(deps): update dependency platformdirs to v4.11.7 (#207)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+- chore(deps): update softprops/action-gh-release digest to efb3536 (#206)
+- Co-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+
 ## v0.11.0 (2026-09-02)
 
 
