@@ -8,6 +8,7 @@ own encoding or relational lookup.
 
 import logging
 import os
+from typing import NamedTuple
 
 from pyrekordbox import Rekordbox6Database
 from pyrekordbox.db6 import tables as tb
@@ -31,6 +32,22 @@ from rekordbox_edit.utils import (
 )
 
 _logger = logging.getLogger(__name__)
+
+
+class IncidentalRows(NamedTuple):
+    """Rows a write touched besides the track itself.
+
+    Rekordbox gives every row it writes a USN, so the caller stamps `created`
+    and reserves one USN per row in `deleted`, which no longer exists to carry
+    a stamp of its own.
+    """
+
+    created: tuple = ()
+    deleted: int = 0
+
+
+#: What a handler writing nothing but the track's own row returns.
+NO_INCIDENTAL_ROWS = IncidentalRows()
 
 
 class FieldHandler:
@@ -64,7 +81,9 @@ class FieldHandler:
         """New value as a string, or None to signal no change / skip."""
         raise NotImplementedError  # pragma: no cover
 
-    def apply(self, db: Rekordbox6Database, content, new_value: str) -> None:
+    def apply(self, db: Rekordbox6Database, content, new_value: str) -> IncidentalRows:
+        """Write the new value, returning the rows the write added or removed
+        alongside the track's own."""
         raise NotImplementedError  # pragma: no cover
 
     def post_commit(
@@ -104,6 +123,7 @@ class StringField(FieldHandler):
 
     def apply(self, db, content, new_value):
         setattr(content, self.column, new_value)
+        return NO_INCIDENTAL_ROWS
 
 
 class RatingField(FieldHandler):
@@ -128,6 +148,7 @@ class RatingField(FieldHandler):
 
     def apply(self, db, content, new_value):
         content.Rating = star_rating_to_stored(int(new_value))
+        return NO_INCIDENTAL_ROWS
 
 
 class IntegerField(FieldHandler):
@@ -170,6 +191,7 @@ class IntegerField(FieldHandler):
 
     def apply(self, db, content, new_value):
         setattr(content, self.column, int(new_value))
+        return NO_INCIDENTAL_ROWS
 
 
 class RelationalField(FieldHandler):
@@ -198,13 +220,15 @@ class RelationalField(FieldHandler):
 
     def apply(self, db, content, new_value):
         old_id = getattr(content, self.fk_column)
+        created: list = []
         if new_value == "":
             setattr(content, self.fk_column, RELATIONS[self.kind].empty_value)
         else:
-            record = get_or_create(db, self.kind, new_value)
+            record = get_or_create(db, self.kind, new_value, created)
             setattr(content, self.fk_column, record.ID)
         db.session.flush()
-        delete_if_orphaned(db, self.kind, old_id)
+        collected = delete_if_orphaned(db, self.kind, old_id)
+        return IncidentalRows(tuple(created), collected)
 
 
 class FolderPathField(FieldHandler):
@@ -295,6 +319,12 @@ class FolderPathField(FieldHandler):
             content.OrgFolderPath = new_value
         content.FolderPath = new_value
         content.FileNameL = new_value.rsplit("/", 1)[-1]
+        self._sync_from_file(content, new_value)
+        return NO_INCIDENTAL_ROWS
+
+    def _sync_from_file(self, content, new_value) -> None:
+        """Rewrite the columns describing the audio file, when there is a
+        changed file to read them from."""
         if not os.path.exists(new_value):
             return
         file_size = os.path.getsize(new_value)

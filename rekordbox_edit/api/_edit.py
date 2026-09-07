@@ -5,6 +5,7 @@ import logging
 from pyrekordbox import Rekordbox6Database
 
 from rekordbox_edit.api._utils import (
+    reserve_usns,
     stamp_usns,
     track_from_content,
     writing,
@@ -141,12 +142,19 @@ def edit(
     old_values: dict[str, str | None] = {}
     edited = []
     with writing(db, "edit"):
+        # Shared records the edit creates or collects along the way each take a
+        # USN too, the same as the tracks themselves.
+        created: list = []
+        collected = 0
         for content in contents:
             if str(content.ID) in new_values:
                 old_values[str(content.ID)] = handler.current_value(content)
-                handler.apply(db, content, new_values[str(content.ID)])
+                incidental = handler.apply(db, content, new_values[str(content.ID)])
+                created.extend(incidental.created)
+                collected += incidental.deleted
                 edited.append(content)
-        stamp_usns(db, edited)
+        stamp_usns(db, [*edited, *created])
+        reserve_usns(db, collected)
         db.session.commit()
         _logger.debug(f"edit committed {len(ops)} change(s) on field={args.field}")
 
