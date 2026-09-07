@@ -6,7 +6,33 @@ Bulk-edit a metadata field on tracks in your Rekordbox database.
 rbe edit [OPTIONS] [TRACK-IDS]... FIELD
 ```
 
-`FIELD` specifies the [DjmdContent](https://pyrekordbox.readthedocs.io/en/latest/formats/db6.html#djmdcontent) column to change. The editable fields are `Title`, `Comment`, `ArtistName`, `AlbumName`, `Rating`, and `FolderPath`.
+`FIELD` specifies the [DjmdContent](https://pyrekordbox.readthedocs.io/en/latest/formats/db6.html#djmdcontent) column to change:
+
+| Field | What it changes |
+| --- | --- |
+| `Title` | The track title. |
+| `Comment` | The comment column (`Commnt`). |
+| `ArtistName` | The artist, through the shared `DjmdArtist` record. |
+| `AlbumName` | The album, through the shared `DjmdAlbum` record. |
+| `ComposerName` | The composer, which shares the `DjmdArtist` table with the artist. |
+| `Genre` | The genre, through the shared `DjmdGenre` record. |
+| `Label` | The record label, through the shared `DjmdLabel` record. |
+| `ISRC` | The recording's ISRC. |
+| `TrackNo` | The track number. |
+| `DiscNo` | The disc number. |
+| `ReleaseYear` | The release year. `ReleaseDate` is left as it is. |
+| `Rating` | The 0-5 star rating. |
+| `FolderPath` | The audio file the track points at. See [FolderPath](#folderpath). |
+
+Every field above except `Rating` and `FolderPath` also comes from an audio tag, and [`import`](import.md) reads the same set. Musical key is the one tag `edit` does not offer: Rekordbox derives it from its own analysis, which would overwrite whatever you set.
+
+`Rating`, `TrackNo`, `DiscNo`, and `ReleaseYear` hold numbers, so `--match` does not apply to them; passing it warns and sets the value directly.
+
+## Relational fields
+
+`ArtistName`, `AlbumName`, `ComposerName`, `Genre`, and `Label` do not live on the track's own row. Each names a record in a shared table that many tracks point at, so editing one works the way it does in Rekordbox: the track is reassigned to a record with the new name, reusing an existing one or creating it, and every other track keeps the record it had. `--replace ""` clears the field. A record nothing references any more is deleted, again matching Rekordbox.
+
+One deliberate difference: reusing an existing album leaves that album's album-artist alone, where Rekordbox blanks it for every track on the album.
 
 `--replace` supplies the new value. On its own it overwrites the whole field; add `--match PATTERN` to find that literal text within the field and replace only that portion:
 

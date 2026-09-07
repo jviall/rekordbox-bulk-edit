@@ -198,3 +198,126 @@ def test_folderpath_missing_file_skips_track(fresh_db):
     unchanged = db.session.query(tb.DjmdContent).filter_by(Title="Wave Alpha").one()
     assert unchanged.FolderPath == old_path
     db.close()
+
+
+def test_genre_create_then_reuse_and_collect_orphan(fresh_db):
+    """The fixture library carries no genres, so this drives the whole life
+    cycle: create, reuse by name, and collect the record left behind."""
+    db = Rekordbox6Database(str(fresh_db))
+    assert db.session is not None
+
+    edit(
+        db, EditRequest(exact_title=["Interchange"], field="Genre", replace_value="Dub")
+    )
+    edit(
+        db,
+        EditRequest(exact_title=["Wave Alpha"], field="Genre", replace_value="Techno"),
+    )
+
+    assert db.session.query(tb.DjmdGenre).count() == 2
+
+    # Moving the only Dub track onto the existing Techno row reuses it and
+    # leaves Dub unreferenced.
+    edit(
+        db,
+        EditRequest(exact_title=["Interchange"], field="Genre", replace_value="Techno"),
+    )
+
+    moved = db.session.query(tb.DjmdContent).filter_by(Title="Interchange").one()
+    assert moved.GenreName == "Techno"
+    assert db.session.query(tb.DjmdGenre).filter_by(Name="Dub").first() is None
+    assert db.session.query(tb.DjmdGenre).count() == 1
+    db.close()
+
+
+def test_label_shared_by_two_tracks_survives_a_move(fresh_db):
+    db = Rekordbox6Database(str(fresh_db))
+    assert db.session is not None
+
+    for title in ("Interchange", "Wave Alpha"):
+        edit(
+            db, EditRequest(exact_title=[title], field="Label", replace_value="Ostgut")
+        )
+    edit(
+        db,
+        EditRequest(exact_title=["Interchange"], field="Label", replace_value="Warp"),
+    )
+
+    assert db.session.query(tb.DjmdLabel).filter_by(Name="Ostgut").first() is not None
+    stayed = db.session.query(tb.DjmdContent).filter_by(Title="Wave Alpha").one()
+    assert stayed.LabelName == "Ostgut"
+    db.close()
+
+
+def test_clearing_a_label_writes_an_empty_foreign_key(fresh_db):
+    db = Rekordbox6Database(str(fresh_db))
+    assert db.session is not None
+
+    edit(
+        db,
+        EditRequest(exact_title=["Interchange"], field="Label", replace_value="Warp"),
+    )
+    edit(db, EditRequest(exact_title=["Interchange"], field="Label", replace_value=""))
+
+    cleared = db.session.query(tb.DjmdContent).filter_by(Title="Interchange").one()
+    assert cleared.LabelID == ""
+    assert db.session.query(tb.DjmdLabel).filter_by(Name="Warp").first() is None
+    db.close()
+
+
+def test_composer_edit_spares_the_artist_row_it_shares(fresh_db):
+    """Composer and artist read the same DjmdArtist table, so vacating one
+    role must not collect a row the other still holds."""
+    db = Rekordbox6Database(str(fresh_db))
+    assert db.session is not None
+
+    edit(
+        db,
+        EditRequest(
+            exact_title=["Apple Alpha"], field="ComposerName", replace_value="Alpha"
+        ),
+    )
+    edit(
+        db,
+        EditRequest(
+            exact_title=["Apple Alpha"], field="ComposerName", replace_value="Beta"
+        ),
+    )
+
+    track = db.session.query(tb.DjmdContent).filter_by(Title="Apple Alpha").one()
+    assert track.ComposerName == "Beta"
+    assert track.ArtistName == "Alpha"
+    assert db.session.query(tb.DjmdArtist).filter_by(Name="Alpha").first() is not None
+    db.close()
+
+
+def test_numeric_fields_are_written_as_numbers(fresh_db):
+    db = Rekordbox6Database(str(fresh_db))
+    assert db.session is not None
+
+    for field, value in (("TrackNo", "7"), ("DiscNo", "2"), ("ReleaseYear", "2024")):
+        edit(
+            db,
+            EditRequest(exact_title=["Interchange"], field=field, replace_value=value),
+        )
+
+    track = db.session.query(tb.DjmdContent).filter_by(Title="Interchange").one()
+    assert (track.TrackNo, track.DiscNo, track.ReleaseYear) == (7, 2, 2024)
+    assert track.ReleaseDate == ""
+    db.close()
+
+
+def test_isrc_is_written_to_its_own_column(fresh_db):
+    db = Rekordbox6Database(str(fresh_db))
+    assert db.session is not None
+
+    edit(
+        db,
+        EditRequest(
+            exact_title=["Interchange"], field="ISRC", replace_value="USRC17607839"
+        ),
+    )
+
+    track = db.session.query(tb.DjmdContent).filter_by(Title="Interchange").one()
+    assert track.ISRC == "USRC17607839"
+    db.close()

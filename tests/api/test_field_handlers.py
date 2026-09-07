@@ -122,9 +122,14 @@ class TestRatingField:
 
 
 #: Every relational field, as (edit field, foreign key column, relation kind).
+#: Composer shares the artist table with ArtistName, so it rides the same cases
+#: to prove one role's edit does not collect a record another role still holds.
 RELATIONAL_CASES = [
     ("ArtistName", "ArtistID", "artist"),
     ("AlbumName", "AlbumID", "album"),
+    ("Genre", "GenreID", "genre"),
+    ("Label", "LabelID", "label"),
+    ("ComposerName", "ComposerID", "artist"),
 ]
 
 
@@ -237,6 +242,90 @@ class TestRelationalApply:
         FIELD_HANDLERS[field].apply(db, content, "RBE Fresh")
 
         assert find_by_name(db, kind, "RBE Fresh") is not None
+
+
+def test_composer_edit_spares_an_artist_still_credited(db, tracks):
+    """One DjmdArtist row can be both a track's artist and its composer;
+    vacating one role must not collect the record the other still holds."""
+    content = tracks[0]
+    artist = get_or_create(db, "artist", "RBE Double Duty")
+    db.session.flush()
+    content.ArtistID = artist.ID
+    content.ComposerID = artist.ID
+    db.session.flush()
+
+    FIELD_HANDLERS["ComposerName"].apply(db, content, "RBE Someone Else")
+
+    assert db.session.query(tb.DjmdArtist).filter_by(ID=artist.ID).first() is not None
+    assert content.ArtistID == artist.ID
+
+
+class TestIntegerField:
+    def test_no_match_support(self):
+        assert FIELD_HANDLERS["TrackNo"].supports_match is False
+
+    def test_validate_rejects_non_numeric(self):
+        args = EditRequest(title=["x"], field="TrackNo", replace_value="four")
+        with pytest.raises(ValueError):
+            FIELD_HANDLERS["TrackNo"].validate_request(args)
+
+    def test_validate_warns_and_ignores_match(self):
+        args = EditRequest(
+            title=["x"], field="TrackNo", replace_value="4", match_pattern="1"
+        )
+        # Must not raise; --match is ignored for a numeric field.
+        FIELD_HANDLERS["TrackNo"].validate_request(args)
+
+    def test_current_value_is_a_string(self, make_djmd_content_item):
+        content = make_djmd_content_item(ID="1")
+        content.TrackNo = 7
+        assert FIELD_HANDLERS["TrackNo"].current_value(content) == "7"
+
+    def test_compute_and_apply_write_an_int(self, make_djmd_content_item):
+        content = make_djmd_content_item(ID="1")
+        content.ReleaseYear = 1999
+        handler = FIELD_HANDLERS["ReleaseYear"]
+        args = EditRequest(title=["x"], field="ReleaseYear", replace_value="2024")
+        new_value = handler.compute_new_value(handler.current_value(content), args)
+        assert new_value == "2024"
+        handler.apply(db=MagicMock(), content=content, new_value=new_value)
+        assert content.ReleaseYear == 2024
+
+    def test_clearing_writes_zero(self, make_djmd_content_item):
+        content = make_djmd_content_item(ID="1")
+        content.DiscNo = 3
+        handler = FIELD_HANDLERS["DiscNo"]
+        args = EditRequest(title=["x"], field="DiscNo", replace_value="")
+        new_value = handler.compute_new_value(handler.current_value(content), args)
+        assert new_value is not None
+        handler.apply(db=MagicMock(), content=content, new_value=new_value)
+        assert content.DiscNo == 0
+
+    def test_release_year_leaves_release_date_alone(self, make_djmd_content_item):
+        content = make_djmd_content_item(ID="1")
+        content.ReleaseYear = 1999
+        content.ReleaseDate = "1999-04-01"
+        FIELD_HANDLERS["ReleaseYear"].apply(MagicMock(), content, "2024")
+        assert content.ReleaseDate == "1999-04-01"
+
+
+class TestISRCField:
+    def test_registered_over_the_isrc_column(self):
+        handler = FIELD_HANDLERS["ISRC"]
+        assert isinstance(handler, StringField)
+        assert handler.column == "ISRC"
+
+    def test_match_replace_applies(self, make_djmd_content_item):
+        content = make_djmd_content_item(ID="1")
+        content.ISRC = "USRC17607839"
+        handler = FIELD_HANDLERS["ISRC"]
+        args = EditRequest(
+            title=["x"], field="ISRC", replace_value="GBAY", match_pattern="USRC"
+        )
+        new_value = handler.compute_new_value(handler.current_value(content), args)
+        assert new_value is not None
+        handler.apply(db=MagicMock(), content=content, new_value=new_value)
+        assert content.ISRC == "GBAY17607839"
 
 
 def _folder_handler():
