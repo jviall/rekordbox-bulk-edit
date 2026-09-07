@@ -9,7 +9,8 @@ from typing import NamedTuple, cast
 from pyrekordbox import Rekordbox6Database
 from pyrekordbox.db6 import tables as tb
 
-from rekordbox_edit.api._relations import find_by_name, get_or_create
+from rekordbox_edit._tag_fields import TAG_FIELDS
+from rekordbox_edit.api._relations import RELATIONS, find_by_name, get_or_create
 from rekordbox_edit.api._utils import stamp_usns, track_from_content, writing
 from rekordbox_edit.errors import (
     DirectoryConfirmationRequired,
@@ -169,25 +170,30 @@ def _resolve_relations(
     """Foreign keys for a track's tags, creating shared rows as needed.
 
     A tag that is absent yields no key, leaving the column at add_content's
-    default. KeyID is the exception: DjmdKey is a closed table the tool must
-    not add to, so an unmatched key falls back to Rekordbox's '0' sentinel.
+    default. A closed relation is the exception: DjmdKey cannot be added to,
+    so an unmatched key falls back to Rekordbox's '0' sentinel.
     """
     relations: dict[str, str] = {}
-    for field, column, kind in (
-        ("artist", "ArtistID", "artist"),
-        ("composer", "ComposerID", "artist"),
-        ("album", "AlbumID", "album"),
-        ("genre", "GenreID", "genre"),
-        ("label", "LabelID", "label"),
-    ):
-        value = tags.get(field)
-        if value:
-            relations[column] = get_or_create(db, kind, value, created).ID
-
-    key = tags.get("key")
-    row = find_by_name(db, "key", key) if key else None
-    relations["KeyID"] = row.ID if row else "0"
+    for tag_field in TAG_FIELDS:
+        if tag_field.relation is None:
+            continue
+        value = tags.get(tag_field.tag)
+        relation = RELATIONS[tag_field.relation]
+        if not relation.sweepable:
+            row = find_by_name(db, tag_field.relation, value) if value else None
+            relations[tag_field.column] = row.ID if row else relation.empty_value
+        elif value:
+            relations[tag_field.column] = get_or_create(
+                db, tag_field.relation, value, created
+            ).ID
     return relations
+
+
+def _scalar_columns(tags: TrackTags) -> dict[str, str | int]:
+    """Column values for the tags stored on the DjmdContent row itself."""
+    return {
+        f.column: tags.get(f.tag) or f.default for f in TAG_FIELDS if f.relation is None
+    }
 
 
 def _created_date(path: str) -> str:
@@ -218,12 +224,7 @@ def _build_content(
         candidate.stored,
         **IMPORT_DEFAULTS,
         **_resolve_relations(db, tags, created),
-        Title=tags["title"],
-        Commnt=tags["comment"] or "",
-        ISRC=tags["isrc"] or "",
-        TrackNo=tags["track_no"] or 0,
-        DiscNo=tags["disc_no"] or 0,
-        ReleaseYear=tags["release_year"] or 0,
+        **_scalar_columns(tags),
         Length=tags["length"] or 0,
     )
     # add_content types by extension, mapping every .m4a to AAC, and stamps
