@@ -115,6 +115,13 @@ class PrintableField(Enum):
     Title = "Title"
     Comment = "Commnt"
     Rating = "Rating"
+    Genre = "GenreName"
+    Label = "LabelName"
+    ComposerName = "ComposerName"
+    ISRC = "ISRC"
+    TrackNo = "TrackNo"
+    DiscNo = "DiscNo"
+    ReleaseYear = "ReleaseYear"
 
 
 # Column headers shown in the rendered table
@@ -131,6 +138,13 @@ PRINT_HEADERS: Dict[PrintableField, str] = {
     PrintableField.FolderPath: "Folder",
     PrintableField.Comment: "Comment",
     PrintableField.Rating: "Rating",
+    PrintableField.Genre: "Genre",
+    PrintableField.Label: "Label",
+    PrintableField.ComposerName: "Composer",
+    PrintableField.ISRC: "ISRC",
+    PrintableField.TrackNo: "Track",
+    PrintableField.DiscNo: "Disc",
+    PrintableField.ReleaseYear: "Year",
 }
 
 # Per-column add_column kwargs. min_width guarantees a column is never collapsed
@@ -148,6 +162,13 @@ _COLUMN_CONFIG: Dict[PrintableField, dict] = {
     PrintableField.FileNameL: {"min_width": 5, "ratio": 1, "style": "rbe.path"},
     PrintableField.Comment: {"min_width": 5, "ratio": 1},
     PrintableField.Rating: {"justify": "right", "min_width": 3, "style": "dim"},
+    PrintableField.Genre: {"min_width": 5, "ratio": 1},
+    PrintableField.Label: {"min_width": 5, "ratio": 1},
+    PrintableField.ComposerName: {"min_width": 5, "ratio": 1},
+    PrintableField.ISRC: {"min_width": 12},
+    PrintableField.TrackNo: {"justify": "right", "min_width": 3, "style": "dim"},
+    PrintableField.DiscNo: {"justify": "right", "min_width": 3, "style": "dim"},
+    PrintableField.ReleaseYear: {"justify": "right", "min_width": 4, "style": "dim"},
 }
 
 

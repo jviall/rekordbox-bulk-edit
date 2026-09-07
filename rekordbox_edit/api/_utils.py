@@ -8,6 +8,7 @@ from pyrekordbox.db6 import DjmdContent
 from pyrekordbox.utils import get_rekordbox_pid
 from sqlalchemy import text
 
+from rekordbox_edit._tag_fields import TAG_FIELDS
 from rekordbox_edit.errors import RekordboxRunningError
 from rekordbox_edit.locking import SCRIPTED_TIMEOUT, database_lock
 from rekordbox_edit.models import Track
@@ -17,6 +18,9 @@ from rekordbox_edit.utils import AudioInfo, get_file_type_for_format
 _logger = logging.getLogger(__name__)
 
 _COLUMN_KEYS = tuple(c.key for c in DjmdContent.__table__.columns)
+#: association_proxy attributes reading a related record's name; not present
+#: in __table__.columns, so they are copied across explicitly.
+_PROXY_KEYS = tuple(f.proxy for f in TAG_FIELDS if f.proxy is not None)
 
 
 @contextmanager
@@ -42,9 +46,7 @@ def writing(db: Rekordbox6Database, command: str) -> Iterator[None]:
 def track_from_content(content: DjmdContent) -> Track:
     data = {k: getattr(content, k) for k in _COLUMN_KEYS}
     data["ID"] = str(data["ID"])
-    # association_proxy attributes; not present in __table__.columns
-    data["ArtistName"] = content.ArtistName
-    data["AlbumName"] = content.AlbumName
+    data.update({k: getattr(content, k) for k in _PROXY_KEYS})
     return Track(**data)
 
 

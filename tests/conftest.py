@@ -5,6 +5,7 @@ import pytest
 from pyrekordbox.db6 import DjmdContent
 
 from rekordbox_edit import locking
+from rekordbox_edit._tag_fields import TAG_FIELDS
 from rekordbox_edit.api import _utils as api_utils
 
 from rekordbox_edit.models import Track
@@ -45,6 +46,10 @@ def make_djmd_content_item():
         # sees a clean row instead of MagicMock placeholders.
         for col in DjmdContent.__table__.columns:
             setattr(item_mock, col.key, None)
+        # The name proxies are not columns, so the loop above misses them.
+        for tag_field in TAG_FIELDS:
+            if tag_field.proxy:
+                setattr(item_mock, tag_field.proxy, kwargs.get(tag_field.proxy))
         item: DjmdContent = cast(DjmdContent, item_mock)
         item.ID = kwargs.get("ID", id)
         item.Title = kwargs.get("Title", "Test Song")

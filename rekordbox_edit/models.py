@@ -188,12 +188,18 @@ class Track(BaseModel):
     BitDepth: int | None = None
     BitRate: int | None = None
     Commnt: str | None = None
+    ComposerName: str | None = None
     DateCreated: str | None = None
+    DiscNo: int | None = None
     FileNameL: str
     FileNameS: str | None = None
     FileType: int | None = None
     FolderPath: str
+    GenreName: str | None = None
     ID: str
+    ISRC: str | None = None
+    KeyName: str | None = None
+    LabelName: str | None = None
     Length: int | None = None
     Rating: int | None = None
     ReleaseDate: str | None = None

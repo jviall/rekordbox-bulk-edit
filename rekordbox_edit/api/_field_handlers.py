@@ -12,6 +12,7 @@ import os
 from pyrekordbox import Rekordbox6Database
 from pyrekordbox.db6 import tables as tb
 
+from rekordbox_edit._tag_fields import TAG_FIELDS, TagField
 from rekordbox_edit.api._relations import (
     RELATIONS,
     delete_if_orphaned,
@@ -127,6 +128,48 @@ class RatingField(FieldHandler):
 
     def apply(self, db, content, new_value):
         content.Rating = star_rating_to_stored(int(new_value))
+
+
+class IntegerField(FieldHandler):
+    """A whole-number column: track number, disc number, or release year.
+
+    `--match` does not apply, so the value is validated once per request
+    rather than per track. A cleared value writes 0, the value an import
+    stores for a tag the file does not carry.
+    """
+
+    supports_match = False
+
+    def __init__(self, name: str, column: str):
+        self.name = name
+        self.column = column
+
+    def validate_request(self, args):
+        if args.match_pattern is not None:
+            _logger.warning(
+                f"--match does not apply to {self.name}; setting the value directly"
+            )
+        self._parse(args.replace_value)  # raises ValueError on bad input
+
+    def _parse(self, value: str) -> int:
+        if value == "":
+            return 0
+        try:
+            return int(value)
+        except ValueError:
+            raise ValueError(
+                f"{self.name} must be a whole number, got {value!r}"
+            ) from None
+
+    def current_value(self, content):
+        stored = getattr(content, self.column)
+        return None if stored is None else str(stored)
+
+    def compute_new_value(self, current, args):
+        return str(self._parse(args.replace_value))
+
+    def apply(self, db, content, new_value):
+        setattr(content, self.column, int(new_value))
 
 
 class RelationalField(FieldHandler):
@@ -285,13 +328,28 @@ class FolderPathField(FieldHandler):
         return cue is not None
 
 
+def _handler_for(tag_field: TagField) -> FieldHandler:
+    """The handler for one editable tag, chosen by how its column stores the
+    value: through a foreign key, as a number, or as text."""
+    name = tag_field.edit_field
+    assert name is not None and tag_field.column is not None
+    if tag_field.relation is not None:
+        assert tag_field.proxy is not None
+        return RelationalField(
+            name, tag_field.column, tag_field.proxy, tag_field.relation
+        )
+    if isinstance(tag_field.default, int):
+        return IntegerField(name, tag_field.column)
+    return StringField(name, tag_field.column)
+
+
+#: Every field `edit` can change. The tag-backed ones come from TAG_FIELDS so
+#: `edit` and `import` cannot drift apart; Rating and FolderPath are not audio
+#: tags and are declared here.
 FIELD_HANDLERS: dict[str, FieldHandler] = {
     handler.name: handler
     for handler in (
-        StringField("Title", "Title"),
-        StringField("Comment", "Commnt"),
-        RelationalField("ArtistName", "ArtistID", "ArtistName", "artist"),
-        RelationalField("AlbumName", "AlbumID", "AlbumName", "album"),
+        *(_handler_for(f) for f in TAG_FIELDS if f.edit_field is not None),
         RatingField(),
         FolderPathField(),
     )
