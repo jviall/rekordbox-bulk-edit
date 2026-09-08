@@ -317,6 +317,19 @@ class TestUpdateAnlzPaths:
 
         db.get_anlz_paths.assert_not_called()
 
+    def test_survives_a_missing_analysis_directory(self, analysed, caplog):
+        """A row can name an analysis directory that was never created.
+        pyrekordbox's get_anlz_paths scans that directory, so it raises rather
+        than returning nothing, and an edit pass must not die on the row."""
+        db, content, _dat, _ext = analysed
+        db.get_anlz_paths.side_effect = FileNotFoundError(
+            2, "The system cannot find the path specified", str(content.AnalysisDataPath)
+        )
+
+        _update_anlz_paths(db, content, "new song.mp3")
+
+        assert "analysis directory" in caplog.text
+
     def test_skips_an_analysis_file_that_does_not_exist(self, analysed, tmp_path):
         db, content, dat, _ext = analysed
         db.get_anlz_paths.return_value = {"DAT": dat, "EXT": tmp_path / "absent.EXT"}
