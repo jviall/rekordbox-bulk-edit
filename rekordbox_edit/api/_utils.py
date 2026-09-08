@@ -9,6 +9,8 @@ from pyrekordbox.utils import get_rekordbox_pid
 from sqlalchemy import text
 
 from rekordbox_edit._tag_fields import TAG_FIELDS
+from rekordbox_edit.api._anlz import AnlzFormatError
+from rekordbox_edit.api._anlz import set_path as set_anlz_path
 from rekordbox_edit.errors import RekordboxRunningError
 from rekordbox_edit.locking import SCRIPTED_TIMEOUT, database_lock
 from rekordbox_edit.models import Track
@@ -81,15 +83,29 @@ def _update_anlz_paths(
     """Rewrite the PPTH path tag in a track's ANLZ files to the given file
     name, in rekordbox's device-relative ``?/<name>`` form.
 
-    No-op for tracks without an analysis.
+    Splices the tag into the file's existing bytes rather than rebuilding it
+    from parsed structures, so tags this codebase has no reader for survive.
+    Rebuilding drops them, and one of them is `PVB2`, the seek index Rekordbox
+    writes for every analysed FLAC.
+
+    Each file is handled on its own: a malformed one is reported and skipped
+    rather than abandoning the rest of the track's analysis. No-op for tracks
+    without an analysis.
     """
     if not content.AnalysisDataPath:
         return
     new_ppth = f"?/{new_filename}"
-    anlz_files = db.read_anlz_files(content.ID)
-    for anlz_path, anlz in anlz_files.items():
-        anlz.set_path(new_ppth)
-        anlz.save(anlz_path)
+    for anlz_path in db.get_anlz_paths(content.ID).values():
+        if anlz_path is None:
+            continue
+        try:
+            with open(anlz_path, "rb") as fh:
+                updated = set_anlz_path(fh.read(), new_ppth)
+            with open(anlz_path, "wb") as fh:
+                fh.write(updated)
+        except (AnlzFormatError, OSError) as e:
+            _logger.warning(f"Could not rewrite the path tag in {anlz_path}: {e}")
+            continue
         _logger.debug(f"Updated PPTH of {anlz_path} to {new_ppth}")
 
 

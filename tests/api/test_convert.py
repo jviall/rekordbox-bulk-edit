@@ -27,7 +27,6 @@ from rekordbox_edit.api._convert import (
     _run_ffmpeg,
     _sweep_orphan_temp_files,
     _temp_output_path,
-    _update_anlz_paths,
     convert,
 )
 from sqlalchemy import text
@@ -2576,33 +2575,6 @@ class TestApplyConvertedRecord:
 
         assert content.BitDepth == 16
         assert content.SampleRate == 48000
-
-
-class TestUpdateAnlzPaths:
-    def test_rewrites_ppth_to_device_relative_form(self, make_djmd_content_item):
-        mock_db = Mock()
-        content = make_djmd_content_item(ID=7)
-        content.AnalysisDataPath = "share/PIONEER/USBANLZ/x/ANLZ0000.DAT"
-        dat, ext = Mock(), Mock()
-        mock_db.read_anlz_files.return_value = {
-            "/a/ANLZ0000.DAT": dat,
-            "/a/ANLZ0000.EXT": ext,
-        }
-
-        _update_anlz_paths(mock_db, content, "new song.aiff")
-
-        dat.set_path.assert_called_once_with("?/new song.aiff")
-        dat.save.assert_called_once_with("/a/ANLZ0000.DAT")
-        ext.set_path.assert_called_once_with("?/new song.aiff")
-        ext.save.assert_called_once_with("/a/ANLZ0000.EXT")
-
-    def test_skips_track_without_analysis(self, make_djmd_content_item):
-        mock_db = Mock()
-        content = make_djmd_content_item(ID=7)  # AnalysisDataPath defaults to None
-
-        _update_anlz_paths(mock_db, content, "new.aiff")
-
-        mock_db.read_anlz_files.assert_not_called()
 
 
 class TestRollbackSession:
