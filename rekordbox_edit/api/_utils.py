@@ -94,8 +94,15 @@ def _update_anlz_paths(
     """
     if not content.AnalysisDataPath:
         return
+    try:
+        anlz_paths = db.get_anlz_paths(content.ID).values()
+    except OSError as e:
+        # A row can name a directory that was never created; get_anlz_paths
+        # scans it, so it raises rather than coming back empty.
+        _logger.warning(f"Could not read the analysis directory for {content.ID}: {e}")
+        return
     new_ppth = f"?/{new_filename}"
-    for anlz_path in db.get_anlz_paths(content.ID).values():
+    for anlz_path in anlz_paths:
         if anlz_path is None:
             continue
         try:
