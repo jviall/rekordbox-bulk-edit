@@ -203,8 +203,10 @@ def print_track_info(
     """Print formatted track information.
 
     When ``changed_field`` and ``new_values`` are both provided, the matching
-    column renders each row as a before/after preview: the old value is
-    struck through and the new value is appended.
+    column renders each row as a before/after preview: the old value struck
+    through, the new value beneath it. That column wraps rather than
+    ellipsising, since both values have to stay readable at ordinary terminal
+    widths.
     """
     if (changed_field is None) != (new_values is None):
         raise ValueError("changed_field and new_values must be provided together")
@@ -232,8 +234,16 @@ def print_track_info(
     table.add_column("#", justify="right", min_width=1, no_wrap=True)
     for column in print_columns:
         cfg = _COLUMN_CONFIG.get(column, {"min_width": 5})
+        # The changed column carries both values, so it needs roughly twice the
+        # width of any other. Ellipsised at a real terminal width it shows the
+        # old value and truncates the new one away, which is the half nobody
+        # can check.
+        previewing = column is changed_field and new_values is not None
         table.add_column(
-            PRINT_HEADERS[column], no_wrap=True, overflow="ellipsis", **cfg
+            PRINT_HEADERS[column],
+            no_wrap=not previewing,
+            overflow="fold" if previewing else "ellipsis",
+            **cfg,
         )
 
     for i, track in enumerate(content_list, 1):
@@ -241,7 +251,9 @@ def print_track_info(
         for col in print_columns:
             old = _cell_value(track, col)
             if col is changed_field and new_values is not None:
-                cells.append(f"[strike]{old}[/strike] [bold]{new_values[i - 1]}[/bold]")
+                cells.append(
+                    f"[strike]{old}[/strike]\n[bold]{new_values[i - 1]}[/bold]"
+                )
             else:
                 cells.append(old)
         table.add_row(str(i), *cells)
