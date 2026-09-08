@@ -86,6 +86,25 @@ def wide_console(monkeypatch):
     )
 
 
+@pytest.fixture
+def terminal_console(monkeypatch):
+    """Swap the module console for one the width of an ordinary terminal.
+
+    `wide_console` exists to keep substring assertions stable, but a preview
+    that only renders at 400 columns is not a preview anyone sees.
+    """
+    monkeypatch.setattr(
+        display,
+        "console",
+        Console(
+            record=True,
+            width=100,
+            theme=display.RBE_THEME,
+            highlighter=display.RbeHighlighter(),
+        ),
+    )
+
+
 class TestPrintTrackInfo:
     """Test print_track_info function."""
 
@@ -164,6 +183,32 @@ class TestPrintTrackInfo:
         captured = capsys.readouterr()
         assert "Old Name" in captured.out
         assert "New Name" in captured.out
+
+    def test_change_preview_shows_the_new_path_at_terminal_width(
+        self, capsys, terminal_console, make_track
+    ):
+        """A path rewrite is the case this preview exists for, and paths are long.
+
+        Old and new share one no-wrap ellipsis cell, so the old value alone
+        fills the column and the new value is truncated away entirely. A bulk
+        repoint is then unverifiable from --dry-run.
+        """
+        old = (
+            "A:/Music/Any Time, Any Place - Janet Jackson (1994) "
+            "{V25H-38435} [FLAC-CD]/03 Janet Jackson - Any Time, Any Place.flac"
+        )
+        new = old.replace("A:/Music/", "A:/rbe_migration_copy/Music/")
+
+        print_track_info(
+            [make_track(FolderPath=old)],
+            changed_field=PrintableField.FolderPath,
+            new_values=[new],
+        )
+
+        # The cell wraps, so the path is split across lines; join it back up.
+        rendered = "".join(capsys.readouterr().out.split())
+        assert "rbe_migration_copy/Music/" in rendered
+        assert "A:/Music/AnyTime" in rendered
 
     def test_change_preview_requires_both_args(self, make_track):
         """Providing only one of changed_field/new_values raises ValueError."""
