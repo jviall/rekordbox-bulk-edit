@@ -9,9 +9,12 @@ from filelock import FileLock, Timeout
 from pyrekordbox import Rekordbox6Database
 from sqlalchemy import text
 
+from tests.anlz_helpers import UNPARSED_TAG, anlz, path_tag
 from tests.api.conftest import close_database
 
+from rekordbox_edit.api._anlz import read_path
 from rekordbox_edit.api._utils import (
+    _update_anlz_paths,
     reserve_usns,
     stamp_usns,
     track_from_content,
@@ -261,3 +264,63 @@ class TestWriting:
                         pass
         finally:
             foreign.release()
+
+
+class TestUpdateAnlzPaths:
+    """The path rewrite must not disturb anything else in the file: these are
+    the only copy of a track's analysis, and tags this codebase cannot parse
+    still belong to Rekordbox."""
+
+    @pytest.fixture()
+    def analysed(self, tmp_path, make_djmd_content_item):
+        """A track whose DAT and EXT files exist on disk, the EXT carrying a
+        tag no parser here understands."""
+        dat = tmp_path / "ANLZ0000.DAT"
+        ext = tmp_path / "ANLZ0000.EXT"
+        dat.write_bytes(anlz(path_tag("?/old name.flac")))
+        ext.write_bytes(anlz(path_tag("?/old name.flac"), UNPARSED_TAG))
+
+        db = Mock()
+        db.get_anlz_paths.return_value = {"DAT": dat, "EXT": ext}
+        content = make_djmd_content_item(ID=7)
+        content.AnalysisDataPath = "share/PIONEER/USBANLZ/x/ANLZ0000.DAT"
+        return db, content, dat, ext
+
+    def test_rewrites_the_path_in_every_analysis_file(self, analysed):
+        db, content, dat, ext = analysed
+
+        _update_anlz_paths(db, content, "new song.mp3")
+
+        assert read_path(dat.read_bytes()) == "?/new song.mp3"
+        assert read_path(ext.read_bytes()) == "?/new song.mp3"
+
+    def test_preserves_tags_the_parser_does_not_understand(self, analysed):
+        db, content, _dat, ext = analysed
+
+        _update_anlz_paths(db, content, "new song.mp3")
+
+        assert UNPARSED_TAG in ext.read_bytes()
+
+    def test_leaves_other_files_alone_when_one_is_malformed(self, analysed):
+        db, content, dat, ext = analysed
+        ext.write_bytes(b"not an anlz file at all")
+
+        _update_anlz_paths(db, content, "new song.mp3")
+
+        assert read_path(dat.read_bytes()) == "?/new song.mp3"
+
+    def test_skips_a_track_without_analysis(self, make_djmd_content_item):
+        db = Mock()
+        content = make_djmd_content_item(ID=7)  # AnalysisDataPath defaults to None
+
+        _update_anlz_paths(db, content, "new.mp3")
+
+        db.get_anlz_paths.assert_not_called()
+
+    def test_skips_an_analysis_file_that_does_not_exist(self, analysed, tmp_path):
+        db, content, dat, _ext = analysed
+        db.get_anlz_paths.return_value = {"DAT": dat, "EXT": tmp_path / "absent.EXT"}
+
+        _update_anlz_paths(db, content, "new song.mp3")
+
+        assert read_path(dat.read_bytes()) == "?/new song.mp3"
