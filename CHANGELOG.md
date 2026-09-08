@@ -1,3 +1,39 @@
+## v0.13.0 (2026-09-08)
+
+
+- fix: preserve unreadable ANLZ tags when rewriting a track's path
+- The PPTH rewrite went through AnlzFile.save(), which rebuilds a file from
+the tags pyrekordbox parsed and discards the rest. PVB2, the seek index
+Rekordbox writes for every analysed FLAC, is one it has no structure for,
+so every edit and convert that changed a filename dropped it. Across a
+24,698-file library, 1,787 files lost an 8,032-byte PVB2, and 10 more
+could not be parsed at all, leaving a stale path behind a successful write.
+- _anlz.py rewrites the tag by splicing bytes and correcting len_file. Tags
+are walked by declared length instead of being parsed, so a tag with no
+reader here survives and an unparseable file is still rewritten. Each
+analysis file is handled on its own, so one malformed file no longer
+abandons the rest of a track's analysis.
+- docs(research): investigate integrating rekordbox-edit with beets
+- fix(edit): give the records an edit creates and collects their USNs
+- An edit that reassigned a relational field left the record it created
+unstamped and the one it collected outside the counter, so a syncing peer
+never learned about either. import and remove already did both.
+- feat(edit): support the remaining audio-tag columns
+- Adds Genre, Label, ComposerName, ISRC, TrackNo, DiscNo, and ReleaseYear,
+built from the tag registry so edit and import cover the same set. Key is
+left out: Rekordbox derives it from analysis.
+- refactor: name the audio tags import reads in one registry
+- Which column a tag lands in was spread across _resolve_relations and the
+add_content call; edit needs the same mapping to stay in step with import.
+- refactor(api): gather shared-record handling behind _relations
+- edit, import, and remove each carried their own copy of which table holds a
+kind, which columns count as a reference to it, and how a new one is made.
+- test(e2e): cover the remove command
+- test(e2e): give the fixture rows a Rekordbox-shaped ImagePath
+- The fixture audio carries no embedded art, so analysis left every row with
+an empty ImagePath and no e2e case could reach the artwork cleanup.
+- test(e2e): share the private-DB fixtures through conftest
+
 ## v0.12.0 (2026-09-07)
 
 
